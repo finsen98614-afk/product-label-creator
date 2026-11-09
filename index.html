@@ -1,0 +1,1537 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Product Label Creator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,500;0,700;0,800;0,900;1,800;1,900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+      :root{
+        --bg:#eef0f2; --panel:#ffffff; --ink:#16181d; --ink-2:#4c5563; --line:#dde1e7;
+        --field:#f6f7f9; --brand:#f5b800; --brand-ink:#16181d; --danger:#d43a2f;
+        --radius:14px;
+        color-scheme: light dark;
+      }
+      @media (prefers-color-scheme: dark){
+        :root{ --bg:#101216; --panel:#1a1d23; --ink:#f0f2f5; --ink-2:#a7b0bd; --line:#2c313a; --field:#22262e; }
+      }
+      *{ box-sizing:border-box; }
+      html,body{ margin:0; padding:0; }
+      body{
+        background:var(--bg); color:var(--ink);
+        font-family:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
+        -webkit-font-smoothing:antialiased;
+      }
+      .app{ display:grid; grid-template-columns:400px 1fr; min-height:100vh; }
+
+      /* ---------- Editor panel ---------- */
+      .panel{
+        background:var(--panel); border-right:1px solid var(--line);
+        padding:22px 20px 40px; overflow-y:auto; max-height:100vh; position:sticky; top:0;
+      }
+      .panel h1{ font-family:"Archivo",sans-serif; font-size:21px; font-weight:900; letter-spacing:.01em; margin:0 0 4px; }
+      .panel .lede{ color:var(--ink-2); font-size:13px; margin:0 0 20px; line-height:1.55; }
+      section.block{ border-top:1px solid var(--line); padding:18px 0 6px; }
+      section.block:first-of-type{ border-top:none; padding-top:2px; }
+      .block-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px; }
+      .block-head h2{ font-size:13px; font-weight:900; letter-spacing:.14em; text-transform:uppercase; margin:0; }
+      .block-head h2 .zh{ letter-spacing:.05em; }
+      .block-head .hint{ font-size:11.5px; color:var(--ink-2); }
+      label.f{ display:block; font-size:12.5px; font-weight:700; color:var(--ink-2); margin:0 0 12px; }
+      label.f > span{ display:block; margin-bottom:5px; }
+      input[type="text"], input[type="number"], select{
+        width:100%; font:inherit; font-size:14.5px; color:var(--ink);
+        background:var(--field); border:1.5px solid var(--line); border-radius:9px;
+        padding:9px 11px; outline:none;
+      }
+      input:focus, select:focus{ border-color:var(--brand); background:var(--panel); }
+      .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+      .row3{ display:grid; grid-template-columns:1fr 1fr .8fr; gap:10px; }
+      .presets{ display:flex; flex-wrap:wrap; gap:6px; margin:-2px 0 12px; }
+      .chip{
+        font:inherit; font-size:12px; font-weight:700; cursor:pointer;
+        border:1.5px solid var(--line); background:var(--field); color:var(--ink-2);
+        border-radius:999px; padding:5px 11px;
+      }
+      .chip:hover{ border-color:var(--brand); color:var(--ink); }
+      .chip.sel{ background:var(--brand); border-color:var(--brand); color:var(--brand-ink); }
+
+      /* feature rows */
+      .feat-row{
+        display:grid; grid-template-columns:26px 1fr 118px 30px; gap:7px; align-items:center; margin-bottom:8px;
+      }
+      .feat-row .num{
+        width:26px; height:26px; border-radius:50%; background:var(--field); border:1.5px solid var(--line);
+        display:grid; place-items:center; font-size:11.5px; font-weight:900; color:var(--ink-2);
+      }
+      .feat-row select{ font-size:12.5px; padding:8px 6px; }
+      .icon-btn{
+        width:30px; height:34px; border:none; background:transparent; color:var(--ink-2);
+        font-size:17px; cursor:pointer; border-radius:7px; line-height:1;
+      }
+      .icon-btn:hover{ background:var(--field); color:var(--danger); }
+      .auto-tag{ grid-column:2 / 4; font-size:11px; color:var(--ink-2); margin:-3px 0 2px; }
+      .auto-tag b{ color:var(--ink); }
+      /* no-match fallback: online icon search + custom image URL */
+      .nomatch{ margin-top:4px; font-size:11.5px; font-weight:700; color:var(--danger); line-height:1.5; }
+      .nomatch a{ color:var(--danger); text-decoration:underline; font-weight:900; }
+      .mini-btn{
+        font:inherit; font-size:11px; font-weight:800; cursor:pointer;
+        border:1.5px solid var(--line); background:var(--field); color:var(--ink-2);
+        border-radius:999px; padding:3px 9px; margin-top:4px;
+      }
+      .mini-btn:hover{ border-color:var(--brand); color:var(--ink); }
+      .img-row{ display:flex; gap:6px; margin-top:5px; align-items:center; }
+      .img-row input{ flex:1; font-size:12px; padding:6px 8px; min-width:0; }
+      .img-row .mini-btn{ margin-top:0; flex:none; }
+      .add-btn{
+        width:100%; font:inherit; font-size:13.5px; font-weight:800; cursor:pointer;
+        border:1.5px dashed var(--line); background:transparent; color:var(--ink-2);
+        border-radius:9px; padding:9px; margin-top:2px;
+      }
+      .add-btn:hover{ border-color:var(--brand); color:var(--ink); }
+
+      /* switches */
+      .switch-row{ display:flex; align-items:center; justify-content:space-between; padding:7px 0 12px; }
+      .switch-row .t{ font-size:14px; font-weight:700; }
+      .switch-row .t small{ display:block; font-size:11.5px; font-weight:500; color:var(--ink-2); margin-top:1px; }
+      .sw{ position:relative; width:46px; height:26px; flex:none; display:block; }
+      .sw input{
+        -webkit-appearance:none; appearance:none; display:block;
+        width:46px; height:26px; margin:0; cursor:pointer; position:relative;
+        border-radius:999px; background:var(--line); transition:.18s; outline:none; border:none;
+      }
+      .sw input::after{ content:""; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:.18s; }
+      .sw input:checked{ background:var(--brand); }
+      .sw input:checked::after{ transform:translateX(20px); }
+      .sub-fields{ padding:0 0 4px; }
+      .sub-fields.off{ display:none; }
+
+      /* swatches */
+      .swatches{ display:flex; gap:9px; align-items:center; flex-wrap:wrap; padding-bottom:12px; }
+      .swatch{ width:34px; height:34px; border-radius:50%; border:3px solid transparent; cursor:pointer; padding:0; }
+      .swatch.sel{ border-color:var(--ink); }
+      .swatches input[type="color"]{ width:38px; height:38px; border:none; background:none; padding:0; cursor:pointer; }
+
+      /* ---------- Stage / preview ---------- */
+      .stage{ padding:26px 28px 60px; display:flex; flex-direction:column; align-items:center; }
+      .stage-bar{
+        width:100%; max-width:640px; display:flex; align-items:center; justify-content:space-between;
+        gap:12px; flex-wrap:wrap; margin-bottom:20px;
+      }
+      .dim-caption{ font-size:13px; color:var(--ink-2); font-weight:700; }
+      .dim-caption b{ color:var(--ink); }
+      .dl-btn{
+        font:inherit; font-size:14px; font-weight:900; cursor:pointer; border:none;
+        background:var(--brand); color:var(--brand-ink); border-radius:10px; padding:11px 20px;
+        box-shadow:0 3px 10px rgba(0,0,0,.18);
+      }
+      .dl-btn:hover{ filter:brightness(1.06); }
+      .dl-btn:disabled{ opacity:.55; cursor:wait; }
+      .label-shadow{ filter:drop-shadow(0 14px 30px rgba(15,18,25,.22)); }
+
+      /* ---------- Generated PNG result (in-page save path) ---------- */
+      .result{
+        display:none; width:100%; max-width:640px; margin-top:26px;
+        background:var(--panel); border:1.5px solid var(--line); border-radius:14px;
+        padding:18px; text-align:center;
+      }
+      .result.show{ display:block; }
+      .result h3{ font-size:15px; font-weight:900; margin:0 0 4px; }
+      .result p{ font-size:13px; color:var(--ink-2); line-height:1.6; margin:0 0 14px; }
+      .result p b{ color:var(--ink); }
+      .result img{
+        display:block; max-width:100%; height:auto; margin:0 auto 14px;
+        border:1px solid var(--line); border-radius:8px; background:#fff;
+      }
+      .result .dl-again{
+        font:inherit; font-size:13.5px; font-weight:900; cursor:pointer; border:none;
+        background:var(--brand); color:var(--brand-ink); border-radius:9px; padding:10px 18px;
+      }
+      .result .fname{ font-size:12px; color:var(--ink-2); margin-top:10px; word-break:break-all; }
+
+      /* ---------- THE LABEL (sizes in em; JS sets base font-size) ---------- */
+      .label{
+        --accent:#ffc900;
+        background:#ffffff; color:#0b0b0c;
+        border:.30em solid var(--accent); border-radius:1.5em;
+        font-family:"Archivo","Noto Sans TC",sans-serif;
+        padding:1.05em 1.15em 0; overflow:hidden; position:relative;
+        display:flex; flex-direction:column;
+      }
+      .name-row{ display:flex; align-items:center; justify-content:center; gap:.55em; }
+      .slashes{ display:flex; gap:.16em; flex:none; }
+      .slashes i{ display:block; width:.34em; height:1.35em; background:var(--accent); transform:skewX(-18deg); }
+      .pname{
+        font-weight:900; font-style:italic; text-transform:uppercase;
+        font-size:3.1em; line-height:.98; letter-spacing:-.015em; text-align:center;
+        white-space:nowrap; min-width:0; overflow:hidden;
+      }
+      .banner{ display:flex; align-items:center; gap:.55em; margin-top:.55em; }
+      .banner .dash{ flex:1; height:.17em; background:#0b0b0c; min-width:.5em; }
+      .banner-inner{
+        background:var(--accent); transform:skewX(-14deg);
+        padding:.30em 1.15em; flex:none; max-width:88%;
+      }
+      .banner-inner span{
+        display:block; font-weight:900; font-style:italic; text-transform:uppercase;
+        font-size:1.42em; line-height:1.05; white-space:nowrap;
+      }
+      .grid{ display:grid; grid-template-columns:1fr 1fr; margin-top:.95em; }
+      .cell{
+        display:flex; align-items:center; gap:.62em;
+        padding:.78em .3em .78em .45em; border-top:.085em solid var(--accent); min-width:0;
+      }
+      .cell.no-top{ border-top:none; }
+      .cell.div{ border-left:.085em solid var(--accent); padding-left:.75em; }
+      .cell.span2{ grid-column:span 2; justify-content:center; }
+      .ring{
+        flex:none; width:4.35em; height:4.35em; border-radius:50%;
+        border:.21em solid var(--accent); display:grid; place-items:center; background:#fff;
+      }
+      .ring svg{ width:2.75em; height:2.75em; display:block; }
+      .ftext{
+        font-weight:900; text-transform:uppercase; font-size:1.22em; line-height:1.04;
+        letter-spacing:-.005em; flex:1; min-width:0;
+      }
+      .warranty{ display:flex; align-items:center; gap:.6em; margin-top:.85em; padding:0 .15em; }
+      .warranty .wdash{ flex:1; height:.14em; background:var(--accent); min-width:.5em; }
+      .warranty .wcontent{ display:flex; align-items:center; gap:.45em; flex:none; max-width:92%; }
+      .warranty svg{ width:1.4em; height:1.4em; flex:none; display:block; }
+      .warranty .wtext{
+        font-weight:900; text-transform:uppercase; font-size:1.15em; line-height:1.05;
+        letter-spacing:.05em; white-space:nowrap;
+      }
+      .app-line{ display:flex; align-items:center; justify-content:center; margin-top:.8em; padding:0 .15em; }
+      .app-chip{
+        display:flex; align-items:center; gap:.5em; max-width:96%;
+        border:.14em solid #0b0b0c; border-radius:999em; background:#fff;
+        padding:.3em .95em .3em .45em;
+      }
+      .app-chip svg{ width:1.55em; height:1.55em; flex:none; display:block; }
+      .app-tag{
+        background:var(--accent); color:#0b0b0c; flex:none;
+        font-weight:900; font-style:italic; text-transform:uppercase;
+        font-size:.78em; letter-spacing:.1em; line-height:1;
+        padding:.3em .6em .26em; border-radius:999em;
+      }
+      .app-name{
+        font-weight:900; font-size:1.18em; line-height:1.05;
+        white-space:nowrap; min-width:0; overflow:hidden;
+      }
+      .slogan-zone{ margin-top:auto; position:relative; }
+      .end-pad{ height:1em; margin-top:auto; }
+      .push{ margin-top:auto; }
+      .wave{ display:block; width:calc(100% + 2.3em); margin:.55em -1.15em -1px; height:2.1em; }
+      .band{
+        background:var(--accent); margin:0 -1.15em; padding:.2em 1.15em 1.35em; position:relative; overflow:hidden;
+      }
+      .slogan{
+        font-weight:900; font-style:italic; line-height:.96; letter-spacing:-.02em;
+        position:relative; z-index:2; overflow-wrap:break-word;
+      }
+      .slogan-slashes{ display:flex; gap:.14em; position:relative; z-index:2; margin:.15em 0 0 .05em; }
+      .slogan-slashes i{ display:block; width:.30em; height:.95em; background:#0b0b0c; transform:skewX(-18deg); }
+      .swoosh{ position:absolute; left:0; right:0; bottom:0; width:100%; height:2.2em; z-index:1; }
+      /* dynamic — RACER: jagged accent band, big tilted shout with a white
+         offset shadow, mixed speed slashes, thick black sweep at the foot */
+      .sz-dynamic .band{ padding-bottom:1.55em; }
+      .sz-dynamic .slogan-slashes{ gap:.18em; margin:.2em 0 0 .05em; }
+      .sz-dynamic .slogan-slashes i{ width:.38em; height:1.2em; }
+      .sz-dynamic .slogan-slashes i:nth-child(2){ background:#fff; }
+      .sz-dynamic .slogan{
+        font-size:2.9em; color:#0b0b0c; text-transform:uppercase; letter-spacing:-.03em;
+        text-shadow:.065em .065em 0 #fff;
+        transform:rotate(-6deg) skewX(-5deg); transform-origin:left center;
+        padding:.34em .08em .55em;
+      }
+      /* minimal — LUXE: no fill band at all. White space, a hairline rule
+         with an accent diamond, wide-tracked upright type, accent dots */
+      .sz-minimal .band{
+        background:#fff; border-top:.16em solid #0b0b0c;
+        padding:.95em 1.15em 1.1em;
+      }
+      .min-rule{ display:flex; align-items:center; gap:.7em; position:relative; z-index:2; }
+      .min-rule i{ flex:1; height:.07em; background:#0b0b0c; display:block; }
+      .min-diamond{ width:.6em; height:.6em; background:var(--accent); transform:rotate(45deg); flex:none; display:block; }
+      .sz-minimal .slogan{
+        font-size:1.6em; color:#0b0b0c; font-style:normal; font-weight:700;
+        text-transform:uppercase; letter-spacing:.24em; text-align:center;
+        line-height:1.32; padding:.6em .25em .55em;
+      }
+      .min-dots{ display:flex; justify-content:center; gap:.55em; position:relative; z-index:2; }
+      .min-dots i{ width:.34em; height:.34em; border-radius:50%; background:var(--accent); display:block; }
+      /* retro — BADGE: black band stamped with a double accent frame,
+         centred upright white type, diamond row and an accent rule */
+      .retro-stripe{ height:.3em; background:var(--accent); margin:0 -1.15em; }
+      .sz-retro .band{ background:#0b0b0c; padding:.85em 1.3em 1.05em; }
+      .retro-frame{ border:.13em solid var(--accent); padding:.32em; position:relative; z-index:2; }
+      .retro-inner{ border:.06em solid var(--accent); padding:.75em .45em .8em; }
+      .retro-diamonds{ display:flex; justify-content:center; gap:.6em; margin-bottom:.5em; }
+      .retro-diamonds i{ width:.42em; height:.42em; background:var(--accent); transform:rotate(45deg); display:block; }
+      .sz-retro .slogan{
+        font-size:2.05em; color:#fff; font-style:normal;
+        text-transform:uppercase; letter-spacing:.05em; text-align:center;
+        line-height:1.05; padding:.1em .1em;
+      }
+      .retro-rule{ width:38%; height:.16em; background:var(--accent); margin:.55em auto 0; }
+
+      /* saved records */
+      .record-actions{ display:grid; grid-template-columns:1fr 1fr; gap:7px; margin:2px 0 10px; }
+      .record-actions.single{ grid-template-columns:1fr; }
+      /* Add / Change / Delete now live at the bottom of the form, after
+         every field has been filled in — Add spans the full width as the
+         main finishing action, Change / Delete sit side by side below it */
+      .record-actions-bottom{ margin-top:4px; }
+      .record-actions-bottom .rec-btn.primary{ grid-column:1 / -1; padding:13px 8px; font-size:14.5px; }
+      .rec-btn{
+        font:inherit; font-size:13.5px; font-weight:900; cursor:pointer;
+        border-radius:9px; padding:10px 8px; border:1.5px solid var(--line);
+        background:var(--field); color:var(--ink);
+      }
+      .rec-btn:hover{ border-color:var(--brand); }
+      .rec-btn.primary{ background:var(--brand); border-color:var(--brand); color:var(--brand-ink); }
+      .rec-btn.danger{ color:var(--danger); border-color:var(--danger); background:transparent; }
+      .rec-btn.danger.armed{ background:var(--danger); color:#fff; }
+      .record-msg{ font-size:12.5px; line-height:1.55; min-height:20px; color:var(--ink-2); margin:0 0 8px; }
+      .record-msg.ok{ color:#177245; font-weight:700; }
+      .record-msg.err{ color:var(--danger); font-weight:700; }
+      @media (prefers-color-scheme: dark){ .record-msg.ok{ color:#4ade80; } }
+      .record-note{ font-size:12px; color:var(--ink-2); line-height:1.55; margin:0 0 12px; }
+      /* clickable list of existing product names (for Change / Delete) */
+      .record-picker{ display:flex; flex-wrap:wrap; gap:6px; margin:0 0 12px; }
+      .rec-chip{
+        font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; text-align:left;
+        border:1.5px solid var(--line); background:var(--field); color:var(--ink);
+        border-radius:999px; padding:6px 12px; max-width:100%;
+        overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      }
+      .rec-chip:hover{ border-color:var(--brand); }
+      .rec-chip.sel{ background:var(--brand); border-color:var(--brand); color:var(--brand-ink); }
+      .record-picker-empty{ font-size:12px; color:var(--ink-2); line-height:1.55; }
+
+      /* slogan style picker (editor) */
+      .picker-label{ display:block; font-size:12.5px; font-weight:700; color:var(--ink-2); margin:0 0 5px; }
+      .style-picker{ display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin:0 0 12px; }
+      .style-opt{
+        font:inherit; cursor:pointer; border:1.5px solid var(--line); background:var(--field);
+        border-radius:9px; padding:8px 4px 7px; text-align:center; color:var(--ink-2);
+      }
+      .style-opt b{ display:block; font-size:12.5px; font-weight:900; color:var(--ink); }
+      .style-opt span{ font-size:10.5px; font-weight:700; letter-spacing:.05em; }
+      .style-opt.sel{ border-color:var(--brand); background:var(--brand); }
+      .style-opt.sel b, .style-opt.sel span{ color:var(--brand-ink); }
+      /* mini previews inside the picker — each mimics its label band */
+      .opt-preview{
+        height:32px; border-radius:6px; margin-bottom:6px; overflow:hidden;
+        display:flex; align-items:center; justify-content:center;
+        font-family:"Archivo",sans-serif;
+      }
+      .pv-dynamic{ background:#ffc900; }
+      .pv-dynamic b{
+        font-size:14px; font-weight:900; font-style:italic; color:#16181d;
+        transform:rotate(-6deg); text-shadow:2px 2px 0 #fff; letter-spacing:-.02em;
+      }
+      .pv-minimal{ background:#fff; border:1px solid var(--line); }
+      .pv-minimal b{
+        font-size:9.5px; font-weight:700; font-style:normal; color:#16181d;
+        letter-spacing:.3em; text-transform:uppercase; padding-left:.3em;
+      }
+      .pv-retro{ background:#16181d; }
+      .pv-retro b{
+        font-size:10px; font-weight:900; font-style:normal; color:#fff;
+        border:1.5px solid #ffc900; padding:2.5px 8px; letter-spacing:.12em;
+      }
+      /* previews keep their own colours even when the option is selected */
+      .style-opt.sel .pv-dynamic b{ color:#16181d; }
+      .style-opt.sel .pv-minimal b{ color:#16181d; }
+      .style-opt.sel .pv-retro b{ color:#fff; }
+      .foot{
+        margin:0 -1.15em; padding:.55em 1.15em .7em; background:#fff;
+        border-top:.14em solid #0b0b0c;
+        display:grid; grid-template-columns:1fr auto 1fr; align-items:end; gap:1em;
+      }
+      .barcode{ text-align:left; grid-column:1; justify-self:start; }
+      .barcode svg{ display:block; height:2.5em; width:auto; max-width:16em; }
+      .barcode .code{ font-size:.78em; font-weight:700; letter-spacing:.32em; margin-top:.18em; font-family:"Archivo",monospace; }
+      /* price sits in the centre of the footer and is printed in red */
+      .price{
+        grid-column:2; justify-self:center; text-align:center;
+        font-weight:900; font-style:italic; font-size:3em; line-height:1; white-space:nowrap;
+        color:#d81f26;
+      }
+
+      @media (max-width:900px){
+        .app{ grid-template-columns:1fr; }
+        .panel{ max-height:none; position:static; border-right:none; border-bottom:1px solid var(--line); }
+        .stage{ padding:20px 14px 48px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- ================= EDITOR ================= -->
+      <aside class="panel">
+        <h1>Product Label Creator</h1>
+        <p class="lede">填寫左邊內容，右邊即時生成產品標籤 —— 品牌名、產品名、尺寸、圖示功能、App 名稱、保養期、標語、條碼同價格，一張過。</p>
+
+        <section class="block">
+          <div class="block-head"><h2><span class="zh">已儲存紀錄</span> · Records</h2><span class="hint" id="record-count"></span></div>
+          <p class="record-note">以產品名稱做 Key 儲存成個標籤設定。先喺下面「已有產品名」清單撳一個嚟揀選、撳「載入」拎返出嚟，唔使自己打 Key。新增 / 更改 / 刪除三粒掣喺表單最底 — 填好晒、改好晒先至去最底撳。紀錄儲喺呢部裝置嘅瀏覽器入面。</p>
+          <label class="f"><span>紀錄 Key（產品名稱）· Retrieval key</span>
+            <input type="text" id="record-key" value="Smart Sport Watch" placeholder="例如 Smart Sport Watch" autocomplete="off" /></label>
+          <label class="f"><span>選擇已儲存紀錄 Saved records</span>
+            <select id="record-list"><option value="">— 未有紀錄 No records —</option></select></label>
+          <span class="picker-label">已有產品名 · 撳一個揀選（載入 / 更改 / 刪除用）</span>
+          <div class="record-picker" id="record-picker"></div>
+          <div class="record-actions single">
+            <button type="button" class="rec-btn" id="rec-load">載入 Retrieve</button>
+          </div>
+          <p class="record-msg" id="record-msg" aria-live="polite"></p>
+          <span class="picker-label">備份 Backup · 防清 cache 唔見紀錄</span>
+          <div class="record-actions">
+            <button type="button" class="rec-btn" id="rec-export">匯出備份 Export</button>
+            <button type="button" class="rec-btn" id="rec-import">匯入還原 Import</button>
+          </div>
+          <input type="file" id="rec-import-file" accept=".json,application/json" hidden />
+          <p class="record-note">匯出會將全部紀錄下載成一個 JSON 檔案，存好佢；換機或者紀錄唔見咗嗰陣，用「匯入還原」開返個檔案就還原晒。匯入會合併現有紀錄，同產品名嘅會以檔案嗰份覆寫。</p>
+        </section>
+
+        <section class="block">
+          <div class="block-head"><h2><span class="zh">基本內容</span> · Basics</h2></div>
+          <label class="f"><span>品牌名稱 Brand name</span>
+            <input type="text" id="in-name" value="XO-W12" autocomplete="off" /></label>
+          <label class="f"><span>產品名稱 Product name</span>
+            <input type="text" id="in-sub" value="Smart Sport Watch" autocomplete="off" /></label>
+          <div class="switch-row">
+            <div class="t">顯示標語 Slogan<small>最底標語橫額，可開可關</small></div>
+            <label class="sw"><input type="checkbox" id="in-slogan-on" checked aria-label="顯示標語 Slogan" /></label>
+          </div>
+          <div class="sub-fields" id="slogan-fields">
+            <label class="f"><span>標語文字 Slogan text</span>
+              <input type="text" id="in-slogan" value="Build for smart life" autocomplete="off" /></label>
+            <span class="picker-label">標語款式 Slogan style</span>
+            <div class="style-picker" id="slogan-styles">
+              <button type="button" class="style-opt sel" data-style="dynamic"><span class="opt-preview pv-dynamic"><b>GO!</b></span><b>賽道動感</b><span>RACER</span></button>
+              <button type="button" class="style-opt" data-style="minimal"><span class="opt-preview pv-minimal"><b>LESS</b></span><b>極簡留白</b><span>MINIMAL</span></button>
+              <button type="button" class="style-opt" data-style="retro"><span class="opt-preview pv-retro"><b>BADGE</b></span><b>復古徽章</b><span>RETRO</span></button>
+            </div>
+          </div>
+        </section>
+
+        <section class="block">
+          <div class="block-head"><h2><span class="zh">App 名稱</span> · App</h2></div>
+          <div class="switch-row">
+            <div class="t">顯示 App 名稱 App name<small>出現在保養期下面、標語上面，方便顧客搵返個 App</small></div>
+            <label class="sw"><input type="checkbox" id="in-app-on" checked aria-label="顯示 App 名稱 App name" /></label>
+          </div>
+          <div class="sub-fields" id="app-fields">
+            <label class="f"><span>App 名稱 App name</span>
+              <input type="text" id="in-app" value="FitPro" placeholder="例如 FitPro" autocomplete="off" /></label>
+          </div>
+        </section>
+
+        <section class="block">
+          <div class="block-head"><h2><span class="zh">標籤尺寸</span> · Size</h2><span class="hint">預覽按比例顯示</span></div>
+          <div class="presets" id="presets"></div>
+          <div class="row3">
+            <label class="f"><span>闊 Width</span><input type="number" id="in-w" value="6.5" min="2" step="0.5" /></label>
+            <label class="f"><span>長 Length</span><input type="number" id="in-l" value="10" min="2" step="0.5" /></label>
+            <label class="f"><span>單位 Unit</span>
+              <select id="in-unit"><option value="cm">cm</option><option value="in">inch</option></select></label>
+          </div>
+        </section>
+
+        <section class="block">
+          <div class="block-head"><h2><span class="zh">圖示功能</span> · Features</h2><span class="hint">打字自動配圖示</span></div>
+          <span class="picker-label">Dash Cam 常用功能 · 撳一下即加一個</span>
+          <div class="presets" id="dc-presets"></div>
+          <div id="feat-list"></div>
+          <button class="add-btn" id="add-feat" type="button">＋ 加一個功能 Add feature</button>
+          <p class="record-note" style="margin-top:10px">如果打嘅功能冇內置圖示配對，該行會即刻提示「上網搵圖示」（開 Google 圖片搜尋），亦可以直接貼上圖示圖片網址，自訂嗰個功能嘅 icon，唔使死用通用星星圖示。</p>
+        </section>
+
+        <section class="block">
+          <div class="block-head"><h2><span class="zh">保養期</span> · Warranty</h2></div>
+          <div class="switch-row">
+            <div class="t">顯示保養期 Warranty<small>出現在圖示功能下面、標語上面</small></div>
+            <label class="sw"><input type="checkbox" id="in-warranty-on" checked aria-label="顯示保養期 Warranty" /></label>
+          </div>
+          <div class="sub-fields" id="warranty-fields">
+            <div class="presets" id="warranty-presets" aria-label="常用保養期 Quick warranty periods">
+              <button type="button" class="chip sel" data-wv="1" data-wu="years">1 Year · 1 年</button>
+              <button type="button" class="chip" data-wv="6" data-wu="months">6 Months · 6 個月</button>
+            </div>
+            <div class="row2">
+              <label class="f"><span>保養期長度 Period（可自訂）</span>
+                <input type="number" id="in-warranty" value="1" min="0" step="1" /></label>
+              <label class="f"><span>單位 Unit</span>
+                <select id="in-warranty-unit">
+                  <option value="months">個月 Months</option>
+                  <option value="years" selected>年 Years</option>
+                </select></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="block">
+          <div class="block-head"><h2><span class="zh">條碼與價格</span> · Extras</h2></div>
+          <div class="switch-row">
+            <div class="t">顯示條碼 Barcode<small>輸入編號，自動生成條碼圖案</small></div>
+            <label class="sw"><input type="checkbox" id="in-barcode-on" aria-label="顯示條碼 Barcode" /></label>
+          </div>
+          <div class="sub-fields off" id="barcode-fields">
+            <label class="f"><span>條碼編號 Code</span>
+              <input type="text" id="in-barcode" value="XO-W12-2026" autocomplete="off" /></label>
+          </div>
+          <div class="switch-row">
+            <div class="t">顯示價格 Price<small>出現在標籤右下角</small></div>
+            <label class="sw"><input type="checkbox" id="in-price-on" aria-label="顯示價格 Price" /></label>
+          </div>
+          <div class="sub-fields off" id="price-fields">
+            <label class="f"><span>價錢 Amount（$）</span><input type="text" id="in-price" value="299" autocomplete="off" /></label>
+          </div>
+        </section>
+
+        <section class="block">
+          <div class="block-head"><h2><span class="zh">主題顏色</span> · Accent</h2></div>
+          <div class="swatches" id="swatches"></div>
+        </section>
+
+        <section class="block">
+          <div class="block-head"><h2><span class="zh">儲存紀錄</span> · Save record</h2></div>
+          <p class="record-note">嚟到最底，即係成個標籤已經填好晒：新產品撳「新增 Add」儲存；改好咗已揀選嘅產品就撳「更改 Change」覆寫；唔要嗰條紀錄就撳「刪除 Delete」（要再撳一次確認）。Key 用返產品名稱。</p>
+          <div class="record-actions record-actions-bottom">
+            <button type="button" class="rec-btn primary" id="rec-add">＋ 新增 Add</button>
+            <button type="button" class="rec-btn" id="rec-change">更改 Change</button>
+            <button type="button" class="rec-btn danger" id="rec-delete">刪除 Delete</button>
+          </div>
+          <p class="record-msg" id="record-msg-bottom" aria-live="polite"></p>
+        </section>
+      </aside>
+
+      <!-- ================= PREVIEW ================= -->
+      <main class="stage">
+        <div class="stage-bar">
+          <div class="dim-caption" id="dim-caption"></div>
+          <button class="dl-btn" id="dl" type="button">下載 PNG · Download</button>
+        </div>
+        <div class="label-shadow"><div class="label" id="label"></div></div>
+        <div class="result" id="result">
+          <h3>成品圖已生成 ✓</h3>
+          <p>如果 Files &gt; Downloads 搵唔到個檔案，<b>長按下面張圖</b>，揀「儲存圖片 / Save Image」就會入咗你部機嘅相簿。</p>
+          <img id="result-img" alt="生成的產品標籤 PNG" />
+          <button class="dl-again" id="dl-again" type="button">再下載一次 Download again</button>
+          <div class="fname" id="result-name"></div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      /* ================= ICON LIBRARY (24×24, black silhouette style) ================= */
+      function svgWrap(inner){ return '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">' + inner + '</svg>'; }
+      function F(d){ return '<path fill="#0b0b0c" d="' + d + '"/>'; }
+      function S(d, w){ return '<path fill="none" stroke="#0b0b0c" stroke-width="' + (w||2.1) + '" stroke-linecap="round" stroke-linejoin="round" d="' + d + '"/>'; }
+
+      var ICONS = {
+        pulse: { name:'血壓脈搏 BP pulse', svg: svgWrap(
+          F('M12 2.2s6.8 7.3 6.8 12a6.8 6.8 0 1 1-13.6 0c0-4.7 6.8-12 6.8-12z') +
+          '<polyline points="7.6,14.6 10.2,14.6 11.4,11.8 13.2,16.4 14.4,14.6 16.6,14.6" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>') },
+        heart: { name:'心率 Heart rate', svg: svgWrap(
+          F('M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z')) },
+        health: { name:'健康監測 Health monitoring', svg: svgWrap(
+          '<circle cx="6" cy="2.9" r="1.35" fill="#0b0b0c"/><circle cx="14" cy="2.9" r="1.35" fill="#0b0b0c"/>' +
+          S('M6 4.2V8a4 4 0 0 0 8 0V4.2', 2.1) +
+          S('M10 12v3.6a4.9 4.9 0 0 0 4.9 4.9h1.9', 2.1) +
+          '<circle cx="19.4" cy="20.5" r="2.7" fill="#0b0b0c"/><circle cx="19.4" cy="20.5" r="1.2" fill="#fff"/>') },
+        water: { name:'防水 Waterproof', svg: svgWrap(
+          F('M12 2.6s5.6 6 5.6 10a5.6 5.6 0 1 1-11.2 0c0-4 5.6-10 5.6-10z') +
+          S('M3.5 19.6c1.8-1.3 3.6-1.3 5.4 0s3.6 1.3 5.4 0 3.6-1.3 5.4 0', 1.9) +
+          S('M3.5 22.4c1.8-1.3 3.6-1.3 5.4 0s3.6 1.3 5.4 0 3.6-1.3 5.4 0', 1.9)) },
+        battery: { name:'電池 Battery', svg: svgWrap(
+          '<rect x="2.6" y="7.6" width="17" height="9.6" rx="1.8" fill="#0b0b0c"/>' +
+          '<rect x="20.6" y="10.6" width="2.2" height="3.6" rx="1" fill="#0b0b0c"/>' +
+          '<path fill="#fff" d="M12.6 8.9l-3.6 4.9h2.4l-1.1 3.4 4-5.2h-2.5l.8-3.1z"/>') },
+        wireless: { name:'無線充電 Wireless charging', svg: svgWrap(
+          S('M4.8 5.6a11 11 0 0 1 14.4 0M7.4 8.9a7.2 7.2 0 0 1 9.2 0', 2) +
+          F('M13.1 9.3l-4.3 6h2.7l-1.2 4.3 4.5-6.2h-2.8l1.1-4.1z') +
+          S('M3.4 22h17.2', 2.2)) },
+        phone: { name:'通話 Phone call', svg: svgWrap(
+          F('M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C10.85 21 3 13.15 3 3.99 3 3.44 3.44 3 3.99 3h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z') +
+          S('M15.5 4.2a8.5 8.5 0 0 1 4.3 4.3M15.5 1.6a12 12 0 0 1 6.9 6.9', 1.9)) },
+        bluetooth: { name:'藍牙 Bluetooth', svg: svgWrap(
+          S('M6.8 6.8l10.4 10.4L12 22.4V1.6l5.2 5.2L6.8 17.2', 2.3)) },
+        card: { name:'NFC / 卡 Card', svg: svgWrap(
+          '<rect x="2.2" y="6.4" width="15.4" height="12.4" rx="1.8" transform="rotate(-7 10 12)" fill="#0b0b0c"/>' +
+          '<rect x="4.6" y="4" width="15.4" height="12.4" rx="1.8" transform="rotate(4 12 10)" fill="#0b0b0c" opacity=".28"/>' +
+          S('M16.8 9.6a5.4 5.4 0 0 1 0 5.4M19.2 7a9 9 0 0 1 0 10.6', 1.9)) },
+        screen: { name:'螢幕 Screen', svg: svgWrap(
+          '<rect x="2.8" y="4.4" width="18.4" height="12.4" rx="1.8" fill="#0b0b0c"/>' +
+          '<rect x="10" y="18.6" width="4" height="2" fill="#0b0b0c"/><rect x="7.6" y="20.4" width="8.8" height="1.6" rx=".8" fill="#0b0b0c"/>') },
+        amoled: { name:'AMOLED 螢幕', svg: svgWrap(
+          '<rect x="2.6" y="4.4" width="18.8" height="13.6" rx="2.4" fill="#0b0b0c"/>' +
+          '<circle cx="7.9" cy="8.9" r="1.55" fill="#ff453a"/><circle cx="12" cy="8.9" r="1.55" fill="#32d74b"/><circle cx="16.1" cy="8.9" r="1.55" fill="#0a84ff"/>' +
+          '<circle cx="7.9" cy="13.5" r="1.55" fill="#ffd60a"/><circle cx="12" cy="13.5" r="1.55" fill="#bf5af2"/><circle cx="16.1" cy="13.5" r="1.55" fill="#64d2ff"/>' +
+          '<rect x="10.7" y="19" width="2.6" height="1.7" fill="#0b0b0c"/><rect x="8" y="20.7" width="8" height="1.5" rx=".75" fill="#0b0b0c"/>') },
+        'case': { name:'錶殼物料 Case material', svg: svgWrap(
+          '<path fill="#0b0b0c" d="M9.3 1.5h5.4l-.6 2.1H9.9l-.6-2.1zM9.9 20.4h4.2l.6 2.1H9.3l.6-2.1z"/>' +
+          '<rect x="4.9" y="3.3" width="14.2" height="17.4" rx="4.9" fill="#0b0b0c"/>' +
+          '<rect x="19.1" y="9.2" width="2.2" height="5.6" rx="1.1" fill="#0b0b0c"/>' +
+          '<rect x="7.2" y="5.6" width="9.6" height="12.8" rx="3.1" fill="#fff"/>' +
+          S('M12 9.4V12l1.8 1.2', 1.7) +
+          '<circle cx="12" cy="12" r="1.05" fill="#0b0b0c"/>') },
+        runner: { name:'運動 Running', svg: svgWrap(
+          '<circle cx="15.6" cy="4.4" r="2.1" fill="#0b0b0c"/>' +
+          S('M13.4 8.2l-3.2 2.4-3 .8M10.2 10.6l.6 3.4-2.7 3.4M10.8 14l3.4 1.6 1.2 3.8M13.4 8.2l2.8 2 2.6.4M4 13.4H1.8M5 16.8H2.6', 2.2)) },
+        robot: { name:'AI 助手 AI', svg: svgWrap(
+          S('M12 5.4V2.8', 2.1) + '<circle cx="12" cy="2.4" r="1.3" fill="#0b0b0c"/>' +
+          '<rect x="4" y="5.6" width="16" height="12" rx="3.4" fill="#0b0b0c"/>' +
+          '<circle cx="9.2" cy="11.2" r="1.5" fill="#fff"/><circle cx="14.8" cy="11.2" r="1.5" fill="#fff"/>' +
+          '<path d="M9.4 14.6a3.4 3.4 0 0 0 5.2 0" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>' +
+          '<rect x="6.4" y="18.6" width="11.2" height="2.6" rx="1.3" fill="#0b0b0c"/>') },
+        pin: { name:'GPS 定位 Location', svg: svgWrap(
+          F('M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z')) },
+        moon: { name:'睡眠 Sleep', svg: svgWrap(
+          F('M12.6 2.4a9.6 9.6 0 1 0 9 11.4A10.8 10.8 0 0 1 12.6 2.4z')) },
+        music: { name:'音樂 Music', svg: svgWrap(
+          F('M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z')) },
+        camera: { name:'相機 Camera', svg: svgWrap(
+          F('M9 2.4L7.2 4.6H4a2 2 0 0 0-2 2v11.6A2 2 0 0 0 4 20.2h16a2 2 0 0 0 2-2V6.6a2 2 0 0 0-2-2h-3.2L15 2.4H9zm3 15.4a5.2 5.2 0 1 1 0-10.4 5.2 5.2 0 0 1 0 10.4z') +
+          '<circle cx="12" cy="12.6" r="2.9" fill="#fff"/>') },
+        steps: { name:'計步 Steps', svg: svgWrap(
+          '<ellipse cx="8" cy="7.6" rx="3.1" ry="4.4" transform="rotate(-14 8 7.6)" fill="#0b0b0c"/>' +
+          '<ellipse cx="16" cy="16.4" rx="3.1" ry="4.4" transform="rotate(-14 16 16.4)" fill="#0b0b0c"/>') },
+        wifi: { name:'Wi-Fi', svg: svgWrap(
+          S('M2.8 9.6a14.5 14.5 0 0 1 18.4 0M5.6 13.2a10 10 0 0 1 12.8 0M8.5 16.7a5.4 5.4 0 0 1 7 0', 2.2) +
+          '<circle cx="12" cy="19.8" r="1.5" fill="#0b0b0c"/>') },
+        mic: { name:'語音 Voice', svg: svgWrap(
+          F('M12 14.4a3.2 3.2 0 0 0 3.2-3.2V6a3.2 3.2 0 1 0-6.4 0v5.2A3.2 3.2 0 0 0 12 14.4zm5.2-3.2a5.2 5.2 0 0 1-10.4 0H4.9a7.1 7.1 0 0 0 6.1 7v2.9h2v-2.9a7.1 7.1 0 0 0 6.1-7h-1.9z')) },
+        sun: { name:'天氣 Weather', svg: svgWrap(
+          '<circle cx="12" cy="12" r="4" fill="#0b0b0c"/>' +
+          S('M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5 5l1.7 1.7M17.3 17.3L19 19M19 5l-1.7 1.7M6.7 17.3L5 19', 2.1)) },
+        thermo: { name:'溫度 Temperature', svg: svgWrap(
+          S('M10 4a2 2 0 0 1 4 0v9.3a4.4 4.4 0 1 1-4 0V4z', 2.2) +
+          '<circle cx="12" cy="17.6" r="2" fill="#0b0b0c"/>') },
+        clock: { name:'時鐘 Clock', svg: svgWrap(
+          F('M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm4.2 14.2L11 13V7h1.5v5.2l4.5 2.7-.8 1.3z')) },
+        flash: { name:'電筒 Flashlight', svg: svgWrap(
+          F('M9.5 2.4h5l-.8 4H10.3l-.8-4zM10.3 7.6h3.4l.9 13.6a1.4 1.4 0 0 1-1.4 1.5h-2.4a1.4 1.4 0 0 1-1.4-1.5l.9-13.6z')) },
+        bell: { name:'提醒 Notifications', svg: svgWrap(
+          F('M12 22c1.1 0 2-.9 2-2h-4a2 2 0 0 0 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4.2a1.5 1.5 0 0 0-3 0v.48C7.63 5.36 6 7.93 6 11v5l-2 2v1h16v-1l-2-2z')) },
+        o2: { name:'血氧 SpO2', svg: svgWrap(
+          F('M12 2.2s6.8 7.3 6.8 12a6.8 6.8 0 1 1-13.6 0c0-4.7 6.8-12 6.8-12z') +
+          '<text x="12" y="16.6" text-anchor="middle" font-family="Archivo,sans-serif" font-weight="900" font-size="5.2" fill="#fff">O₂</text>') },
+        dashcam: { name:'行車記錄儀 Dash cam', svg: svgWrap(
+          F('M6.9 4.9A2 2 0 0 1 8.8 3.6h6.4a2 2 0 0 1 1.9 1.3L18.6 9c1.3.5 2.4 1.7 2.4 3.4v5a1.6 1.6 0 0 1-1.6 1.6h-.9a1.6 1.6 0 0 1-1.6-1.6v-.9H7.1v.9A1.6 1.6 0 0 1 5.5 19h-.9A1.6 1.6 0 0 1 3 17.4v-5C3 10.7 4.1 9.5 5.4 9L6.9 4.9z') +
+          '<rect x="7.7" y="6.1" width="8.6" height="2.7" rx="1" fill="#fff"/>' +
+          '<circle cx="6.4" cy="13.6" r="1.35" fill="#fff"/><circle cx="17.6" cy="13.6" r="1.35" fill="#fff"/>' +
+          '<rect x="9.6" y="12.9" width="4.8" height="1.5" rx=".75" fill="#fff"/>') },
+        video: { name:'錄影 Video recording', svg: svgWrap(
+          '<rect x="2.4" y="7" width="13.2" height="10.2" rx="2.1" fill="#0b0b0c"/>' +
+          F('M15.6 10.7l5.9-3.2v9.2l-5.9-3.2z') +
+          '<circle cx="9" cy="12.1" r="2.7" fill="#fff"/><circle cx="9" cy="12.1" r="1.25" fill="#0b0b0c"/>') },
+        res4k: { name:'4K 超高清 4K UHD', svg: svgWrap(
+          '<rect x="2.4" y="5.4" width="19.2" height="13.2" rx="2.6" fill="#0b0b0c"/>' +
+          '<text x="12" y="15.9" text-anchor="middle" font-family="Archivo,sans-serif" font-weight="900" font-size="7.6" fill="#fff">4K</text>') },
+        hd: { name:'高清 HD resolution', svg: svgWrap(
+          '<rect x="2.4" y="5.4" width="19.2" height="13.2" rx="2.6" fill="#0b0b0c"/>' +
+          '<text x="12" y="15.9" text-anchor="middle" font-family="Archivo,sans-serif" font-weight="900" font-size="7.6" fill="#fff">HD</text>') },
+        wideangle: { name:'廣角 Wide angle', svg: svgWrap(
+          S('M2.6 12c2.8-4.4 6-6.6 9.4-6.6s6.6 2.2 9.4 6.6c-2.8 4.4-6 6.6-9.4 6.6s-6.6-2.2-9.4-6.6z', 2.1) +
+          '<circle cx="12" cy="12" r="2.7" fill="#0b0b0c"/>') },
+        loop: { name:'循環錄影 Loop recording', svg: svgWrap(
+          S('M20.9 5.4v4.8h-4.8M3.6 18.6v-4.8h4.8', 2.2) +
+          S('M19.9 10.4a8 8 0 0 0-13.7-2.6L3.6 10.4M4.4 13.6a8 8 0 0 0 13.7 2.6l2.6-2.6', 2.2)) },
+        gsensor: { name:'G-Sensor 碰撞感應', svg: svgWrap(
+          '<circle cx="12" cy="12" r="6.3" fill="#0b0b0c"/>' +
+          '<text x="12" y="16.1" text-anchor="middle" font-family="Archivo,sans-serif" font-weight="900" font-size="8" fill="#fff">G</text>' +
+          S('M3.1 8.4a9.2 9.2 0 0 0 0 7.2M20.9 8.4a9.2 9.2 0 0 1 0 7.2', 1.9)) },
+        parking: { name:'停車監控 Parking mode', svg: svgWrap(
+          '<rect x="3.4" y="3.4" width="17.2" height="17.2" rx="3.6" fill="#0b0b0c"/>' +
+          '<text x="12" y="16.9" text-anchor="middle" font-family="Archivo,sans-serif" font-weight="900" font-size="11.5" fill="#fff">P</text>') },
+        nightvision: { name:'夜視 Night vision', svg: svgWrap(
+          F('M12.4 2.6a9.4 9.4 0 1 0 8.8 11.1A10.6 10.6 0 0 1 12.4 2.6z') +
+          F('M18.6 1.8l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z')) },
+        dualcam: { name:'前後雙鏡 Dual camera', svg: svgWrap(
+          '<rect x="2.4" y="6.4" width="19.2" height="11.2" rx="2.2" fill="#0b0b0c"/>' +
+          '<circle cx="8.1" cy="12" r="2.3" fill="#fff"/><circle cx="15.9" cy="12" r="2.3" fill="#fff"/>' +
+          '<circle cx="8.1" cy="12" r="1.05" fill="#0b0b0c"/><circle cx="15.9" cy="12" r="1.05" fill="#0b0b0c"/>') },
+        adas: { name:'ADAS 車道輔助 Lane assist', svg: svgWrap(
+          S('M6.4 21.2L10.1 3M17.6 21.2L13.9 3', 2.2) +
+          S('M12 19v-2.6M12 13.4v-2.6M12 7.8V5.2', 1.9)) },
+        speedalert: { name:'測速提醒 Speed alert', svg: svgWrap(
+          S('M4.2 15.2a7.8 7.8 0 1 1 15.6 0', 2.2) +
+          S('M12 15.2l4.1-4.5M5.9 12.4h1.9M16.2 12.4h1.9M12 5.8v1.9', 1.9) +
+          '<circle cx="12" cy="15.2" r="1.6" fill="#0b0b0c"/>' +
+          S('M3 20h18', 2.1)) },
+        hdr: { name:'HDR / WDR 高動態', svg: svgWrap(
+          '<circle cx="12" cy="12" r="8.2" fill="none" stroke="#0b0b0c" stroke-width="2.2"/>' +
+          F('M12 3.8a8.2 8.2 0 0 1 0 16.4z')) },
+        motion: { name:'移動偵測 Motion detection', svg: svgWrap(
+          S('M8 3.5H5A1.5 1.5 0 0 0 3.5 5v3M16 3.5h3A1.5 1.5 0 0 1 20.5 5v3M20.5 16v3a1.5 1.5 0 0 1-1.5 1.5h-3M8 20.5H5A1.5 1.5 0 0 1 3.5 19v-3', 2) +
+          '<circle cx="12" cy="9.6" r="2.1" fill="#0b0b0c"/>' +
+          S('M12 12v3.2l2.1 3M12 15.2l-2.3 2.6', 2)) },
+        timelapse: { name:'縮時錄影 Time-lapse', svg: svgWrap(
+          '<circle cx="10" cy="12" r="7.4" fill="none" stroke="#0b0b0c" stroke-width="2.2"/>' +
+          S('M10 8.4V12l2.5 1.6', 1.9) +
+          F('M16.6 9.1l4.9 2.9-4.9 2.9z')) },
+        lock: { name:'緊急鎖定 Emergency lock', svg: svgWrap(
+          S('M8 11V7.8a4 4 0 0 1 8 0V11', 2.3) +
+          '<rect x="5.4" y="10.4" width="13.2" height="9.8" rx="2" fill="#0b0b0c"/>' +
+          '<circle cx="12" cy="14.3" r="1.6" fill="#fff"/><rect x="11.2" y="14.9" width="1.6" height="2.6" rx=".8" fill="#fff"/>') },
+        sdcard: { name:'記憶卡 SD card', svg: svgWrap(
+          F('M6.8 2.8h6.7l6.7 6.7v10.7a1.8 1.8 0 0 1-1.8 1.8H6.8A1.8 1.8 0 0 1 5 20.2V4.6A1.8 1.8 0 0 1 6.8 2.8z') +
+          '<path d="M9.2 3.6v3.8M12.6 3.6v3.8M16 5.2v3.4" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>') },
+        star: { name:'特色 Feature', svg: svgWrap(
+          F('M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z')) }
+      };
+
+      /* keyword rules — first match wins, ordered by specificity */
+      var RULES = [
+        ['pulse',     ['bp','blood pressure','血壓','血压']],
+        ['o2',        ['spo2','oxygen','血氧']],
+        ['water',     ['ip68','ip67','ipx','waterproof','water resist','防水','游泳','swim']],
+        ['wireless',  ['wireless charging','wireless charger','wireless charge','qi charging','qi charger','magsafe','無線充電','无线充电','無線充','无线充']],
+        ['battery',   ['battery','電池','电池','續航','续航','電量','电量','充電','充电','capacitor','電容','电容','days','day battery']],
+        ['res4k',     ['4k','uhd','2160p','超高清']],
+        ['timelapse', ['time-lapse','time lapse','timelapse','縮時','缩时','延時攝影','延时摄影']],
+        ['loop',      ['loop record','loop','循環錄影','循环录影','循環','循环']],
+        ['gsensor',   ['g-sensor','g sensor','gsensor','碰撞','impact detect','gravity sensor','重力感應','重力感应']],
+        ['parking',   ['parking','停車監控','停车监控','停車','停车','24h parking','parking mode','parking monitor']],
+        ['nightvision',['night vision','夜視','夜视','nightview','night view']],
+        ['dualcam',   ['dual cam','dual camera','dual lens','dual channel','front & rear','front and rear','front + rear','front/rear','前後雙','前后双','雙鏡','双镜','雙攝','双摄','前後鏡','前后镜']],
+        ['adas',      ['adas','lane','車道','车道','ldws','fcws','driver assist','駕駛輔助','驾驶辅助']],
+        ['speedalert',['speed camera','speed alert','speed warning','測速','测速','限速提醒']],
+        ['hdr',       ['hdr','wdr','高動態','高动态']],
+        ['motion',    ['motion detect','motion detection','移動偵測','移动侦测','動態偵測','动态侦测','motion sensor']],
+        ['lock',      ['emergency lock','emergency','緊急鎖','紧急锁','event lock','一鍵鎖','一键锁','鎖定影片','锁定影片','sos lock']],
+        ['sdcard',    ['microsd','micro sd','sd card','tf card','memory card','記憶卡','内存卡','儲存卡','存储卡']],
+        ['video',     ['video','錄影','录影','錄像','录像','recording','攝錄','摄录','行車記錄','行车记录','行車紀錄']],
+        ['wideangle', ['wide angle','wide-angle','廣角','广角','fov','field of view','170°','170 度','170度']],
+        ['hd',        ['fhd','1080p','1440p','2k ','qhd','full hd','高清','resolution','解像度','解析度']],
+        ['dashcam',   ['dash cam','dashcam','dash-cam','行車記錄儀','行车记录仪','car camera','車載攝影','车载摄影']],
+        ['amoled',    ['amoled','oled']],
+        ['case',      ['case','錶殼','錶壳','表殼','表壳','zinc','alloy','合金','stainless','不鏽鋼','不锈钢','titanium','鈦','钛','metal case','金屬殼','金属壳']],
+        ['screen',    ['screen','display','螢幕','屏幕','顯示','显示','touchscreen','觸控']],
+        ['card',      ['nfc','card','卡','支付','pay','八達通','octopus','交通卡']],
+        ['runner',    ['sport','run','運動','运动','跑步','fitness','健身','workout','鍛鍊']],
+        ['robot',     ['ai','artificial','智能','人工','assistant','助手','語音助手']],
+        ['pin',       ['gps','location','定位','導航','导航','tracking','追蹤']],
+        ['moon',      ['sleep','睡眠','瞓覺']],
+        ['music',     ['music','音樂','音乐','song','mp3']],
+        ['camera',    ['camera','相機','相机','拍照','photo']],
+        ['phone',     ['call','通話','通话','電話','电话','phone','dial']],
+        ['bluetooth', ['bluetooth','藍牙','蓝牙','bt ']],
+        ['heart',     ['heart','心率','心跳','ecg','心電']],
+        ['health',    ['health','健康','醫療','医疗','體檢','体检']],
+        ['steps',     ['step','步數','步数','計步','pedometer','walking','行走']],
+        ['wifi',      ['wifi','wi-fi','無線','无线','wlan']],
+        ['mic',       ['voice','mic','語音','语音','錄音','录音','microphone']],
+        ['sun',       ['weather','天氣','天气','uv','陽光']],
+        ['thermo',    ['temperature','temp','溫度','温度','體溫','体温']],
+        ['clock',     ['clock','alarm','時鐘','时钟','鬧鐘','闹钟','timer','時間','时间','watch face','錶面']],
+        ['flash',     ['flashlight','torch','電筒','手電','手电','light']],
+        ['bell',      ['notification','提醒','通知','alert','message','訊息','消息']]
+      ];
+      function autoIcon(text){
+        var t = ' ' + String(text || '').toLowerCase() + ' ';
+        for (var i = 0; i < RULES.length; i++){
+          var keys = RULES[i][1];
+          for (var j = 0; j < keys.length; j++){
+            if (t.indexOf(keys[j]) !== -1) return RULES[i][0];
+          }
+        }
+        return 'star';
+      }
+
+      /* ================= STATE ================= */
+      var state = {
+        name:'XO-W12', sub:'Smart Sport Watch', slogan:'Build for smart life', sloganOn:true, sloganStyle:'dynamic',
+        appOn:true, appName:'FitPro',
+        w:6.5, l:10, unit:'cm', accent:'#ffc900',
+        warrantyOn:true, warrantyValue:'1', warrantyUnit:'years',
+        barcodeOn:false, barcode:'XO-W12-2026',
+        priceOn:false, currency:'$', price:'299',
+        features:[
+          { text:'BP Trend Monitoring', icon:'auto' },
+          { text:'Bluetooth Call', icon:'auto' },
+          { text:'IP68', icon:'auto' },
+          { text:'3-5 Days Battery', icon:'auto' },
+          { text:'AMOLED Screen', icon:'auto' },
+          { text:'NFC Card', icon:'auto' },
+          { text:'Sport Modes', icon:'auto' },
+          { text:'Built-in AI Q&A', icon:'auto' }
+        ]
+      };
+
+      function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+      /* ================= BARCODE (deterministic pattern from the code text) ================= */
+      function barcodeSVG(code){
+        var s = String(code || ' ').toUpperCase(), x = 0, rects = '', i, c, v, k;
+        function bar(w, black){ if (black) rects += '<rect x="' + x.toFixed(1) + '" y="0" width="' + w + '" height="34" fill="#0b0b0c"/>'; x += w; }
+        function gap(w){ x += w; }
+        bar(2.4, true); gap(1.2); bar(1.2, true); gap(2);           /* start */
+        for (i = 0; i < s.length; i++){
+          v = s.charCodeAt(i) * 7 + 13;
+          for (k = 0; k < 5; k++){ var bw = ((v >> (k * 2)) % 3) + 1; if (k % 2 === 0) bar(bw, true); else gap(bw * .8); }
+          gap(1.6);
+        }
+        bar(1.2, true); gap(1.2); bar(2.4, true);                    /* stop */
+        return '<svg viewBox="0 0 ' + x.toFixed(1) + ' 34" preserveAspectRatio="none" aria-hidden="true">' + rects + '</svg>';
+      }
+
+      /* ================= WARRANTY LINE ================= */
+      function warrantyText(){
+        var v = parseFloat(state.warrantyValue);
+        if (isNaN(v) || v <= 0) return '';
+        var num = String(v);
+        return state.warrantyUnit === 'years' ? num + '-Year Warranty' : num + '-Month Warranty';
+      }
+      var WARRANTY_SVG =
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#0b0b0c" d="M12 2.1l7.8 2.9v6.1c0 4.9-3.3 9.2-7.8 10.8C7.5 20.3 4.2 16 4.2 11.1V5L12 2.1z"/>' +
+        '<path d="M8.6 11.9l2.3 2.3 4.4-4.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      var APP_SVG =
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.6" y="1.8" width="10.8" height="20.4" rx="2.6" fill="#0b0b0c"/>' +
+        '<rect x="8.7" y="4.3" width="6.6" height="12.4" rx="1" fill="#fff"/>' +
+        '<rect x="10" y="6" width="1.7" height="1.7" rx=".4" fill="#0b0b0c"/><rect x="12.6" y="6" width="1.7" height="1.7" rx=".4" fill="#0b0b0c"/>' +
+        '<rect x="10" y="8.7" width="1.7" height="1.7" rx=".4" fill="#0b0b0c"/><rect x="12.6" y="8.7" width="1.7" height="1.7" rx=".4" fill="#0b0b0c"/>' +
+        '<circle cx="12" cy="19.2" r="1.05" fill="#fff"/></svg>';
+
+      /* ================= LABEL RENDER ================= */
+      var labelEl = document.getElementById('label');
+      function iconHTML(key){
+        var ic = ICONS[key] || ICONS.star;
+        return ic.svg;
+      }
+      function renderLabel(){
+        var accent = state.accent;
+        labelEl.style.setProperty('--accent', accent);
+        var html = '';
+        /* name row */
+        html += '<div class="name-row"><div class="slashes"><i></i><i></i><i></i></div>' +
+                '<div class="pname">' + esc(state.name || 'BRAND') + '</div>' +
+                '<div class="slashes"><i></i><i></i><i></i></div></div>';
+        /* banner */
+        if (state.sub) html += '<div class="banner"><div class="dash"></div><div class="banner-inner"><span>' +
+                esc(state.sub) + '</span></div><div class="dash"></div></div>';
+        /* features grid — column count follows the label's aspect ratio:
+           portrait stays 2-up, near-square goes 3-up, landscape 4-up, so a
+           size change visibly rearranges the label instead of stretching it */
+        var feats = state.features.filter(function(f){ return f.text.trim() !== '' || state.features.length === 1; });
+        if (feats.length){
+          var ratio = Math.max(toCm(parseFloat(state.w) || 6.5), 2) / Math.max(toCm(parseFloat(state.l) || 10), 2);
+          var cols = ratio >= 1.35 ? 4 : (ratio >= 0.9 ? 3 : 2);
+          html += '<div class="grid" style="grid-template-columns:repeat(' + cols + ',1fr)">';
+          feats.forEach(function(f, i){
+            var key = f.icon === 'auto' ? autoIcon(f.text) : f.icon;
+            var cls = 'cell' + (i < cols ? ' no-top' : '') + (i % cols !== 0 ? ' div' : '');
+            var span = '';
+            if (feats.length % cols === 1 && i === feats.length - 1 && feats.length > 1){
+              span = ' style="grid-column:1 / -1; justify-content:center"';
+            }
+            var ringInner = (f.img && String(f.img).trim())
+              ? '<img src="' + esc(f.img) + '" alt="" crossorigin="anonymous" onerror="this.style.display=\'none\'" style="width:2.75em;height:2.75em;object-fit:contain;display:block"/>'
+              : iconHTML(key);
+            html += '<div class="' + cls + '"' + span + '><div class="ring">' + ringInner + '</div>' +
+                    '<div class="ftext">' + esc(f.text) + '</div></div>';
+          });
+          html += '</div>';
+        }
+        /* warranty line — under the feature icons, above the slogan */
+        var wText = state.warrantyOn ? warrantyText() : '';
+        if (wText){
+          html += '<div class="warranty"><div class="wdash"></div>' +
+                  '<div class="wcontent">' + WARRANTY_SVG +
+                  '<span class="wtext">' + esc(wText) + '</span></div>' +
+                  '<div class="wdash"></div></div>';
+        }
+        /* app name line — under the warranty line, above the slogan */
+        var appText = state.appOn ? String(state.appName || '').trim() : '';
+        if (appText){
+          html += '<div class="app-line"><div class="app-chip">' + APP_SVG +
+                  '<span class="app-tag">App</span>' +
+                  '<span class="app-name">' + esc(appText) + '</span></div></div>';
+        }
+        /* slogan band (optional) */
+        var showSlogan = state.sloganOn && String(state.slogan || '').trim() !== '';
+        if (showSlogan){
+          var st = state.sloganStyle || 'dynamic';
+          var sText = esc(state.slogan);
+          if (st === 'minimal'){
+            html += '<div class="slogan-zone sz-minimal">' +
+              '<div class="band"><div class="min-rule"><i></i><span class="min-diamond"></span><i></i></div>' +
+              '<div class="slogan" data-base="1.6">' + sText + '</div>' +
+              '<div class="min-dots"><i></i><i></i><i></i></div></div></div>';
+          } else if (st === 'retro'){
+            html += '<div class="slogan-zone sz-retro"><div class="retro-stripe"></div>' +
+              '<div class="band"><div class="retro-frame"><div class="retro-inner">' +
+              '<div class="retro-diamonds"><i></i><i></i><i></i></div>' +
+              '<div class="slogan" data-base="2.05">' + sText + '</div>' +
+              '<div class="retro-rule"></div>' +
+              '</div></div></div></div>';
+          } else {
+            html += '<div class="slogan-zone sz-dynamic">' +
+              '<svg class="wave" viewBox="0 0 400 30" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30 L0 26 L70 8 L150 20 L235 4 L315 16 L400 2 L400 30 Z" fill="' + accent + '"/><path d="M0 27.5 L150 10.5 L150 13.5 L0 30 Z" fill="#0b0b0c"/></svg>' +
+              '<div class="band"><div class="slogan-slashes"><i></i><i></i><i></i></div>' +
+              '<div class="slogan" data-base="2.9">' + sText + '</div>' +
+              '<svg class="swoosh" viewBox="0 0 400 34" preserveAspectRatio="none" aria-hidden="true"><path d="M-5 12 Q170 -4 405 10" fill="none" stroke="#0b0b0c" stroke-width="3.5"/><path d="M-5 21 Q190 3 405 19 L405 34 L-5 34 Z" fill="#0b0b0c"/></svg></div></div>';
+          }
+        }
+        /* footer: barcode / price */
+        if (state.barcodeOn || state.priceOn){
+          if (!showSlogan) html += '<div class="push"></div>';
+          var fcls = 'foot' + (state.barcodeOn && !state.priceOn ? ' only-code' : '') + (!state.barcodeOn && state.priceOn ? ' only-price' : '');
+          html += '<div class="' + fcls + '">';
+          if (state.barcodeOn) html += '<div class="barcode">' + barcodeSVG(state.barcode) +
+            '<div class="code">' + esc(state.barcode) + '</div></div>';
+          if (state.priceOn){
+            html += '<div class="price">' + esc(state.currency) + esc(state.price) + '</div>';
+          }
+          html += '</div>';
+        }
+        if (!showSlogan && !state.barcodeOn && !state.priceOn) html += '<div class="end-pad"></div>';
+        labelEl.innerHTML = html;
+        fitLabel();
+        renderCaption();
+      }
+
+      /* size → preview scale.
+         Fixed cm→px scale (only shrunk when the label would overflow the
+         stage), so a bigger physical size really renders bigger and a
+         smaller one smaller; the box height is locked to the chosen
+         width × length ratio instead of being stretched by the content. */
+      function toCm(v){ return state.unit === 'in' ? v * 2.54 : v; }
+      function fitLabel(){
+        var wCm = Math.max(toCm(parseFloat(state.w) || 6.5), 2);
+        var lCm = Math.max(toCm(parseFloat(state.l) || 10), 2);
+        var availW = Math.min(document.querySelector('.stage').clientWidth - 28, 620);
+        if (availW < 180) availW = 180;
+        var availH = 920;
+        var scale = 38; /* px per cm at natural size */
+        if (wCm * scale > availW) scale = availW / wCm;
+        if (lCm * scale > availH) scale = availH / lCm;
+        var pxW = Math.round(wCm * scale);
+        var pxH = Math.round(lCm * scale);
+        labelEl.style.width = pxW + 'px';
+        /* measure the content at natural height, then lock the box height */
+        labelEl.style.height = 'auto';
+        labelEl.style.minHeight = '0px';
+        var fs = Math.max(pxW / 23, 8);
+        for (var iter = 0; iter < 14; iter++){
+          labelEl.style.fontSize = fs + 'px';
+          /* shrink-to-fit single-line texts (product name, subtitle) */
+          fitText(labelEl.querySelector('.pname'), 3.1);
+          fitText(labelEl.querySelector('.banner-inner span'), 1.42);
+          /* shrink each feature text so its longest word fits the cell */
+          labelEl.querySelectorAll('.ftext').forEach(function(el){ fitText(el, 1.22); });
+          /* warranty line: shrink if a long period would overflow */
+          fitText(labelEl.querySelector('.warranty .wtext'), 1.15);
+          /* app name: shrink if a long name would overflow the chip */
+          fitText(labelEl.querySelector('.app-name'), 1.18);
+          /* slogan: keep it inside the band however long the text is */
+          var slEl = labelEl.querySelector('.slogan');
+          if (slEl) fitText(slEl, parseFloat(slEl.getAttribute('data-base')) || 2.6);
+          var nat = labelEl.scrollHeight;
+          if (nat <= pxH) break;
+          var next = fs * (pxH / nat) * .97;
+          if (next < 5){ fs = 5; labelEl.style.fontSize = fs + 'px'; break; }
+          fs = next;
+        }
+        labelEl.style.height = pxH + 'px';
+        labelEl.style.minHeight = pxH + 'px';
+      }
+      function fitText(el, baseEm){
+        if (!el) return;
+        el.style.fontSize = baseEm + 'em';
+        var cw = el.clientWidth, w = el.scrollWidth;
+        if (cw > 0 && w > cw){
+          el.style.fontSize = Math.max(baseEm * (cw / w) * .97, .55) + 'em';
+        }
+      }
+      function renderCaption(){
+        var u = state.unit === 'in' ? 'inch' : 'cm';
+        document.getElementById('dim-caption').innerHTML =
+          '標籤尺寸 <b>' + esc(state.w) + ' × ' + esc(state.l) + ' ' + u + '</b>（闊 × 長）· ' +
+          state.features.length + ' 個功能';
+        /* keep the preset chips in sync with the current size */
+        if (typeof presetBox !== 'undefined' && presetBox){
+          presetBox.querySelectorAll('.chip').forEach(function(chip){
+            var on = state.unit === 'cm' &&
+              parseFloat(chip.dataset.w) === parseFloat(state.w) &&
+              parseFloat(chip.dataset.l) === parseFloat(state.l);
+            chip.classList.toggle('sel', on);
+          });
+        }
+      }
+
+      /* ================= FEATURE EDITOR ================= */
+      var featList = document.getElementById('feat-list');
+      function iconOptions(sel){
+        var out = '<option value="auto"' + (sel === 'auto' ? ' selected' : '') + '>自動配對 Auto</option>';
+        Object.keys(ICONS).forEach(function(k){
+          out += '<option value="' + k + '"' + (sel === k ? ' selected' : '') + '>' + ICONS[k].name + '</option>';
+        });
+        return out;
+      }
+      /* when no built-in icon matches, offer an online icon search
+         (Google Images) and a paste-an-image-URL custom icon instead of
+         silently falling back to the generic star */
+      function iconSearchUrl(text){
+        return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent((String(text || '').trim() || 'icon') + ' icon png');
+      }
+      function isUnmatched(f){
+        return autoIcon(f.text) === 'star' && f.icon === 'auto' && !(f.img && String(f.img).trim());
+      }
+      function refreshTag(wrap, i){
+        var f = state.features[i];
+        var autoKey = autoIcon(f.text);
+        var status = wrap.querySelector('.auto-status');
+        var extra = '';
+        if (f.img && String(f.img).trim()) extra = ' · 已用<b>自訂圖片圖示</b>';
+        else if (f.icon !== 'auto') extra = ' · 已手動改為 <b>' + ICONS[f.icon].name + '</b>';
+        status.innerHTML = '自動配對：<b>' + (ICONS[autoKey] ? ICONS[autoKey].name : '') + '</b>' + extra;
+        var unmatched = isUnmatched(f);
+        var nomatch = wrap.querySelector('.nomatch');
+        nomatch.style.display = unmatched ? 'block' : 'none';
+        if (unmatched) nomatch.querySelector('a').href = iconSearchUrl(f.text);
+        var showImg = !!(f.img && String(f.img).trim()) || !!f.custom || unmatched;
+        wrap.querySelector('.img-row').style.display = showImg ? 'flex' : 'none';
+        wrap.querySelector('[data-custom]').style.display = showImg ? 'none' : 'inline-block';
+      }
+      function renderFeatEditor(){
+        featList.innerHTML = '';
+        state.features.forEach(function(f, i){
+          var row = document.createElement('div');
+          row.innerHTML =
+            '<div class="feat-row">' +
+              '<div class="num">' + (i + 1) + '</div>' +
+              '<input type="text" class="feat-text" data-i="' + i + '" value="' + esc(f.text) + '" placeholder="例如 Bluetooth Call" autocomplete="off" />' +
+              '<select data-i="' + i + '">' + iconOptions(f.icon) + '</select>' +
+              '<button class="icon-btn" type="button" data-del="' + i + '" title="刪除">✕</button>' +
+            '</div>' +
+            '<div class="auto-tag">' +
+              '<div class="auto-status"></div>' +
+              '<div class="nomatch" style="display:none">⚠ 未有內置圖示配對 — <a href="#" target="_blank" rel="noopener">上網搵圖示 Search online ↗</a>，或者貼上圖片網址自訂：</div>' +
+              '<div class="img-row" style="display:none">' +
+                '<input type="text" class="img-url" data-i="' + i + '" value="' + esc(f.img || '') + '" placeholder="貼上圖示圖片網址 https://…（會取代內置圖示）" autocomplete="off" />' +
+                '<button class="mini-btn" type="button" data-clearimg="' + i + '">清除</button>' +
+              '</div>' +
+              '<button class="mini-btn" type="button" data-custom="' + i + '">＋ 自訂圖示圖片網址</button>' +
+            '</div>';
+          featList.appendChild(row);
+          refreshTag(row, i);
+        });
+        featList.querySelectorAll('input.feat-text').forEach(function(inp){
+          inp.addEventListener('input', function(){
+            var idx = +inp.dataset.i;
+            state.features[idx].text = inp.value;
+            renderLabel();
+            refreshTag(inp.closest('.feat-row').parentElement, idx);
+          });
+        });
+        featList.querySelectorAll('select').forEach(function(sel){
+          sel.addEventListener('change', function(){
+            state.features[+sel.dataset.i].icon = sel.value;
+            renderLabel(); renderFeatEditor();
+          });
+        });
+        featList.querySelectorAll('[data-del]').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            state.features.splice(+btn.dataset.del, 1);
+            renderLabel(); renderFeatEditor();
+          });
+        });
+        featList.querySelectorAll('.img-url').forEach(function(inp){
+          inp.addEventListener('input', function(){
+            var idx = +inp.dataset.i;
+            state.features[idx].img = inp.value;
+            renderLabel();
+            refreshTag(inp.closest('.auto-tag').parentElement, idx);
+          });
+        });
+        featList.querySelectorAll('[data-custom]').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            var idx = +btn.dataset.custom;
+            state.features[idx].custom = true;
+            var wrap = btn.closest('.auto-tag').parentElement;
+            refreshTag(wrap, idx);
+            var urlInp = wrap.querySelector('.img-url');
+            if (urlInp) urlInp.focus();
+          });
+        });
+        featList.querySelectorAll('[data-clearimg]').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            var idx = +btn.dataset.clearimg;
+            state.features[idx].img = '';
+            state.features[idx].custom = false;
+            var wrap = btn.closest('.auto-tag').parentElement;
+            var urlInp = wrap.querySelector('.img-url');
+            if (urlInp) urlInp.value = '';
+            renderLabel();
+            refreshTag(wrap, idx);
+          });
+        });
+      }
+      document.getElementById('add-feat').addEventListener('click', function(){
+        state.features.push({ text:'', icon:'auto' });
+        renderLabel(); renderFeatEditor();
+        var inputs = featList.querySelectorAll('input.feat-text');
+        if (inputs.length) inputs[inputs.length - 1].focus();
+      });
+
+      /* dash cam quick-add chips — one tap adds the feature (auto icon) */
+      var DC_FEATURES = [
+        '4K Ultra HD Video', '170° Wide Angle', 'Loop Recording',
+        'G-Sensor Impact Detection', '24H Parking Mode', 'Super Night Vision',
+        'Front & Rear Dual Camera', 'ADAS Lane Assist', 'Speed Camera Alert',
+        'GPS Tracking', 'Wi-Fi App Control', 'HDR / WDR',
+        'Motion Detection', 'Time-Lapse Recording', 'Emergency Lock',
+        'MicroSD Card Support', 'Voice Control', 'Super Capacitor'
+      ];
+      var dcBox = document.getElementById('dc-presets');
+      DC_FEATURES.forEach(function(txt){
+        var b = document.createElement('button');
+        b.className = 'chip'; b.type = 'button'; b.textContent = txt;
+        b.addEventListener('click', function(){
+          var exists = state.features.some(function(f){ return f.text.trim().toLowerCase() === txt.toLowerCase(); });
+          if (exists) return;
+          var emptyIdx = state.features.findIndex(function(f){ return f.text.trim() === ''; });
+          if (emptyIdx !== -1) state.features[emptyIdx] = { text: txt, icon: 'auto' };
+          else state.features.push({ text: txt, icon: 'auto' });
+          renderLabel(); renderFeatEditor();
+        });
+        dcBox.appendChild(b);
+      });
+
+      /* ================= FORM BINDINGS ================= */
+      function bind(id, key, after){
+        var el = document.getElementById(id);
+        function handler(e){
+          state[key] = e.target.value; renderLabel(); if (after) after();
+        }
+        /* 'change' as well as 'input': some mobile webviews only fire
+           'change' for number steppers / picker confirmation */
+        el.addEventListener('input', handler);
+        el.addEventListener('change', handler);
+      }
+      bind('in-name', 'name'); bind('in-sub', 'sub'); bind('in-slogan', 'slogan'); bind('in-app', 'appName');
+      document.getElementById('in-app-on').addEventListener('change', function(e){
+        state.appOn = e.target.checked;
+        document.getElementById('app-fields').classList.toggle('off', !e.target.checked);
+        renderLabel();
+      });
+      bind('in-w', 'w'); bind('in-l', 'l'); bind('in-barcode', 'barcode'); bind('in-price', 'price');
+      function syncWarrantyPresets(){
+        var box = document.getElementById('warranty-presets');
+        if (!box) return;
+        box.querySelectorAll('.chip').forEach(function(chip){
+          var match = parseFloat(chip.dataset.wv) === parseFloat(state.warrantyValue) && chip.dataset.wu === state.warrantyUnit;
+          chip.classList.toggle('sel', !!match);
+        });
+      }
+      bind('in-warranty', 'warrantyValue', syncWarrantyPresets);
+      document.getElementById('in-warranty-unit').addEventListener('change', function(e){ state.warrantyUnit = e.target.value; renderLabel(); syncWarrantyPresets(); });
+      document.querySelectorAll('#warranty-presets .chip').forEach(function(chip){
+        chip.addEventListener('click', function(){
+          state.warrantyValue = chip.dataset.wv;
+          state.warrantyUnit = chip.dataset.wu;
+          document.getElementById('in-warranty').value = chip.dataset.wv;
+          document.getElementById('in-warranty-unit').value = chip.dataset.wu;
+          if (!state.warrantyOn){
+            state.warrantyOn = true;
+            document.getElementById('in-warranty-on').checked = true;
+            document.getElementById('warranty-fields').classList.remove('off');
+          }
+          renderLabel();
+          syncWarrantyPresets();
+        });
+      });
+      document.getElementById('in-warranty-on').addEventListener('change', function(e){
+        state.warrantyOn = e.target.checked;
+        document.getElementById('warranty-fields').classList.toggle('off', !e.target.checked);
+        renderLabel();
+      });
+      document.getElementById('in-unit').addEventListener('change', function(e){ state.unit = e.target.value; renderLabel(); });
+      /* currency fixed to "$" — no selector */
+      document.getElementById('in-slogan-on').addEventListener('change', function(e){
+        state.sloganOn = e.target.checked;
+        document.getElementById('slogan-fields').classList.toggle('off', !e.target.checked);
+        renderLabel();
+      });
+      document.querySelectorAll('#slogan-styles .style-opt').forEach(function(b){
+        b.addEventListener('click', function(){
+          state.sloganStyle = b.dataset.style;
+          document.querySelectorAll('#slogan-styles .style-opt').forEach(function(x){ x.classList.toggle('sel', x === b); });
+          renderLabel();
+        });
+      });
+      document.getElementById('in-barcode-on').addEventListener('change', function(e){
+        state.barcodeOn = e.target.checked;
+        document.getElementById('barcode-fields').classList.toggle('off', !e.target.checked);
+        renderLabel();
+      });
+      document.getElementById('in-price-on').addEventListener('change', function(e){
+        state.priceOn = e.target.checked;
+        document.getElementById('price-fields').classList.toggle('off', !e.target.checked);
+        renderLabel();
+      });
+
+      /* size presets */
+      var PRESETS = [ [6.5,10,'6.5 × 10'], [6,9,'6 × 9'], [8,12,'8 × 12'], [10,16,'10 × 16'], [12,18,'12 × 18'], [5,5,'5 × 5 方形'] ];
+      var presetBox = document.getElementById('presets');
+      PRESETS.forEach(function(p){
+        var b = document.createElement('button');
+        b.className = 'chip'; b.type = 'button'; b.textContent = p[2] + ' cm';
+        b.dataset.w = p[0]; b.dataset.l = p[1];
+        b.addEventListener('click', function(){
+          state.w = p[0]; state.l = p[1]; state.unit = 'cm';
+          document.getElementById('in-w').value = p[0];
+          document.getElementById('in-l').value = p[1];
+          document.getElementById('in-unit').value = 'cm';
+          renderLabel();
+        });
+        presetBox.appendChild(b);
+      });
+
+      /* accent swatches */
+      var ACCENTS = ['#ffc900','#ff7a1a','#e8323f','#1f9d55','#1677ff','#111111'];
+      var swBox = document.getElementById('swatches');
+      ACCENTS.forEach(function(c){
+        var b = document.createElement('button');
+        b.className = 'swatch' + (c === state.accent ? ' sel' : ''); b.type = 'button';
+        b.style.background = c; b.title = c;
+        b.addEventListener('click', function(){
+          state.accent = c;
+          swBox.querySelectorAll('.swatch').forEach(function(x){ x.classList.remove('sel'); });
+          b.classList.add('sel'); renderLabel();
+        });
+        swBox.appendChild(b);
+      });
+      var colorIn = document.createElement('input');
+      colorIn.type = 'color'; colorIn.value = state.accent; colorIn.title = '自訂顏色';
+      colorIn.addEventListener('input', function(){ state.accent = colorIn.value; renderLabel(); });
+      swBox.appendChild(colorIn);
+
+      /* ================= SAVED RECORDS (key = product name) =================
+         Records are kept in this browser on this device, keyed by the
+         product name, so a label setup can be retrieved instead of retyped. */
+      var RECORDS_KEY = 'plc_records_v1';
+      var records = {};
+      try {
+        var rawRecords = localStorage.getItem(RECORDS_KEY);
+        if (rawRecords) records = JSON.parse(rawRecords) || {};
+      } catch (e) { records = {}; }
+      var recKeyEl = document.getElementById('record-key');
+      var recListEl = document.getElementById('record-list');
+      var recMsgEl = document.getElementById('record-msg');
+      var recMsgBottomEl = document.getElementById('record-msg-bottom');
+      var recDeleteBtn = document.getElementById('rec-delete');
+      var recPickerEl = document.getElementById('record-picker');
+      var deleteArmedKey = '';
+      var selectedKey = '';
+      function persistRecords(){
+        try { localStorage.setItem(RECORDS_KEY, JSON.stringify(records)); } catch (e) {}
+      }
+      function recMsg(text, kind){
+        /* messages show in both spots: by Retrieve / Backup at the top and
+           by Add / Change / Delete at the bottom of the form, so feedback
+           always appears next to the button that was just pressed */
+        recMsgEl.textContent = text || '';
+        recMsgEl.className = 'record-msg' + (kind ? ' ' + kind : '');
+        if (recMsgBottomEl){
+          recMsgBottomEl.textContent = text || '';
+          recMsgBottomEl.className = 'record-msg' + (kind ? ' ' + kind : '');
+        }
+      }
+      function snapshotState(){ return JSON.parse(JSON.stringify(state)); }
+      function refreshRecordList(keepKey){
+        var keys = Object.keys(records).sort(function(a, b){ return a.localeCompare(b); });
+        document.getElementById('record-count').textContent = keys.length ? keys.length + ' 條紀錄' : '';
+        recListEl.innerHTML = '';
+        if (!keys.length){
+          var empty = document.createElement('option');
+          empty.value = ''; empty.textContent = '— 未有紀錄 No records —';
+          recListEl.appendChild(empty);
+        } else {
+          var ph = document.createElement('option');
+          ph.value = ''; ph.textContent = '— 揀一個 Key —';
+          recListEl.appendChild(ph);
+          keys.forEach(function(k){
+            var o = document.createElement('option');
+            o.value = k; o.textContent = k;
+            recListEl.appendChild(o);
+          });
+        }
+        if (keepKey && records[keepKey]){ selectedKey = keepKey; recListEl.value = keepKey; }
+        /* clickable list of existing product names — tap one to select it
+           for Retrieve / Change / Delete instead of typing the key */
+        recPickerEl.innerHTML = '';
+        if (!keys.length){
+          var none = document.createElement('span');
+          none.className = 'record-picker-empty';
+          none.textContent = '未有已儲存嘅產品名 — 填好表單之後，去最底用「新增 Add」儲存一個。';
+          recPickerEl.appendChild(none);
+        } else {
+          keys.forEach(function(k){
+            var chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'rec-chip' + (k === selectedKey ? ' sel' : '');
+            chip.textContent = k;
+            chip.title = k;
+            chip.addEventListener('click', function(){ selectRecord(k); });
+            recPickerEl.appendChild(chip);
+          });
+        }
+      }
+      function syncPickerChips(){
+        recPickerEl.querySelectorAll('.rec-chip').forEach(function(chip){
+          chip.classList.toggle('sel', chip.textContent === selectedKey);
+        });
+      }
+      function selectRecord(k){
+        if (!records[k]) return;
+        selectedKey = k;
+        recKeyEl.value = k;
+        recListEl.value = k;
+        disarmDelete();
+        syncPickerChips();
+        recMsg('已揀選「' + k + '」— 可以撳「載入 Retrieve」拎返出嚟；更改 / 刪除掣喺表單最底。', 'ok');
+      }
+      function retrievalKey(){
+        if (selectedKey && records[selectedKey]) return selectedKey;
+        var typed = String(recKeyEl.value || '').trim();
+        if (typed) return typed;
+        return String(recListEl.value || '').trim();
+      }
+      function disarmDelete(){
+        deleteArmedKey = '';
+        recDeleteBtn.classList.remove('armed');
+        recDeleteBtn.textContent = '刪除 Delete';
+      }
+      function syncFormFromState(){
+        document.getElementById('in-name').value = state.name || '';
+        recKeyEl.value = state.sub || '';
+        document.getElementById('in-sub').value = state.sub || '';
+        document.getElementById('in-slogan').value = state.slogan || '';
+        document.getElementById('in-slogan-on').checked = !!state.sloganOn;
+        document.getElementById('slogan-fields').classList.toggle('off', !state.sloganOn);
+        document.querySelectorAll('#slogan-styles .style-opt').forEach(function(x){
+          x.classList.toggle('sel', x.dataset.style === state.sloganStyle);
+        });
+        document.getElementById('in-app').value = state.appName || '';
+        document.getElementById('in-app-on').checked = !!state.appOn;
+        document.getElementById('app-fields').classList.toggle('off', !state.appOn);
+        document.getElementById('in-w').value = state.w;
+        document.getElementById('in-l').value = state.l;
+        document.getElementById('in-unit').value = state.unit;
+        document.getElementById('in-warranty').value = state.warrantyValue;
+        document.getElementById('in-warranty-unit').value = state.warrantyUnit;
+        document.getElementById('in-warranty-on').checked = !!state.warrantyOn;
+        document.getElementById('warranty-fields').classList.toggle('off', !state.warrantyOn);
+        syncWarrantyPresets();
+        document.getElementById('in-barcode').value = state.barcode || '';
+        document.getElementById('in-barcode-on').checked = !!state.barcodeOn;
+        document.getElementById('barcode-fields').classList.toggle('off', !state.barcodeOn);
+        document.getElementById('in-price').value = state.price || '';
+        document.getElementById('in-price-on').checked = !!state.priceOn;
+        document.getElementById('price-fields').classList.toggle('off', !state.priceOn);
+        swBox.querySelectorAll('.swatch').forEach(function(x){
+          x.classList.toggle('sel', x.style.background && rgbToHex(x.style.background) === String(state.accent).toLowerCase());
+        });
+        colorIn.value = /^#[0-9a-f]{6}$/i.test(state.accent) ? state.accent : '#ffc900';
+        renderFeatEditor();
+        renderLabel();
+      }
+      function rgbToHex(rgb){
+        var m = String(rgb).match(/\d+/g);
+        if (!m || m.length < 3) return String(rgb).toLowerCase();
+        return '#' + m.slice(0, 3).map(function(n){ return (+n).toString(16).padStart(2, '0'); }).join('');
+      }
+      /* typing a product name (the second Basics field; the first field
+         holds the brand name) keeps the retrieval key in step */
+      document.getElementById('in-sub').addEventListener('input', function(e){
+        recKeyEl.value = e.target.value;
+        var v = String(e.target.value || '').trim();
+        selectedKey = records[v] ? v : '';
+        syncPickerChips();
+        disarmDelete();
+      });
+      recListEl.addEventListener('change', function(){
+        if (recListEl.value){ selectRecord(recListEl.value); }
+        else { selectedKey = ''; syncPickerChips(); disarmDelete(); }
+      });
+      recKeyEl.addEventListener('input', function(){
+        var v = String(recKeyEl.value || '').trim();
+        selectedKey = records[v] ? v : '';
+        if (selectedKey) recListEl.value = selectedKey;
+        syncPickerChips();
+        disarmDelete();
+      });
+      document.getElementById('rec-add').addEventListener('click', function(){
+        var key = String(state.sub || '').trim() || String(recKeyEl.value || '').trim();
+        if (!key){ recMsg('請先輸入產品名稱做 Key。', 'err'); return; }
+        if (records[key]){ recMsg('已有紀錄「' + key + '」— 要覆寫請用「更改 Change」。', 'err'); return; }
+        records[key] = snapshotState();
+        persistRecords(); refreshRecordList(key); disarmDelete();
+        recMsg('已新增紀錄「' + key + '」。', 'ok');
+      });
+      document.getElementById('rec-load').addEventListener('click', function(){
+        var key = retrievalKey();
+        if (!key || !records[key]){ recMsg('搵唔到呢個 Key 嘅紀錄 — 請先喺「已有產品名」清單撳一個嚟揀選。', 'err'); return; }
+        state = JSON.parse(JSON.stringify(records[key]));
+        syncFormFromState(); refreshRecordList(key); disarmDelete();
+        recMsg('已載入紀錄「' + key + '」。', 'ok');
+      });
+      document.getElementById('rec-change').addEventListener('click', function(){
+        var key = retrievalKey();
+        if (!key || !records[key]){ recMsg('搵唔到呢個 Key 嘅紀錄，未能更改 — 請先喺「已有產品名」清單撳一個嚟揀選（未有紀錄就先用「新增 Add」儲存）。', 'err'); return; }
+        records[key] = snapshotState();
+        persistRecords(); refreshRecordList(key); disarmDelete();
+        recMsg('已更改紀錄「' + key + '」。', 'ok');
+      });
+      recDeleteBtn.addEventListener('click', function(){
+        var key = retrievalKey();
+        if (!key || !records[key]){ recMsg('搵唔到呢個 Key 嘅紀錄，未能刪除 — 請先喺「已有產品名」清單撳一個嚟揀選。', 'err'); return; }
+        if (deleteArmedKey !== key){
+          deleteArmedKey = key;
+          recDeleteBtn.classList.add('armed');
+          recDeleteBtn.textContent = '再撳一次確認刪除';
+          recMsg('確定要刪除紀錄「' + key + '」？再撳一次「刪除」確認。', 'err');
+          return;
+        }
+        delete records[key];
+        selectedKey = '';
+        persistRecords(); refreshRecordList(''); disarmDelete();
+        recMsg('已刪除紀錄「' + key + '」。', 'ok');
+      });
+      refreshRecordList('');
+
+      /* ================= BACKUP: EXPORT / IMPORT =================
+         Export downloads every saved record as one JSON file the user
+         keeps (phone / Drive). Import reads that file back and merges
+         it into localStorage, so records survive a cleared cache or a
+         new device. Same product name = overwritten by the file copy. */
+      document.getElementById('rec-export').addEventListener('click', function(){
+        var keys = Object.keys(records);
+        if (!keys.length){ recMsg('未有紀錄可以匯出 — 先用「新增 Add」儲存一個。', 'err'); return; }
+        var payload = {
+          app: 'product-label-creator',
+          kind: 'label-records-backup',
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          records: records
+        };
+        var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var now = new Date();
+        function pad(n){ return (n < 10 ? '0' : '') + n; }
+        var fname = 'product-labels-backup-' + now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + '.json';
+        var a = document.createElement('a');
+        a.href = url; a.download = fname; a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function(){ a.remove(); URL.revokeObjectURL(url); }, 600);
+        recMsg('已匯出備份檔案「' + fname + '」（共 ' + keys.length + ' 條紀錄）。記得存好個檔案。', 'ok');
+      });
+      var importFileEl = document.getElementById('rec-import-file');
+      document.getElementById('rec-import').addEventListener('click', function(){
+        importFileEl.value = '';
+        importFileEl.click();
+      });
+      importFileEl.addEventListener('change', function(){
+        var file = importFileEl.files && importFileEl.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(){
+          try {
+            var data = JSON.parse(String(reader.result || ''));
+            var incoming = (data && typeof data === 'object' && !Array.isArray(data) &&
+              data.records && typeof data.records === 'object' && !Array.isArray(data.records))
+              ? data.records : data;
+            if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)){
+              recMsg('匯入失敗：呢個檔案唔係有效嘅備份檔案。', 'err'); return;
+            }
+            var added = 0, overwritten = 0, skipped = 0;
+            Object.keys(incoming).forEach(function(k){
+              var key = String(k || '').trim();
+              var v = incoming[k];
+              var looksLikeRecord = v && typeof v === 'object' && !Array.isArray(v) &&
+                ('sub' in v || 'name' in v || 'features' in v);
+              if (!key || !looksLikeRecord){ skipped++; return; }
+              if (records[key]) overwritten++; else added++;
+              records[key] = v;
+            });
+            if (!added && !overwritten){
+              recMsg('呢個檔案入面搵唔到有效紀錄，未有匯入任何嘢。', 'err'); return;
+            }
+            persistRecords(); refreshRecordList(''); disarmDelete();
+            recMsg('匯入完成：新增 ' + added + ' 條、覆寫 ' + overwritten + ' 條' +
+              (skipped ? '、跳過 ' + skipped + ' 條無效資料' : '') + '。', 'ok');
+          } catch (e) {
+            recMsg('匯入失敗：檔案唔係有效嘅備份 JSON，請揀返「匯出備份」下載嗰個檔案。', 'err');
+          }
+        };
+        reader.onerror = function(){ recMsg('匯入失敗：讀唔到個檔案，請再試。', 'err'); };
+        reader.readAsText(file);
+      });
+
+      /* ================= DOWNLOAD PNG ================= */
+      var lastBlobUrl = null, lastFileName = '';
+      function triggerDownload(){
+        if (!lastBlobUrl) return;
+        var a = document.createElement('a');
+        a.href = lastBlobUrl;
+        a.download = lastFileName;
+        a.rel = 'noopener';
+        document.body.appendChild(a);   /* must be in the DOM or some browsers ignore the click */
+        a.click();
+        setTimeout(function(){ a.remove(); }, 400);
+      }
+      document.getElementById('dl').addEventListener('click', function(){
+        var btn = this; btn.disabled = true; btn.textContent = '生成中…';
+        function done(msg){
+          btn.disabled = false; btn.textContent = msg || '下載 PNG · Download';
+          if (msg) setTimeout(function(){ btn.textContent = '下載 PNG · Download'; }, 3000);
+        }
+        if (typeof html2canvas === 'undefined'){ done('元件未載入，請重試'); return; }
+        html2canvas(labelEl, { scale: 3, backgroundColor: '#ffffff', useCORS: true, logging: false }).then(function(canvas){
+          if (canvas.toBlob){
+            canvas.toBlob(function(blob){
+              if (!blob){ done('生成失敗，請再試'); return; }
+              finish(blob); done('已生成 ↓ 見下方成品圖');
+            }, 'image/png');
+          } else {
+            done('已生成 ↓ 見下方成品圖');
+            showResult(canvas.toDataURL('image/png'));
+          }
+        }).catch(function(){ done('生成失敗，請再試'); });
+        function finish(blob){
+          if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+          lastBlobUrl = URL.createObjectURL(blob);
+          lastFileName = (state.sub || state.name || 'label').replace(/[^\w\-]+/g, '_') + '_label.png';
+          showResult(lastBlobUrl);
+          triggerDownload();
+        }
+        function showResult(src){
+          var box = document.getElementById('result');
+          document.getElementById('result-img').src = src;
+          document.getElementById('result-name').textContent = lastFileName || ((state.sub || state.name || 'label').replace(/[^\w\-]+/g, '_') + '_label.png');
+          box.classList.add('show');
+          box.scrollIntoView({ behavior:'smooth', block:'nearest' });
+        }
+      });
+      document.getElementById('dl-again').addEventListener('click', triggerDownload);
+
+      window.addEventListener('resize', fitLabel);
+      renderFeatEditor();
+      renderLabel();
+    </script>
+  </body>
+</html>
