@@ -141,6 +141,7 @@
       }
       .dim-caption{ font-size:13px; color:var(--ink-2); font-weight:700; }
       .dim-caption b{ color:var(--ink); }
+      .dim-caption .cap-warn{ display:block; color:var(--danger); margin-top:2px; }
       .dl-btn{
         font:inherit; font-size:14px; font-weight:900; cursor:pointer; border:none;
         background:var(--brand); color:var(--brand-ink); border-radius:10px; padding:11px 20px;
@@ -474,7 +475,7 @@
 
         <section class="block">
           <div class="block-head"><h2>Size</h2><button type="button" class="help" aria-label="Help: Size" aria-expanded="false" aria-controls="h-size">?</button></div>
-          <div class="help-pop" id="h-size" hidden>The preview is drawn to scale. The PNG is exported at 300 DPI and carries its real size, so print it at 100%.</div>
+          <div class="help-pop" id="h-size" hidden>The preview is drawn to scale. The PNG is exported at 300 DPI and carries its real size, so print it at 100%. Sizes marked <b>no slogan</b> are too small for the slogan band, so choosing one switches the slogan off (you can switch it back on).</div>
           <div class="presets" id="presets"></div>
           <div class="row3">
             <label class="f"><span>Width</span><input type="number" id="in-w" value="6.5" min="2" step="0.5" /></label>
@@ -1230,7 +1231,13 @@
         var u = state.unit === 'in' ? 'inch' : 'cm';
         document.getElementById('dim-caption').innerHTML =
           'Label size <b>' + esc(state.w) + ' × ' + esc(state.l) + ' ' + u + '</b> (W × L) · ' +
-          state.features.length + (state.features.length === 1 ? ' feature' : ' features');
+          state.features.length + (state.features.length === 1 ? ' feature' : ' features') +
+          /* the content could not be shrunk into the label: say so instead of silently clipping it */
+          (labelEl.scrollHeight > labelEl.clientHeight + 1
+            ? ' <span class="cap-warn">⚠ ' + (state.sloganOn && String(state.slogan || '').trim()
+                ? 'Does not fit with the slogan — turn the slogan off or use a larger size'
+                : 'Does not fit — use a larger size or fewer features') + '</span>'
+            : '');
         /* keep the preset chips in sync with the current size */
         if (typeof presetBox !== 'undefined' && presetBox){
           presetBox.querySelectorAll('.chip').forEach(function(chip){
@@ -1438,6 +1445,7 @@
       /* currency fixed to "$" — no selector */
       document.getElementById('in-slogan-on').addEventListener('change', function(e){
         state.sloganOn = e.target.checked;
+        sloganAutoOff = false;                       /* the user decided; stop auto-restoring */
         document.getElementById('slogan-fields').classList.toggle('off', !e.target.checked);
         renderLabel();
       });
@@ -1462,17 +1470,32 @@
       });
 
       /* size presets */
-      var PRESETS = [ [6.5,10,'6.5 × 10'], [6,9,'6 × 9'], [8,12,'8 × 12'], [10,16,'10 × 16'], [12,18,'12 × 18'], [5,5,'5 × 5'] ];
+      /* [width, length, label, slogan?] — a size marked `false` is too small for
+         the slogan band to look right, so choosing it switches the slogan off
+         (and choosing a normal size afterwards switches it back on, unless the
+         user has touched the slogan switch in between) */
+      var PRESETS = [ [6.5,10,'6.5 × 10'], [6,9,'6 × 9'], [8,12,'8 × 12'], [10,16,'10 × 16'], [12,18,'12 × 18'], [5,5,'5 × 5',false] ];
+      var sloganAutoOff = false;
+      function setSloganOn(on){
+        state.sloganOn = on;
+        document.getElementById('in-slogan-on').checked = on;
+        document.getElementById('slogan-fields').classList.toggle('off', !on);
+      }
       var presetBox = document.getElementById('presets');
       PRESETS.forEach(function(p){
         var b = document.createElement('button');
-        b.className = 'chip'; b.type = 'button'; b.textContent = p[2] + ' cm';
+        b.className = 'chip'; b.type = 'button'; b.textContent = p[2] + ' cm' + (p[3] === false ? ' · no slogan' : '');
         b.dataset.w = p[0]; b.dataset.l = p[1];
         b.addEventListener('click', function(){
           state.w = p[0]; state.l = p[1]; state.unit = 'cm';
           document.getElementById('in-w').value = p[0];
           document.getElementById('in-l').value = p[1];
           document.getElementById('in-unit').value = 'cm';
+          if (p[3] === false){
+            if (state.sloganOn){ setSloganOn(false); sloganAutoOff = true; }
+          } else if (sloganAutoOff){
+            setSloganOn(true); sloganAutoOff = false;
+          }
           renderLabel();
         });
         presetBox.appendChild(b);
@@ -1639,6 +1662,7 @@
         recDeleteBtn.textContent = 'Delete';
       }
       function syncFormFromState(){
+        sloganAutoOff = false;                       /* a loaded record brings its own slogan setting */
         document.getElementById('in-name').value = state.name || '';
         document.getElementById('in-sub').value = state.sub || '';
         document.getElementById('in-slogan').value = state.slogan || '';
