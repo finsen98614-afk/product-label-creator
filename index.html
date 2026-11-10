@@ -8,8 +8,8 @@
     <title>Product Label Creator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,500;0,700;0,800;0,900;1,800;1,900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,700;0,900;1,900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
       :root{
         --bg:#eef0f2; --panel:#ffffff; --ink:#16181d; --ink-2:#4c5563; --line:#dde1e7;
@@ -750,24 +750,85 @@
       }
 
       /* ================= STATE ================= */
-      var state = {
-        name:'XO-W12', sub:'Smart Sport Watch', slogan:'Build for smart life', sloganOn:true, sloganStyle:'dynamic',
-        appOn:true, appName:'FitPro',
-        w:6.5, l:10, unit:'cm', accent:'#ffc900',
-        warrantyOn:true, warrantyValue:'1', warrantyUnit:'years',
-        barcodeOn:false, barcode:'XO-W12-2026',
-        priceOn:false, currency:'$', price:'299',
-        features:[
-          { text:'BP Trend Monitoring', icon:'auto' },
-          { text:'Bluetooth Call', icon:'auto' },
-          { text:'IP68', icon:'auto' },
-          { text:'3-5 Days Battery', icon:'auto' },
-          { text:'AMOLED Screen', icon:'auto' },
-          { text:'NFC Card', icon:'auto' },
-          { text:'Sport Modes', icon:'auto' },
-          { text:'Built-in AI Q&A', icon:'auto' }
-        ]
-      };
+      var DEFAULT_ACCENT = '#ffc900';
+      function defaultState(){
+        return {
+          name:'XO-W12', sub:'Smart Sport Watch', slogan:'Build for smart life', sloganOn:true, sloganStyle:'dynamic',
+          appOn:true, appName:'FitPro',
+          w:6.5, l:10, unit:'cm', accent:DEFAULT_ACCENT,
+          warrantyOn:true, warrantyValue:'1', warrantyUnit:'years',
+          barcodeOn:false, barcode:'XO-W12-2026',
+          priceOn:false, currency:'$', price:'299',
+          features:[
+            { text:'BP Trend Monitoring', icon:'auto' },
+            { text:'Bluetooth Call', icon:'auto' },
+            { text:'IP68', icon:'auto' },
+            { text:'3-5 Days Battery', icon:'auto' },
+            { text:'AMOLED Screen', icon:'auto' },
+            { text:'NFC Card', icon:'auto' },
+            { text:'Sport Modes', icon:'auto' },
+            { text:'Built-in AI Q&A', icon:'auto' }
+          ]
+        };
+      }
+      var state = defaultState();
+
+      /* Anything that did not come from our own form (saved records, imported
+         backup files) goes through here before it can become `state`: every
+         field is coerced to the right type and checked against a whitelist, so
+         a hand-edited or hostile backup can neither crash the renderer nor
+         inject markup (accent / icon keys / image URLs end up in innerHTML). */
+      function hasOwn(o, k){ return Object.prototype.hasOwnProperty.call(o, k); }
+      function safeAccent(c){ return /^#[0-9a-f]{6}$/i.test(String(c || '')) ? String(c).toLowerCase() : DEFAULT_ACCENT; }
+      function normalizeState(raw){
+        var d = defaultState();
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return d;
+        function str(v, def, max){
+          if (typeof v === 'number' && isFinite(v)) v = String(v);
+          return typeof v === 'string' ? v.slice(0, max || 200) : def;
+        }
+        function bool(v, def){ return typeof v === 'boolean' ? v : def; }
+        function pick(v, list, def){ return list.indexOf(v) !== -1 ? v : def; }
+        function posNum(v, def){ var n = parseFloat(v); return isFinite(n) && n > 0 && n <= 1000 ? n : def; }
+        var out = {
+          name: str(raw.name, d.name, 80),
+          sub: str(raw.sub, d.sub, 80),
+          slogan: str(raw.slogan, d.slogan, 120),
+          sloganOn: bool(raw.sloganOn, d.sloganOn),
+          sloganStyle: pick(raw.sloganStyle, ['dynamic', 'minimal', 'retro'], d.sloganStyle),
+          appOn: bool(raw.appOn, d.appOn),
+          appName: str(raw.appName, d.appName, 60),
+          w: posNum(raw.w, d.w),
+          l: posNum(raw.l, d.l),
+          unit: pick(raw.unit, ['cm', 'in'], d.unit),
+          accent: safeAccent(raw.accent),
+          warrantyOn: bool(raw.warrantyOn, d.warrantyOn),
+          warrantyUnit: pick(raw.warrantyUnit, ['months', 'years'], d.warrantyUnit),
+          barcodeOn: bool(raw.barcodeOn, d.barcodeOn),
+          barcode: str(raw.barcode, d.barcode, 64),
+          priceOn: bool(raw.priceOn, d.priceOn),
+          currency: '$',
+          price: str(raw.price, d.price, 20)
+        };
+        var wv = str(raw.warrantyValue, null, 10);
+        out.warrantyValue = (wv !== null && (wv.trim() === '' || (isFinite(parseFloat(wv)) && parseFloat(wv) >= 0))) ? wv : d.warrantyValue;
+        if (Array.isArray(raw.features)){
+          out.features = raw.features.slice(0, 40).filter(function(f){
+            return f && typeof f === 'object' && !Array.isArray(f);
+          }).map(function(f){
+            var item = {
+              text: str(f.text, '', 80),
+              icon: (typeof f.icon === 'string' && hasOwn(ICONS, f.icon)) ? f.icon : 'auto'
+            };
+            if (typeof f.img === 'string' && /^(https?:\/\/|data:image\/(png|jpe?g|gif|webp|svg\+xml)[;,])/i.test(f.img.trim())) item.img = f.img.trim();
+            if (f.custom === true) item.custom = true;
+            return item;
+          });
+        } else {
+          out.features = d.features;
+        }
+        return out;
+      }
 
       function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
         return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -810,9 +871,17 @@
         var ic = ICONS[key] || ICONS.star;
         return ic.svg;
       }
-      function renderLabel(){
-        var accent = state.accent;
-        labelEl.style.setProperty('--accent', accent);
+      /* built-in icon to show when a custom icon image fails to load
+         (blocked by CORS, dead link, …) instead of leaving an empty ring */
+      function iconFallback(img){
+        if (!img || !img.parentNode) return;
+        var key = img.getAttribute('data-icon');
+        img.outerHTML = iconHTML(hasOwn(ICONS, key) ? key : 'star');
+      }
+      /* the label markup as a string, so the same output feeds both the live
+         preview and the off-screen export render */
+      function labelInnerHTML(){
+        var accent = safeAccent(state.accent);
         var html = '';
         /* name row */
         html += '<div class="name-row"><div class="slashes"><i></i><i></i><i></i></div>' +
@@ -826,7 +895,7 @@
            size change visibly rearranges the label instead of stretching it */
         var feats = state.features.filter(function(f){ return f.text.trim() !== '' || state.features.length === 1; });
         if (feats.length){
-          var ratio = Math.max(toCm(parseFloat(state.w) || 6.5), 2) / Math.max(toCm(parseFloat(state.l) || 10), 2);
+          var cm0 = labelCm(), ratio = cm0.w / cm0.l;
           var cols = ratio >= 1.35 ? 4 : (ratio >= 0.9 ? 3 : 2);
           html += '<div class="grid" style="grid-template-columns:repeat(' + cols + ',1fr)">';
           feats.forEach(function(f, i){
@@ -837,7 +906,7 @@
               span = ' style="grid-column:1 / -1; justify-content:center"';
             }
             var ringInner = (f.img && String(f.img).trim())
-              ? '<img src="' + esc(f.img) + '" alt="" crossorigin="anonymous" onerror="this.style.display=\'none\'" style="width:2.75em;height:2.75em;object-fit:contain;display:block"/>'
+              ? '<img src="' + esc(f.img) + '" alt="" crossorigin="anonymous" data-icon="' + esc(key) + '" onerror="iconFallback(this)" style="width:2.75em;height:2.75em;object-fit:contain;display:block"/>'
               : iconHTML(key);
             html += '<div class="' + cls + '"' + span + '><div class="ring">' + ringInner + '</div>' +
                     '<div class="ftext">' + esc(f.text) + '</div></div>';
@@ -897,7 +966,11 @@
           html += '</div>';
         }
         if (!showSlogan && !state.barcodeOn && !state.priceOn) html += '<div class="end-pad"></div>';
-        labelEl.innerHTML = html;
+        return html;
+      }
+      function renderLabel(){
+        labelEl.style.setProperty('--accent', safeAccent(state.accent));
+        labelEl.innerHTML = labelInnerHTML();
         fitLabel();
         renderCaption();
       }
@@ -908,44 +981,59 @@
          smaller one smaller; the box height is locked to the chosen
          width × length ratio instead of being stretched by the content. */
       function toCm(v){ return state.unit === 'in' ? v * 2.54 : v; }
-      function fitLabel(){
-        var wCm = Math.max(toCm(parseFloat(state.w) || 6.5), 2);
-        var lCm = Math.max(toCm(parseFloat(state.l) || 10), 2);
-        var availW = Math.min(document.querySelector('.stage').clientWidth - 28, 620);
+      function labelCm(){
+        return {
+          w: Math.max(toCm(parseFloat(state.w) || 6.5), 2),
+          l: Math.max(toCm(parseFloat(state.l) || 10), 2)
+        };
+      }
+      var stageEl = document.querySelector('.stage');
+      function previewSize(){
+        var cm = labelCm();
+        var availW = Math.min(stageEl.clientWidth - 28, 620);
         if (availW < 180) availW = 180;
         var availH = 920;
         var scale = 38; /* px per cm at natural size */
-        if (wCm * scale > availW) scale = availW / wCm;
-        if (lCm * scale > availH) scale = availH / lCm;
-        var pxW = Math.round(wCm * scale);
-        var pxH = Math.round(lCm * scale);
-        labelEl.style.width = pxW + 'px';
+        if (cm.w * scale > availW) scale = availW / cm.w;
+        if (cm.l * scale > availH) scale = availH / cm.l;
+        return { w: Math.round(cm.w * scale), h: Math.round(cm.l * scale) };
+      }
+      /* Lay a label element out at an exact pixel box: every size inside is
+         in em, so the base font-size is the only knob — shrink it until the
+         content fits the locked height. Used for the preview and, at a much
+         larger pixel size, for the export render. */
+      function layoutLabel(el, pxW, pxH){
+        el.style.width = pxW + 'px';
         /* measure the content at natural height, then lock the box height */
-        labelEl.style.height = 'auto';
-        labelEl.style.minHeight = '0px';
+        el.style.height = 'auto';
+        el.style.minHeight = '0px';
         var fs = Math.max(pxW / 23, 8);
         for (var iter = 0; iter < 14; iter++){
-          labelEl.style.fontSize = fs + 'px';
+          el.style.fontSize = fs + 'px';
           /* shrink-to-fit single-line texts (product name, subtitle) */
-          fitText(labelEl.querySelector('.pname'), 3.1);
-          fitText(labelEl.querySelector('.banner-inner span'), 1.42);
+          fitText(el.querySelector('.pname'), 3.1);
+          fitText(el.querySelector('.banner-inner span'), 1.42);
           /* shrink each feature text so its longest word fits the cell */
-          labelEl.querySelectorAll('.ftext').forEach(function(el){ fitText(el, 1.22); });
+          el.querySelectorAll('.ftext').forEach(function(t){ fitText(t, 1.22); });
           /* warranty line: shrink if a long period would overflow */
-          fitText(labelEl.querySelector('.warranty .wtext'), 1.15);
+          fitText(el.querySelector('.warranty .wtext'), 1.15);
           /* app name: shrink if a long name would overflow the chip */
-          fitText(labelEl.querySelector('.app-name'), 1.18);
+          fitText(el.querySelector('.app-name'), 1.18);
           /* slogan: keep it inside the band however long the text is */
-          var slEl = labelEl.querySelector('.slogan');
+          var slEl = el.querySelector('.slogan');
           if (slEl) fitText(slEl, parseFloat(slEl.getAttribute('data-base')) || 2.6);
-          var nat = labelEl.scrollHeight;
+          var nat = el.scrollHeight;
           if (nat <= pxH) break;
           var next = fs * (pxH / nat) * .97;
-          if (next < 5){ fs = 5; labelEl.style.fontSize = fs + 'px'; break; }
+          if (next < 5){ fs = 5; el.style.fontSize = fs + 'px'; break; }
           fs = next;
         }
-        labelEl.style.height = pxH + 'px';
-        labelEl.style.minHeight = pxH + 'px';
+        el.style.height = pxH + 'px';
+        el.style.minHeight = pxH + 'px';
+      }
+      function fitLabel(){
+        var sz = previewSize();
+        layoutLabel(labelEl, sz.w, sz.h);
       }
       function fitText(el, baseEm){
         if (!el) return;
@@ -995,7 +1083,7 @@
         var status = wrap.querySelector('.auto-status');
         var extra = '';
         if (f.img && String(f.img).trim()) extra = ' · 已用<b>自訂圖片圖示</b>';
-        else if (f.icon !== 'auto') extra = ' · 已手動改為 <b>' + ICONS[f.icon].name + '</b>';
+        else if (f.icon !== 'auto' && ICONS[f.icon]) extra = ' · 已手動改為 <b>' + ICONS[f.icon].name + '</b>';
         status.innerHTML = '自動配對：<b>' + (ICONS[autoKey] ? ICONS[autoKey].name : '') + '</b>' + extra;
         var unmatched = isUnmatched(f);
         var nomatch = wrap.querySelector('.nomatch');
@@ -1009,6 +1097,7 @@
         featList.innerHTML = '';
         state.features.forEach(function(f, i){
           var row = document.createElement('div');
+          row.className = 'feat-item';
           row.innerHTML =
             '<div class="feat-row">' +
               '<div class="num">' + (i + 1) + '</div>' +
@@ -1028,57 +1117,56 @@
           featList.appendChild(row);
           refreshTag(row, i);
         });
-        featList.querySelectorAll('input.feat-text').forEach(function(inp){
-          inp.addEventListener('input', function(){
-            var idx = +inp.dataset.i;
-            state.features[idx].text = inp.value;
-            renderLabel();
-            refreshTag(inp.closest('.feat-row').parentElement, idx);
-          });
-        });
-        featList.querySelectorAll('select').forEach(function(sel){
-          sel.addEventListener('change', function(){
-            state.features[+sel.dataset.i].icon = sel.value;
-            renderLabel(); renderFeatEditor();
-          });
-        });
-        featList.querySelectorAll('[data-del]').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            state.features.splice(+btn.dataset.del, 1);
-            renderLabel(); renderFeatEditor();
-          });
-        });
-        featList.querySelectorAll('.img-url').forEach(function(inp){
-          inp.addEventListener('input', function(){
-            var idx = +inp.dataset.i;
-            state.features[idx].img = inp.value;
-            renderLabel();
-            refreshTag(inp.closest('.auto-tag').parentElement, idx);
-          });
-        });
-        featList.querySelectorAll('[data-custom]').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            var idx = +btn.dataset.custom;
-            state.features[idx].custom = true;
-            var wrap = btn.closest('.auto-tag').parentElement;
-            refreshTag(wrap, idx);
-            var urlInp = wrap.querySelector('.img-url');
-            if (urlInp) urlInp.focus();
-          });
-        });
-        featList.querySelectorAll('[data-clearimg]').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            var idx = +btn.dataset.clearimg;
-            state.features[idx].img = '';
-            state.features[idx].custom = false;
-            var wrap = btn.closest('.auto-tag').parentElement;
-            var urlInp = wrap.querySelector('.img-url');
-            if (urlInp) urlInp.value = '';
-            renderLabel();
-            refreshTag(wrap, idx);
-          });
-        });
       }
+      /* One set of listeners on the list itself (event delegation) instead of
+         re-binding five handlers per row on every rebuild. Typing and icon
+         changes only touch that row, so the focused input is never replaced. */
+      featList.addEventListener('input', function(e){
+        var t = e.target, row = t.closest('.feat-item');
+        if (!row) return;
+        var idx = +t.dataset.i;
+        if (!state.features[idx]) return;
+        if (t.classList.contains('feat-text')){
+          state.features[idx].text = t.value;
+        } else if (t.classList.contains('img-url')){
+          state.features[idx].img = t.value;
+        } else { return; }
+        renderLabel();
+        refreshTag(row, idx);
+      });
+      featList.addEventListener('change', function(e){
+        var t = e.target, row = t.closest('.feat-item');
+        if (!row || t.tagName !== 'SELECT') return;
+        var idx = +t.dataset.i;
+        if (!state.features[idx]) return;
+        state.features[idx].icon = t.value;
+        renderLabel();
+        refreshTag(row, idx);
+      });
+      featList.addEventListener('click', function(e){
+        var btn = e.target.closest('button');
+        var row = btn && btn.closest('.feat-item');
+        if (!row) return;
+        var idx;
+        if (btn.dataset.del !== undefined){
+          state.features.splice(+btn.dataset.del, 1);
+          renderLabel(); renderFeatEditor();
+        } else if (btn.dataset.custom !== undefined){
+          idx = +btn.dataset.custom;
+          state.features[idx].custom = true;
+          refreshTag(row, idx);
+          var urlInp = row.querySelector('.img-url');
+          if (urlInp) urlInp.focus();
+        } else if (btn.dataset.clearimg !== undefined){
+          idx = +btn.dataset.clearimg;
+          state.features[idx].img = '';
+          state.features[idx].custom = false;
+          var u = row.querySelector('.img-url');
+          if (u) u.value = '';
+          renderLabel();
+          refreshTag(row, idx);
+        }
+      });
       document.getElementById('add-feat').addEventListener('click', function(){
         state.features.push({ text:'', icon:'auto' });
         renderLabel(); renderFeatEditor();
@@ -1114,6 +1202,9 @@
       function bind(id, key, after){
         var el = document.getElementById(id);
         function handler(e){
+          /* 'change' right after 'input' carries the same value — skip the
+             second render */
+          if (e.type === 'change' && String(state[key]) === e.target.value) return;
           state[key] = e.target.value; renderLabel(); if (after) after();
         }
         /* 'change' as well as 'input': some mobile webviews only fire
@@ -1223,11 +1314,21 @@
          Records are kept in this browser on this device, keyed by the
          product name, so a label setup can be retrieved instead of retyped. */
       var RECORDS_KEY = 'plc_records_v1';
-      var records = {};
+      /* null-prototype store: product names like "constructor" or "__proto__"
+         are then ordinary keys, not inherited properties */
+      var records = Object.create(null);
+      function looksLikeRecord(v){
+        return !!v && typeof v === 'object' && !Array.isArray(v) &&
+          ('sub' in v || 'name' in v || 'features' in v);
+      }
       try {
-        var rawRecords = localStorage.getItem(RECORDS_KEY);
-        if (rawRecords) records = JSON.parse(rawRecords) || {};
-      } catch (e) { records = {}; }
+        var rawRecords = JSON.parse(localStorage.getItem(RECORDS_KEY) || 'null');
+        if (rawRecords && typeof rawRecords === 'object' && !Array.isArray(rawRecords)){
+          Object.keys(rawRecords).forEach(function(k){
+            if (looksLikeRecord(rawRecords[k])) records[k] = normalizeState(rawRecords[k]);
+          });
+        }
+      } catch (e) { /* unreadable storage — start empty */ }
       var recKeyEl = document.getElementById('record-key');
       var recListEl = document.getElementById('record-list');
       var recMsgEl = document.getElementById('record-msg');
@@ -1236,8 +1337,17 @@
       var recPickerEl = document.getElementById('record-picker');
       var deleteArmedKey = '';
       var selectedKey = '';
+      /* returns false when the browser refuses the write (private mode,
+         storage full, blocked site data) so the UI never claims a record was
+         saved when it only lives in memory */
       function persistRecords(){
-        try { localStorage.setItem(RECORDS_KEY, JSON.stringify(records)); } catch (e) {}
+        try { localStorage.setItem(RECORDS_KEY, JSON.stringify(records)); return true; }
+        catch (e) { return false; }
+      }
+      var SAVE_FAIL = ' ⚠ 但瀏覽器寫入失敗（私隱模式或儲存空間已滿）— 呢個變更只喺今次開啟期間有效，請即刻撳「匯出備份 Export」存低。';
+      function recSaved(okText){
+        var ok = persistRecords();
+        recMsg(ok ? okText : okText + SAVE_FAIL, ok ? 'ok' : 'err');
       }
       function recMsg(text, kind){
         /* messages show in both spots: by Retrieve / Backup at the top and
@@ -1379,13 +1489,13 @@
         if (!key){ recMsg('請先輸入產品名稱做 Key。', 'err'); return; }
         if (records[key]){ recMsg('已有紀錄「' + key + '」— 要覆寫請用「更改 Change」。', 'err'); return; }
         records[key] = snapshotState();
-        persistRecords(); refreshRecordList(key); disarmDelete();
-        recMsg('已新增紀錄「' + key + '」。', 'ok');
+        refreshRecordList(key); disarmDelete();
+        recSaved('已新增紀錄「' + key + '」。');
       });
       document.getElementById('rec-load').addEventListener('click', function(){
         var key = retrievalKey();
         if (!key || !records[key]){ recMsg('搵唔到呢個 Key 嘅紀錄 — 請先喺「已有產品名」清單撳一個嚟揀選。', 'err'); return; }
-        state = JSON.parse(JSON.stringify(records[key]));
+        state = normalizeState(records[key]);
         syncFormFromState(); refreshRecordList(key); disarmDelete();
         recMsg('已載入紀錄「' + key + '」。', 'ok');
       });
@@ -1393,8 +1503,8 @@
         var key = retrievalKey();
         if (!key || !records[key]){ recMsg('搵唔到呢個 Key 嘅紀錄，未能更改 — 請先喺「已有產品名」清單撳一個嚟揀選（未有紀錄就先用「新增 Add」儲存）。', 'err'); return; }
         records[key] = snapshotState();
-        persistRecords(); refreshRecordList(key); disarmDelete();
-        recMsg('已更改紀錄「' + key + '」。', 'ok');
+        refreshRecordList(key); disarmDelete();
+        recSaved('已更改紀錄「' + key + '」。');
       });
       recDeleteBtn.addEventListener('click', function(){
         var key = retrievalKey();
@@ -1408,8 +1518,8 @@
         }
         delete records[key];
         selectedKey = '';
-        persistRecords(); refreshRecordList(''); disarmDelete();
-        recMsg('已刪除紀錄「' + key + '」。', 'ok');
+        refreshRecordList(''); disarmDelete();
+        recSaved('已刪除紀錄「' + key + '」。');
       });
       refreshRecordList('');
 
@@ -1462,18 +1572,16 @@
             Object.keys(incoming).forEach(function(k){
               var key = String(k || '').trim();
               var v = incoming[k];
-              var looksLikeRecord = v && typeof v === 'object' && !Array.isArray(v) &&
-                ('sub' in v || 'name' in v || 'features' in v);
-              if (!key || !looksLikeRecord){ skipped++; return; }
+              if (!key || !looksLikeRecord(v)){ skipped++; return; }
               if (records[key]) overwritten++; else added++;
-              records[key] = v;
+              records[key] = normalizeState(v);
             });
             if (!added && !overwritten){
               recMsg('呢個檔案入面搵唔到有效紀錄，未有匯入任何嘢。', 'err'); return;
             }
-            persistRecords(); refreshRecordList(''); disarmDelete();
-            recMsg('匯入完成：新增 ' + added + ' 條、覆寫 ' + overwritten + ' 條' +
-              (skipped ? '、跳過 ' + skipped + ' 條無效資料' : '') + '。', 'ok');
+            refreshRecordList(''); disarmDelete();
+            recSaved('匯入完成：新增 ' + added + ' 條、覆寫 ' + overwritten + ' 條' +
+              (skipped ? '、跳過 ' + skipped + ' 條無效資料' : '') + '。');
           } catch (e) {
             recMsg('匯入失敗：檔案唔係有效嘅備份 JSON，請揀返「匯出備份」下載嗰個檔案。', 'err');
           }
@@ -1483,7 +1591,26 @@
       });
 
       /* ================= DOWNLOAD PNG ================= */
-      var lastBlobUrl = null, lastFileName = '';
+      var lastBlobUrl = null, lastFileName = '', lastInfo = '';
+      /* Export resolution is fixed at 300 DPI (capped so the longest side
+         stays within canvas limits) instead of a hard-coded scale of 3 on
+         whatever size the preview happens to be — a phone used to produce a
+         lower-resolution PNG than a desktop for the same label. The preview
+         element itself is rendered (html2canvas re-draws it at `scale`, no
+         upscaling blur), so line breaks match exactly what is on screen. */
+      var EXPORT_PX_PER_CM = 300 / 2.54, EXPORT_MAX_SIDE = 6000;
+      function renderExportCanvas(){
+        var cm = labelCm();
+        var ppc = Math.min(EXPORT_PX_PER_CM, EXPORT_MAX_SIDE / Math.max(cm.w, cm.l));
+        var box = labelEl.getBoundingClientRect();
+        var previewW = box.width || labelEl.offsetWidth || 1, previewH = box.height || labelEl.offsetHeight || 1;
+        /* the preview box is rounded to whole px, so also cap on its real size */
+        var scale = Math.min((cm.w * ppc) / previewW, EXPORT_MAX_SIDE / Math.max(previewW, previewH));
+        var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+        return fontsReady.then(function(){
+          return html2canvas(labelEl, { scale: scale, backgroundColor: '#ffffff', useCORS: true, logging: false });
+        });
+      }
       function triggerDownload(){
         if (!lastBlobUrl) return;
         var a = document.createElement('a');
@@ -1501,7 +1628,9 @@
           if (msg) setTimeout(function(){ btn.textContent = '下載 PNG · Download'; }, 3000);
         }
         if (typeof html2canvas === 'undefined'){ done('元件未載入，請重試'); return; }
-        html2canvas(labelEl, { scale: 3, backgroundColor: '#ffffff', useCORS: true, logging: false }).then(function(canvas){
+        renderExportCanvas().then(function(canvas){
+          var dpi = Math.round(canvas.width / (labelCm().w / 2.54));
+          lastInfo = canvas.width + ' × ' + canvas.height + ' px · 約 ' + dpi + ' DPI';
           if (canvas.toBlob){
             canvas.toBlob(function(blob){
               if (!blob){ done('生成失敗，請再試'); return; }
@@ -1522,14 +1651,38 @@
         function showResult(src){
           var box = document.getElementById('result');
           document.getElementById('result-img').src = src;
-          document.getElementById('result-name').textContent = lastFileName || ((state.sub || state.name || 'label').replace(/[^\w\-]+/g, '_') + '_label.png');
+          var fname = lastFileName || ((state.sub || state.name || 'label').replace(/[^\w\-]+/g, '_') + '_label.png');
+          document.getElementById('result-name').textContent = fname + (lastInfo ? '（' + lastInfo + '）' : '');
           box.classList.add('show');
           box.scrollIntoView({ behavior:'smooth', block:'nearest' });
         }
       });
       document.getElementById('dl-again').addEventListener('click', triggerDownload);
 
-      window.addEventListener('resize', fitLabel);
+      /* Re-fit at most once per frame, and only when the stage width really
+         changed (mobile URL-bar show/hide fires resize with the same width). */
+      var fitQueued = false, fitForce = false, lastStageW = stageEl.clientWidth;
+      function scheduleFit(force){
+        if (force) fitForce = true;
+        if (fitQueued) return;
+        fitQueued = true;
+        requestAnimationFrame(function(){
+          fitQueued = false;
+          var force = fitForce; fitForce = false;
+          var w = stageEl.clientWidth;
+          if (!force && w === lastStageW) return;
+          lastStageW = w;
+          fitLabel();
+        });
+      }
+      window.addEventListener('resize', function(){ scheduleFit(false); });
+      /* The first fit runs before the web fonts arrive, so it measures
+         fallback glyphs. Re-fit whenever a font batch finishes loading
+         (Archivo first, later Noto Sans TC slices for CJK text). */
+      if (document.fonts){
+        if (document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', function(){ scheduleFit(true); });
+        if (document.fonts.ready) document.fonts.ready.then(function(){ scheduleFit(true); });
+      }
       renderFeatEditor();
       renderLabel();
     </script>
