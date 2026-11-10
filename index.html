@@ -8,8 +8,8 @@
     <title>Product Label Creator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,500;0,700;0,800;0,900;1,800;1,900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,700;0,900;1,900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
       :root{
         --bg:#eef0f2; --panel:#ffffff; --ink:#16181d; --ink-2:#4c5563; --line:#dde1e7;
@@ -302,6 +302,7 @@
       .record-msg.ok{ color:#177245; font-weight:700; }
       .record-msg.err{ color:var(--danger); font-weight:700; }
       @media (prefers-color-scheme: dark){ .record-msg.ok{ color:#4ade80; } }
+      .record-note.bc-err{ color:var(--danger); font-weight:700; }
       .record-note{ font-size:12px; color:var(--ink-2); line-height:1.55; margin:0 0 12px; }
       /* clickable list of existing product names (for Change / Delete) */
       .record-picker{ display:flex; flex-wrap:wrap; gap:6px; margin:0 0 12px; }
@@ -354,14 +355,22 @@
       .foot{
         margin:0 -1.15em; padding:.55em 1.15em .7em; background:#fff;
         border-top:.14em solid #0b0b0c;
-        display:grid; grid-template-columns:1fr auto 1fr; align-items:end; gap:1em;
+        /* barcode keeps its natural width (squeezing bars makes them unscannable);
+           the price takes the remaining space, and wraps onto its own line
+           above the barcode when both do not fit */
+        display:flex; flex-wrap:wrap-reverse; align-items:flex-start; justify-content:space-between; gap:.4em 1em;
       }
-      .barcode{ text-align:left; grid-column:1; justify-self:start; }
-      .barcode svg{ display:block; height:2.5em; width:auto; max-width:16em; }
+      .barcode{ text-align:left; flex:0 1 auto; min-width:0; max-width:100%; }
+      .barcode .bars{ position:relative; height:2.5em; max-width:100%; }
+      .barcode .bars i{ position:absolute; top:0; bottom:0; background:#0b0b0c; }
+      .bc-invalid{
+        height:2.5em; min-width:9em; display:flex; align-items:center; justify-content:center; padding:0 .8em;
+        border:.12em dashed #d81f26; color:#d81f26; font-weight:900; font-size:.9em; letter-spacing:.05em;
+      }
       .barcode .code{ font-size:.78em; font-weight:700; letter-spacing:.32em; margin-top:.18em; font-family:"Archivo",monospace; }
       /* price sits in the centre of the footer and is printed in red */
       .price{
-        grid-column:2; justify-self:center; text-align:center;
+        flex:1 1 auto; text-align:center;
         font-weight:900; font-style:italic; font-size:3em; line-height:1; white-space:nowrap;
         color:#d81f26;
       }
@@ -486,8 +495,16 @@
             <label class="sw"><input type="checkbox" id="in-barcode-on" aria-label="顯示條碼 Barcode" /></label>
           </div>
           <div class="sub-fields off" id="barcode-fields">
+            <label class="f"><span>條碼類型 Type</span>
+              <select id="in-barcode-type">
+                <option value="auto">自動 Auto（13 位 → EAN-13、12 位 → UPC-A、其他 → Code 128）</option>
+                <option value="code128">Code 128 — 英數字，任何自訂編號</option>
+                <option value="ean13">EAN-13 — 13 位數字，零售通用</option>
+                <option value="upca">UPC-A — 12 位數字，北美零售</option>
+              </select></label>
             <label class="f"><span>條碼編號 Code</span>
               <input type="text" id="in-barcode" value="XO-W12-2026" autocomplete="off" /></label>
+            <p class="record-note" id="barcode-hint" aria-live="polite"></p>
           </div>
           <div class="switch-row">
             <div class="t">顯示價格 Price<small>出現在標籤右下角</small></div>
@@ -750,41 +767,205 @@
       }
 
       /* ================= STATE ================= */
-      var state = {
-        name:'XO-W12', sub:'Smart Sport Watch', slogan:'Build for smart life', sloganOn:true, sloganStyle:'dynamic',
-        appOn:true, appName:'FitPro',
-        w:6.5, l:10, unit:'cm', accent:'#ffc900',
-        warrantyOn:true, warrantyValue:'1', warrantyUnit:'years',
-        barcodeOn:false, barcode:'XO-W12-2026',
-        priceOn:false, currency:'$', price:'299',
-        features:[
-          { text:'BP Trend Monitoring', icon:'auto' },
-          { text:'Bluetooth Call', icon:'auto' },
-          { text:'IP68', icon:'auto' },
-          { text:'3-5 Days Battery', icon:'auto' },
-          { text:'AMOLED Screen', icon:'auto' },
-          { text:'NFC Card', icon:'auto' },
-          { text:'Sport Modes', icon:'auto' },
-          { text:'Built-in AI Q&A', icon:'auto' }
-        ]
-      };
+      var DEFAULT_ACCENT = '#ffc900';
+      function defaultState(){
+        return {
+          name:'XO-W12', sub:'Smart Sport Watch', slogan:'Build for smart life', sloganOn:true, sloganStyle:'dynamic',
+          appOn:true, appName:'FitPro',
+          w:6.5, l:10, unit:'cm', accent:DEFAULT_ACCENT,
+          warrantyOn:true, warrantyValue:'1', warrantyUnit:'years',
+          barcodeOn:false, barcode:'XO-W12-2026', barcodeType:'auto',
+          priceOn:false, currency:'$', price:'299',
+          features:[
+            { text:'BP Trend Monitoring', icon:'auto' },
+            { text:'Bluetooth Call', icon:'auto' },
+            { text:'IP68', icon:'auto' },
+            { text:'3-5 Days Battery', icon:'auto' },
+            { text:'AMOLED Screen', icon:'auto' },
+            { text:'NFC Card', icon:'auto' },
+            { text:'Sport Modes', icon:'auto' },
+            { text:'Built-in AI Q&A', icon:'auto' }
+          ]
+        };
+      }
+      var state = defaultState();
+
+      /* Anything that did not come from our own form (saved records, imported
+         backup files) goes through here before it can become `state`: every
+         field is coerced to the right type and checked against a whitelist, so
+         a hand-edited or hostile backup can neither crash the renderer nor
+         inject markup (accent / icon keys / image URLs end up in innerHTML). */
+      function hasOwn(o, k){ return Object.prototype.hasOwnProperty.call(o, k); }
+      function safeAccent(c){ return /^#[0-9a-f]{6}$/i.test(String(c || '')) ? String(c).toLowerCase() : DEFAULT_ACCENT; }
+      function normalizeState(raw){
+        var d = defaultState();
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return d;
+        function str(v, def, max){
+          if (typeof v === 'number' && isFinite(v)) v = String(v);
+          return typeof v === 'string' ? v.slice(0, max || 200) : def;
+        }
+        function bool(v, def){ return typeof v === 'boolean' ? v : def; }
+        function pick(v, list, def){ return list.indexOf(v) !== -1 ? v : def; }
+        function posNum(v, def){ var n = parseFloat(v); return isFinite(n) && n > 0 && n <= 1000 ? n : def; }
+        var out = {
+          name: str(raw.name, d.name, 80),
+          sub: str(raw.sub, d.sub, 80),
+          slogan: str(raw.slogan, d.slogan, 120),
+          sloganOn: bool(raw.sloganOn, d.sloganOn),
+          sloganStyle: pick(raw.sloganStyle, ['dynamic', 'minimal', 'retro'], d.sloganStyle),
+          appOn: bool(raw.appOn, d.appOn),
+          appName: str(raw.appName, d.appName, 60),
+          w: posNum(raw.w, d.w),
+          l: posNum(raw.l, d.l),
+          unit: pick(raw.unit, ['cm', 'in'], d.unit),
+          accent: safeAccent(raw.accent),
+          warrantyOn: bool(raw.warrantyOn, d.warrantyOn),
+          warrantyUnit: pick(raw.warrantyUnit, ['months', 'years'], d.warrantyUnit),
+          barcodeOn: bool(raw.barcodeOn, d.barcodeOn),
+          barcode: str(raw.barcode, d.barcode, 64),
+          barcodeType: pick(raw.barcodeType, ['auto', 'code128', 'ean13', 'upca'], d.barcodeType),
+          priceOn: bool(raw.priceOn, d.priceOn),
+          currency: '$',
+          price: str(raw.price, d.price, 20)
+        };
+        var wv = str(raw.warrantyValue, null, 10);
+        out.warrantyValue = (wv !== null && (wv.trim() === '' || (isFinite(parseFloat(wv)) && parseFloat(wv) >= 0))) ? wv : d.warrantyValue;
+        if (Array.isArray(raw.features)){
+          out.features = raw.features.slice(0, 40).filter(function(f){
+            return f && typeof f === 'object' && !Array.isArray(f);
+          }).map(function(f){
+            var item = {
+              text: str(f.text, '', 80),
+              icon: (typeof f.icon === 'string' && hasOwn(ICONS, f.icon)) ? f.icon : 'auto'
+            };
+            if (typeof f.img === 'string' && /^(https?:\/\/|data:image\/(png|jpe?g|gif|webp|svg\+xml)[;,])/i.test(f.img.trim())) item.img = f.img.trim();
+            if (f.custom === true) item.custom = true;
+            return item;
+          });
+        } else {
+          out.features = d.features;
+        }
+        return out;
+      }
 
       function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
         return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
-      /* ================= BARCODE (deterministic pattern from the code text) ================= */
-      function barcodeSVG(code){
-        var s = String(code || ' ').toUpperCase(), x = 0, rects = '', i, c, v, k;
-        function bar(w, black){ if (black) rects += '<rect x="' + x.toFixed(1) + '" y="0" width="' + w + '" height="34" fill="#0b0b0c"/>'; x += w; }
-        function gap(w){ x += w; }
-        bar(2.4, true); gap(1.2); bar(1.2, true); gap(2);           /* start */
-        for (i = 0; i < s.length; i++){
-          v = s.charCodeAt(i) * 7 + 13;
-          for (k = 0; k < 5; k++){ var bw = ((v >> (k * 2)) % 3) + 1; if (k % 2 === 0) bar(bw, true); else gap(bw * .8); }
-          gap(1.6);
+      /* ================= BARCODE (real, scannable symbologies) =================
+         Code 128 (any printable ASCII), EAN-13 and UPC-A, encoded from the
+         published symbol tables and drawn as SVG bars with a quiet zone.
+         Retail types validate / complete the check digit; an invalid code is
+         reported instead of being drawn, and blocks the PNG export. */
+      var C128_BARS = [
+        '11011001100','11001101100','11001100110','10010011000','10010001100',
+        '10001001100','10011001000','10011000100','10001100100','11001001000',
+        '11001000100','11000100100','10110011100','10011011100','10011001110',
+        '10111001100','10011101100','10011100110','11001110010','11001011100',
+        '11001001110','11011100100','11001110100','11101101110','11101001100',
+        '11100101100','11100100110','11101100100','11100110100','11100110010',
+        '11011011000','11011000110','11000110110','10100011000','10001011000',
+        '10001000110','10110001000','10001101000','10001100010','11010001000',
+        '11000101000','11000100010','10110111000','10110001110','10001101110',
+        '10111011000','10111000110','10001110110','11101110110','11010001110',
+        '11000101110','11011101000','11011100010','11011101110','11101011000',
+        '11101000110','11100010110','11101101000','11101100010','11100011010',
+        '11101111010','11001000010','11110001010','10100110000','10100001100',
+        '10010110000','10010000110','10000101100','10000100110','10110010000',
+        '10110000100','10011010000','10011000010','10000110100','10000110010',
+        '11000010010','11001010000','11110111010','11000010100','10001111010',
+        '10100111100','10010111100','10010011110','10111100100','10011110100',
+        '10011110010','11110100100','11110010100','11110010010','11011011110',
+        '11011110110','11110110110','10101111000','10100011110','10001011110',
+        '10111101000','10111100010','11110101000','11110100010','10111011110',
+        '10111101110','11101011110','11110101110','11010000100','11010010000',
+        '11010011100','1100011101011'
+      ];
+      var EAN_L = ['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
+      var EAN_G = ['0100111','0110011','0011011','0100001','0011101','0111001','0000101','0010001','0001001','0010111'];
+      var EAN_R = ['1110010','1100110','1101100','1000010','1011100','1001110','1010000','1000100','1001000','1110100'];
+      var EAN_PARITY = ['LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG','LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'];
+      var BARCODE_TYPE_NAMES = { code128:'Code 128', ean13:'EAN-13', upca:'UPC-A' };
+
+      /* GS1 check digit: weights 3,1,3,1… counted from the rightmost data digit */
+      function gs1Check(digits){
+        var sum = 0, w = 3;
+        for (var i = digits.length - 1; i >= 0; i--){ sum += (+digits[i]) * w; w = (w === 3) ? 1 : 3; }
+        return (10 - sum % 10) % 10;
+      }
+      function encodeCode128(text){
+        var i, codes, sum;
+        for (i = 0; i < text.length; i++){
+          var cc = text.charCodeAt(i);
+          if (cc < 32 || cc > 126) return { error:'Code 128 只支援英文字母、數字同常用符號（唔支援中文）。' };
         }
-        bar(1.2, true); gap(1.2); bar(2.4, true);                    /* stop */
-        return '<svg viewBox="0 0 ' + x.toFixed(1) + ' 34" preserveAspectRatio="none" aria-hidden="true">' + rects + '</svg>';
+        if (text.length > 40) return { error:'Code 128 編號最多 40 個字元。' };
+        if (/^\d+$/.test(text) && text.length >= 4 && text.length % 2 === 0){
+          codes = [105];                                   /* Start C: two digits per symbol */
+          for (i = 0; i < text.length; i += 2) codes.push(parseInt(text.substr(i, 2), 10));
+        } else {
+          codes = [104];                                   /* Start B */
+          for (i = 0; i < text.length; i++) codes.push(text.charCodeAt(i) - 32);
+        }
+        sum = codes[0];
+        for (i = 1; i < codes.length; i++) sum += codes[i] * i;
+        codes.push(sum % 103, 106);                        /* check symbol + stop */
+        return { bits: codes.map(function(c){ return C128_BARS[c]; }).join(''), text: text };
+      }
+      function encodeEAN13(d13){
+        var par = EAN_PARITY[+d13[0]], bits = '101', i;
+        for (i = 1; i <= 6; i++) bits += (par[i - 1] === 'L' ? EAN_L : EAN_G)[+d13[i]];
+        bits += '01010';
+        for (i = 7; i <= 12; i++) bits += EAN_R[+d13[i]];
+        return bits + '101';
+      }
+      /* -> { ok, type, bits, text, note } or { ok:false, error } */
+      function barcodeInfo(type, raw){
+        var code = String(raw == null ? '' : raw).trim(), digits = /^\d+$/.test(code);
+        if (!code) return { ok:false, error:'請輸入條碼編號。' };
+        var t = type;
+        if (t !== 'code128' && t !== 'ean13' && t !== 'upca'){
+          t = digits && code.length === 13 ? 'ean13' : (digits && code.length === 12 ? 'upca' : 'code128');
+        }
+        var note = '';
+        if (t === 'code128'){
+          var r = encodeCode128(code);
+          if (r.error) return { ok:false, error:r.error };
+          return { ok:true, type:'code128', bits:r.bits, text:r.text, note:note };
+        }
+        var body = t === 'ean13' ? 12 : 11;
+        if (!digits || (code.length !== body && code.length !== body + 1)){
+          return { ok:false, error:BARCODE_TYPE_NAMES[t] + ' 要 ' + body + ' 或 ' + (body + 1) + ' 位數字（' + (body + 1) + ' 位連校驗碼；' + body + ' 位會自動補校驗碼）。' };
+        }
+        var data = code.slice(0, body), check = gs1Check(data);
+        if (code.length === body + 1){
+          if (+code[body] !== check) return { ok:false, error:'校驗碼唔啱：前 ' + body + ' 位 ' + data + ' 嘅校驗碼應該係 ' + check + '，而唔係 ' + code[body] + '。' };
+        } else {
+          note = '已自動補校驗碼 ' + check;
+        }
+        var full = data + check;
+        if (t === 'ean13'){
+          return { ok:true, type:t, bits:encodeEAN13(full), text:full[0] + ' ' + full.slice(1, 7) + ' ' + full.slice(7), note:note };
+        }
+        return { ok:true, type:t, bits:encodeEAN13('0' + full),   /* UPC-A = EAN-13 with a leading 0 */
+                 text:full[0] + ' ' + full.slice(1, 6) + ' ' + full.slice(6, 11) + ' ' + full[11], note:note };
+      }
+      var BARCODE_QUIET = 10;                                /* modules of white margin each side */
+      var BARCODE_MODULE_EM = 0.09;                          /* width of one module, in --unit (label width / 23) */
+      /* Bars are absolutely-positioned <i> boxes (percent of the symbol width)
+         rather than an <svg>: html2canvas rasterises an <svg> at its CSS size
+         and scales that bitmap up, which smears 1-module bars into an
+         unscannable blur. Boxes are painted as vector rects at export scale. */
+      function barcodeBars(info){
+        var bits = info.bits, n = bits.length, modules = n + BARCODE_QUIET * 2, i = 0, out = '';
+        while (i < n){
+          if (bits[i] === '1'){
+            var j = i; while (j < n && bits[j] === '1') j++;
+            out += '<i style="left:' + ((BARCODE_QUIET + i) / modules * 100).toFixed(4) + '%;width:' + ((j - i) / modules * 100).toFixed(4) + '%"></i>';
+            i = j;
+          } else { i++; }
+        }
+        return '<div class="bars" role="img" aria-label="' + esc(BARCODE_TYPE_NAMES[info.type] + ' ' + info.text) +
+          '" data-modules="' + modules + '" style="width:calc(var(--unit) * ' + (modules * BARCODE_MODULE_EM).toFixed(3) + ')">' + out + '</div>';
       }
 
       /* ================= WARRANTY LINE ================= */
@@ -810,9 +991,41 @@
         var ic = ICONS[key] || ICONS.star;
         return ic.svg;
       }
-      function renderLabel(){
-        var accent = state.accent;
-        labelEl.style.setProperty('--accent', accent);
+      function currentBarcode(){ return barcodeInfo(state.barcodeType, state.barcode); }
+      /* editor feedback under the barcode fields: resolved type, auto check
+         digit, errors, and a warning when the bars would print too thin to
+         scan reliably (module width is estimated from the preview geometry) */
+      function updateBarcodeHint(){
+        var el = document.getElementById('barcode-hint');
+        if (!el) return;
+        if (!state.barcodeOn){ el.textContent = ''; return; }
+        var bc = currentBarcode(), msg, cls = 'record-note';
+        if (!bc.ok){ msg = '⚠ ' + bc.error; cls += ' bc-err'; }
+        else {
+          msg = '類型：' + BARCODE_TYPE_NAMES[bc.type] + (bc.note ? '（' + bc.note + '）' : '');
+          var svg = labelEl.querySelector('.barcode .bars');
+          if (svg){
+            var modules = +svg.getAttribute('data-modules') || 1;
+            var wCm = labelCm().w * svg.getBoundingClientRect().width / (labelEl.getBoundingClientRect().width || 1);
+            var mm = wCm * 10 / modules;
+            msg += ' · 每條最幼約 ' + mm.toFixed(2) + ' mm';
+            if (mm < 0.19){ msg += ' ⚠ 太密，印出嚟可能掃唔到 — 放大標籤、縮短編號或轉用 EAN-13 / UPC-A'; cls += ' bc-err'; }
+          }
+        }
+        el.textContent = msg;
+        el.className = cls;
+      }
+      /* built-in icon to show when a custom icon image fails to load
+         (blocked by CORS, dead link, …) instead of leaving an empty ring */
+      function iconFallback(img){
+        if (!img || !img.parentNode) return;
+        var key = img.getAttribute('data-icon');
+        img.outerHTML = iconHTML(hasOwn(ICONS, key) ? key : 'star');
+      }
+      /* the label markup as a string, so the same output feeds both the live
+         preview and the off-screen export render */
+      function labelInnerHTML(){
+        var accent = safeAccent(state.accent);
         var html = '';
         /* name row */
         html += '<div class="name-row"><div class="slashes"><i></i><i></i><i></i></div>' +
@@ -826,7 +1039,7 @@
            size change visibly rearranges the label instead of stretching it */
         var feats = state.features.filter(function(f){ return f.text.trim() !== '' || state.features.length === 1; });
         if (feats.length){
-          var ratio = Math.max(toCm(parseFloat(state.w) || 6.5), 2) / Math.max(toCm(parseFloat(state.l) || 10), 2);
+          var cm0 = labelCm(), ratio = cm0.w / cm0.l;
           var cols = ratio >= 1.35 ? 4 : (ratio >= 0.9 ? 3 : 2);
           html += '<div class="grid" style="grid-template-columns:repeat(' + cols + ',1fr)">';
           feats.forEach(function(f, i){
@@ -837,7 +1050,7 @@
               span = ' style="grid-column:1 / -1; justify-content:center"';
             }
             var ringInner = (f.img && String(f.img).trim())
-              ? '<img src="' + esc(f.img) + '" alt="" crossorigin="anonymous" onerror="this.style.display=\'none\'" style="width:2.75em;height:2.75em;object-fit:contain;display:block"/>'
+              ? '<img src="' + esc(f.img) + '" alt="" crossorigin="anonymous" data-icon="' + esc(key) + '" onerror="iconFallback(this)" style="width:2.75em;height:2.75em;object-fit:contain;display:block"/>'
               : iconHTML(key);
             html += '<div class="' + cls + '"' + span + '><div class="ring">' + ringInner + '</div>' +
                     '<div class="ftext">' + esc(f.text) + '</div></div>';
@@ -889,17 +1102,27 @@
           if (!showSlogan) html += '<div class="push"></div>';
           var fcls = 'foot' + (state.barcodeOn && !state.priceOn ? ' only-code' : '') + (!state.barcodeOn && state.priceOn ? ' only-price' : '');
           html += '<div class="' + fcls + '">';
-          if (state.barcodeOn) html += '<div class="barcode">' + barcodeSVG(state.barcode) +
-            '<div class="code">' + esc(state.barcode) + '</div></div>';
+          if (state.barcodeOn){
+            var bc = currentBarcode();
+            html += '<div class="barcode">' +
+              (bc.ok ? barcodeBars(bc) + '<div class="code">' + esc(bc.text) + '</div>'
+                     : '<div class="bc-invalid">條碼無效</div><div class="code">' + esc(String(state.barcode || '').slice(0, 24)) + '</div>') +
+              '</div>';
+          }
           if (state.priceOn){
             html += '<div class="price">' + esc(state.currency) + esc(state.price) + '</div>';
           }
           html += '</div>';
         }
         if (!showSlogan && !state.barcodeOn && !state.priceOn) html += '<div class="end-pad"></div>';
-        labelEl.innerHTML = html;
+        return html;
+      }
+      function renderLabel(){
+        labelEl.style.setProperty('--accent', safeAccent(state.accent));
+        labelEl.innerHTML = labelInnerHTML();
         fitLabel();
         renderCaption();
+        updateBarcodeHint();
       }
 
       /* size → preview scale.
@@ -908,44 +1131,63 @@
          smaller one smaller; the box height is locked to the chosen
          width × length ratio instead of being stretched by the content. */
       function toCm(v){ return state.unit === 'in' ? v * 2.54 : v; }
-      function fitLabel(){
-        var wCm = Math.max(toCm(parseFloat(state.w) || 6.5), 2);
-        var lCm = Math.max(toCm(parseFloat(state.l) || 10), 2);
-        var availW = Math.min(document.querySelector('.stage').clientWidth - 28, 620);
+      function labelCm(){
+        return {
+          w: Math.max(toCm(parseFloat(state.w) || 6.5), 2),
+          l: Math.max(toCm(parseFloat(state.l) || 10), 2)
+        };
+      }
+      var stageEl = document.querySelector('.stage');
+      function previewSize(){
+        var cm = labelCm();
+        var availW = Math.min(stageEl.clientWidth - 28, 620);
         if (availW < 180) availW = 180;
         var availH = 920;
         var scale = 38; /* px per cm at natural size */
-        if (wCm * scale > availW) scale = availW / wCm;
-        if (lCm * scale > availH) scale = availH / lCm;
-        var pxW = Math.round(wCm * scale);
-        var pxH = Math.round(lCm * scale);
-        labelEl.style.width = pxW + 'px';
+        if (cm.w * scale > availW) scale = availW / cm.w;
+        if (cm.l * scale > availH) scale = availH / cm.l;
+        return { w: Math.round(cm.w * scale), h: Math.round(cm.l * scale) };
+      }
+      /* Lay a label element out at an exact pixel box: every size inside is
+         in em, so the base font-size is the only knob — shrink it until the
+         content fits the locked height. Used for the preview and, at a much
+         larger pixel size, for the export render. */
+      function layoutLabel(el, pxW, pxH){
+        el.style.width = pxW + 'px';
+        /* barcode size is tied to the label WIDTH (1 unit = 1/23 of it), not
+           to the font-size the loop below shrinks, so a crowded label never
+           makes the bars thinner than the scanner can resolve */
+        el.style.setProperty('--unit', (pxW / 23) + 'px');
         /* measure the content at natural height, then lock the box height */
-        labelEl.style.height = 'auto';
-        labelEl.style.minHeight = '0px';
+        el.style.height = 'auto';
+        el.style.minHeight = '0px';
         var fs = Math.max(pxW / 23, 8);
         for (var iter = 0; iter < 14; iter++){
-          labelEl.style.fontSize = fs + 'px';
+          el.style.fontSize = fs + 'px';
           /* shrink-to-fit single-line texts (product name, subtitle) */
-          fitText(labelEl.querySelector('.pname'), 3.1);
-          fitText(labelEl.querySelector('.banner-inner span'), 1.42);
+          fitText(el.querySelector('.pname'), 3.1);
+          fitText(el.querySelector('.banner-inner span'), 1.42);
           /* shrink each feature text so its longest word fits the cell */
-          labelEl.querySelectorAll('.ftext').forEach(function(el){ fitText(el, 1.22); });
+          el.querySelectorAll('.ftext').forEach(function(t){ fitText(t, 1.22); });
           /* warranty line: shrink if a long period would overflow */
-          fitText(labelEl.querySelector('.warranty .wtext'), 1.15);
+          fitText(el.querySelector('.warranty .wtext'), 1.15);
           /* app name: shrink if a long name would overflow the chip */
-          fitText(labelEl.querySelector('.app-name'), 1.18);
+          fitText(el.querySelector('.app-name'), 1.18);
           /* slogan: keep it inside the band however long the text is */
-          var slEl = labelEl.querySelector('.slogan');
+          var slEl = el.querySelector('.slogan');
           if (slEl) fitText(slEl, parseFloat(slEl.getAttribute('data-base')) || 2.6);
-          var nat = labelEl.scrollHeight;
+          var nat = el.scrollHeight;
           if (nat <= pxH) break;
           var next = fs * (pxH / nat) * .97;
-          if (next < 5){ fs = 5; labelEl.style.fontSize = fs + 'px'; break; }
+          if (next < 5){ fs = 5; el.style.fontSize = fs + 'px'; break; }
           fs = next;
         }
-        labelEl.style.height = pxH + 'px';
-        labelEl.style.minHeight = pxH + 'px';
+        el.style.height = pxH + 'px';
+        el.style.minHeight = pxH + 'px';
+      }
+      function fitLabel(){
+        var sz = previewSize();
+        layoutLabel(labelEl, sz.w, sz.h);
       }
       function fitText(el, baseEm){
         if (!el) return;
@@ -995,7 +1237,7 @@
         var status = wrap.querySelector('.auto-status');
         var extra = '';
         if (f.img && String(f.img).trim()) extra = ' · 已用<b>自訂圖片圖示</b>';
-        else if (f.icon !== 'auto') extra = ' · 已手動改為 <b>' + ICONS[f.icon].name + '</b>';
+        else if (f.icon !== 'auto' && ICONS[f.icon]) extra = ' · 已手動改為 <b>' + ICONS[f.icon].name + '</b>';
         status.innerHTML = '自動配對：<b>' + (ICONS[autoKey] ? ICONS[autoKey].name : '') + '</b>' + extra;
         var unmatched = isUnmatched(f);
         var nomatch = wrap.querySelector('.nomatch');
@@ -1009,6 +1251,7 @@
         featList.innerHTML = '';
         state.features.forEach(function(f, i){
           var row = document.createElement('div');
+          row.className = 'feat-item';
           row.innerHTML =
             '<div class="feat-row">' +
               '<div class="num">' + (i + 1) + '</div>' +
@@ -1028,57 +1271,56 @@
           featList.appendChild(row);
           refreshTag(row, i);
         });
-        featList.querySelectorAll('input.feat-text').forEach(function(inp){
-          inp.addEventListener('input', function(){
-            var idx = +inp.dataset.i;
-            state.features[idx].text = inp.value;
-            renderLabel();
-            refreshTag(inp.closest('.feat-row').parentElement, idx);
-          });
-        });
-        featList.querySelectorAll('select').forEach(function(sel){
-          sel.addEventListener('change', function(){
-            state.features[+sel.dataset.i].icon = sel.value;
-            renderLabel(); renderFeatEditor();
-          });
-        });
-        featList.querySelectorAll('[data-del]').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            state.features.splice(+btn.dataset.del, 1);
-            renderLabel(); renderFeatEditor();
-          });
-        });
-        featList.querySelectorAll('.img-url').forEach(function(inp){
-          inp.addEventListener('input', function(){
-            var idx = +inp.dataset.i;
-            state.features[idx].img = inp.value;
-            renderLabel();
-            refreshTag(inp.closest('.auto-tag').parentElement, idx);
-          });
-        });
-        featList.querySelectorAll('[data-custom]').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            var idx = +btn.dataset.custom;
-            state.features[idx].custom = true;
-            var wrap = btn.closest('.auto-tag').parentElement;
-            refreshTag(wrap, idx);
-            var urlInp = wrap.querySelector('.img-url');
-            if (urlInp) urlInp.focus();
-          });
-        });
-        featList.querySelectorAll('[data-clearimg]').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            var idx = +btn.dataset.clearimg;
-            state.features[idx].img = '';
-            state.features[idx].custom = false;
-            var wrap = btn.closest('.auto-tag').parentElement;
-            var urlInp = wrap.querySelector('.img-url');
-            if (urlInp) urlInp.value = '';
-            renderLabel();
-            refreshTag(wrap, idx);
-          });
-        });
       }
+      /* One set of listeners on the list itself (event delegation) instead of
+         re-binding five handlers per row on every rebuild. Typing and icon
+         changes only touch that row, so the focused input is never replaced. */
+      featList.addEventListener('input', function(e){
+        var t = e.target, row = t.closest('.feat-item');
+        if (!row) return;
+        var idx = +t.dataset.i;
+        if (!state.features[idx]) return;
+        if (t.classList.contains('feat-text')){
+          state.features[idx].text = t.value;
+        } else if (t.classList.contains('img-url')){
+          state.features[idx].img = t.value;
+        } else { return; }
+        renderLabel();
+        refreshTag(row, idx);
+      });
+      featList.addEventListener('change', function(e){
+        var t = e.target, row = t.closest('.feat-item');
+        if (!row || t.tagName !== 'SELECT') return;
+        var idx = +t.dataset.i;
+        if (!state.features[idx]) return;
+        state.features[idx].icon = t.value;
+        renderLabel();
+        refreshTag(row, idx);
+      });
+      featList.addEventListener('click', function(e){
+        var btn = e.target.closest('button');
+        var row = btn && btn.closest('.feat-item');
+        if (!row) return;
+        var idx;
+        if (btn.dataset.del !== undefined){
+          state.features.splice(+btn.dataset.del, 1);
+          renderLabel(); renderFeatEditor();
+        } else if (btn.dataset.custom !== undefined){
+          idx = +btn.dataset.custom;
+          state.features[idx].custom = true;
+          refreshTag(row, idx);
+          var urlInp = row.querySelector('.img-url');
+          if (urlInp) urlInp.focus();
+        } else if (btn.dataset.clearimg !== undefined){
+          idx = +btn.dataset.clearimg;
+          state.features[idx].img = '';
+          state.features[idx].custom = false;
+          var u = row.querySelector('.img-url');
+          if (u) u.value = '';
+          renderLabel();
+          refreshTag(row, idx);
+        }
+      });
       document.getElementById('add-feat').addEventListener('click', function(){
         state.features.push({ text:'', icon:'auto' });
         renderLabel(); renderFeatEditor();
@@ -1114,6 +1356,9 @@
       function bind(id, key, after){
         var el = document.getElementById(id);
         function handler(e){
+          /* 'change' right after 'input' carries the same value — skip the
+             second render */
+          if (e.type === 'change' && String(state[key]) === e.target.value) return;
           state[key] = e.target.value; renderLabel(); if (after) after();
         }
         /* 'change' as well as 'input': some mobile webviews only fire
@@ -1172,6 +1417,9 @@
           renderLabel();
         });
       });
+      document.getElementById('in-barcode-type').addEventListener('change', function(e){
+        state.barcodeType = e.target.value; renderLabel();
+      });
       document.getElementById('in-barcode-on').addEventListener('change', function(e){
         state.barcodeOn = e.target.checked;
         document.getElementById('barcode-fields').classList.toggle('off', !e.target.checked);
@@ -1223,11 +1471,21 @@
          Records are kept in this browser on this device, keyed by the
          product name, so a label setup can be retrieved instead of retyped. */
       var RECORDS_KEY = 'plc_records_v1';
-      var records = {};
+      /* null-prototype store: product names like "constructor" or "__proto__"
+         are then ordinary keys, not inherited properties */
+      var records = Object.create(null);
+      function looksLikeRecord(v){
+        return !!v && typeof v === 'object' && !Array.isArray(v) &&
+          ('sub' in v || 'name' in v || 'features' in v);
+      }
       try {
-        var rawRecords = localStorage.getItem(RECORDS_KEY);
-        if (rawRecords) records = JSON.parse(rawRecords) || {};
-      } catch (e) { records = {}; }
+        var rawRecords = JSON.parse(localStorage.getItem(RECORDS_KEY) || 'null');
+        if (rawRecords && typeof rawRecords === 'object' && !Array.isArray(rawRecords)){
+          Object.keys(rawRecords).forEach(function(k){
+            if (looksLikeRecord(rawRecords[k])) records[k] = normalizeState(rawRecords[k]);
+          });
+        }
+      } catch (e) { /* unreadable storage — start empty */ }
       var recKeyEl = document.getElementById('record-key');
       var recListEl = document.getElementById('record-list');
       var recMsgEl = document.getElementById('record-msg');
@@ -1236,8 +1494,17 @@
       var recPickerEl = document.getElementById('record-picker');
       var deleteArmedKey = '';
       var selectedKey = '';
+      /* returns false when the browser refuses the write (private mode,
+         storage full, blocked site data) so the UI never claims a record was
+         saved when it only lives in memory */
       function persistRecords(){
-        try { localStorage.setItem(RECORDS_KEY, JSON.stringify(records)); } catch (e) {}
+        try { localStorage.setItem(RECORDS_KEY, JSON.stringify(records)); return true; }
+        catch (e) { return false; }
+      }
+      var SAVE_FAIL = ' ⚠ 但瀏覽器寫入失敗（私隱模式或儲存空間已滿）— 呢個變更只喺今次開啟期間有效，請即刻撳「匯出備份 Export」存低。';
+      function recSaved(okText){
+        var ok = persistRecords();
+        recMsg(ok ? okText : okText + SAVE_FAIL, ok ? 'ok' : 'err');
       }
       function recMsg(text, kind){
         /* messages show in both spots: by Retrieve / Backup at the top and
@@ -1337,6 +1604,7 @@
         document.getElementById('warranty-fields').classList.toggle('off', !state.warrantyOn);
         syncWarrantyPresets();
         document.getElementById('in-barcode').value = state.barcode || '';
+        document.getElementById('in-barcode-type').value = state.barcodeType || 'auto';
         document.getElementById('in-barcode-on').checked = !!state.barcodeOn;
         document.getElementById('barcode-fields').classList.toggle('off', !state.barcodeOn);
         document.getElementById('in-price').value = state.price || '';
@@ -1379,13 +1647,13 @@
         if (!key){ recMsg('請先輸入產品名稱做 Key。', 'err'); return; }
         if (records[key]){ recMsg('已有紀錄「' + key + '」— 要覆寫請用「更改 Change」。', 'err'); return; }
         records[key] = snapshotState();
-        persistRecords(); refreshRecordList(key); disarmDelete();
-        recMsg('已新增紀錄「' + key + '」。', 'ok');
+        refreshRecordList(key); disarmDelete();
+        recSaved('已新增紀錄「' + key + '」。');
       });
       document.getElementById('rec-load').addEventListener('click', function(){
         var key = retrievalKey();
         if (!key || !records[key]){ recMsg('搵唔到呢個 Key 嘅紀錄 — 請先喺「已有產品名」清單撳一個嚟揀選。', 'err'); return; }
-        state = JSON.parse(JSON.stringify(records[key]));
+        state = normalizeState(records[key]);
         syncFormFromState(); refreshRecordList(key); disarmDelete();
         recMsg('已載入紀錄「' + key + '」。', 'ok');
       });
@@ -1393,8 +1661,8 @@
         var key = retrievalKey();
         if (!key || !records[key]){ recMsg('搵唔到呢個 Key 嘅紀錄，未能更改 — 請先喺「已有產品名」清單撳一個嚟揀選（未有紀錄就先用「新增 Add」儲存）。', 'err'); return; }
         records[key] = snapshotState();
-        persistRecords(); refreshRecordList(key); disarmDelete();
-        recMsg('已更改紀錄「' + key + '」。', 'ok');
+        refreshRecordList(key); disarmDelete();
+        recSaved('已更改紀錄「' + key + '」。');
       });
       recDeleteBtn.addEventListener('click', function(){
         var key = retrievalKey();
@@ -1408,8 +1676,8 @@
         }
         delete records[key];
         selectedKey = '';
-        persistRecords(); refreshRecordList(''); disarmDelete();
-        recMsg('已刪除紀錄「' + key + '」。', 'ok');
+        refreshRecordList(''); disarmDelete();
+        recSaved('已刪除紀錄「' + key + '」。');
       });
       refreshRecordList('');
 
@@ -1462,18 +1730,16 @@
             Object.keys(incoming).forEach(function(k){
               var key = String(k || '').trim();
               var v = incoming[k];
-              var looksLikeRecord = v && typeof v === 'object' && !Array.isArray(v) &&
-                ('sub' in v || 'name' in v || 'features' in v);
-              if (!key || !looksLikeRecord){ skipped++; return; }
+              if (!key || !looksLikeRecord(v)){ skipped++; return; }
               if (records[key]) overwritten++; else added++;
-              records[key] = v;
+              records[key] = normalizeState(v);
             });
             if (!added && !overwritten){
               recMsg('呢個檔案入面搵唔到有效紀錄，未有匯入任何嘢。', 'err'); return;
             }
-            persistRecords(); refreshRecordList(''); disarmDelete();
-            recMsg('匯入完成：新增 ' + added + ' 條、覆寫 ' + overwritten + ' 條' +
-              (skipped ? '、跳過 ' + skipped + ' 條無效資料' : '') + '。', 'ok');
+            refreshRecordList(''); disarmDelete();
+            recSaved('匯入完成：新增 ' + added + ' 條、覆寫 ' + overwritten + ' 條' +
+              (skipped ? '、跳過 ' + skipped + ' 條無效資料' : '') + '。');
           } catch (e) {
             recMsg('匯入失敗：檔案唔係有效嘅備份 JSON，請揀返「匯出備份」下載嗰個檔案。', 'err');
           }
@@ -1483,7 +1749,68 @@
       });
 
       /* ================= DOWNLOAD PNG ================= */
-      var lastBlobUrl = null, lastFileName = '';
+      var lastBlobUrl = null, lastFileName = '', lastInfo = '';
+      /* Export resolution is fixed at 300 DPI (capped so the longest side
+         stays within canvas limits) instead of a hard-coded scale of 3 on
+         whatever size the preview happens to be — a phone used to produce a
+         lower-resolution PNG than a desktop for the same label. The preview
+         element itself is rendered (html2canvas re-draws it at `scale`, no
+         upscaling blur), so line breaks match exactly what is on screen. */
+      var EXPORT_PX_PER_CM = 300 / 2.54, EXPORT_MAX_SIDE = 6000;
+      /* canvas.toBlob() writes a PNG with no resolution chunk, so Word, Preview,
+         print dialogs etc. assume 72/96 DPI and print the label several times
+         too big — which also stretches the barcode. Insert a pHYs chunk
+         (pixels per metre) right after IHDR so the file carries its real
+         physical size. Falls back to the untouched blob if anything is off. */
+      var CRC_TABLE = null;
+      function crc32(bytes){
+        if (!CRC_TABLE){
+          CRC_TABLE = [];
+          for (var n = 0; n < 256; n++){ var c = n; for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); CRC_TABLE[n] = c >>> 0; }
+        }
+        var crc = 0xFFFFFFFF;
+        for (var i = 0; i < bytes.length; i++) crc = CRC_TABLE[(crc ^ bytes[i]) & 255] ^ (crc >>> 8);
+        return (crc ^ 0xFFFFFFFF) >>> 0;
+      }
+      function pngWithDpi(blob, pxPerMetre){
+        if (!blob.arrayBuffer) return Promise.resolve(blob);
+        return blob.arrayBuffer().then(function(buf){
+          var src = new Uint8Array(buf), IHDR_END = 8 + 25;      /* signature + IHDR chunk */
+          var sig = [137, 80, 78, 71, 13, 10, 26, 10];
+          for (var i = 0; i < 8; i++) if (src[i] !== sig[i]) return blob;
+          var chunk = new Uint8Array(21), dv = new DataView(chunk.buffer);
+          dv.setUint32(0, 9);
+          chunk.set([0x70, 0x48, 0x59, 0x73], 4);                /* "pHYs" */
+          dv.setUint32(8, pxPerMetre); dv.setUint32(12, pxPerMetre); chunk[16] = 1;   /* unit: metre */
+          dv.setUint32(17, crc32(chunk.subarray(4, 17)));
+          var out = new Uint8Array(src.length + 21);
+          out.set(src.subarray(0, IHDR_END), 0); out.set(chunk, IHDR_END); out.set(src.subarray(IHDR_END), IHDR_END + 21);
+          return new Blob([out], { type:'image/png' });
+        }).catch(function(){ return blob; });
+      }
+      function renderExportCanvas(){
+        var cm = labelCm();
+        var ppc = Math.min(EXPORT_PX_PER_CM, EXPORT_MAX_SIDE / Math.max(cm.w, cm.l));
+        var box = labelEl.getBoundingClientRect();
+        var previewW = box.width || labelEl.offsetWidth || 1, previewH = box.height || labelEl.offsetHeight || 1;
+        /* the preview box is rounded to whole px, so also cap on its real size */
+        var scale = Math.min((cm.w * ppc) / previewW, EXPORT_MAX_SIDE / Math.max(previewW, previewH));
+        var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+        return fontsReady.then(function(){
+          return html2canvas(labelEl, {
+            scale: scale, backgroundColor: '#ffffff', useCORS: true, logging: false,
+            /* html2canvas copies every computed style into each <svg>'s style
+               attribute and then serialises the <svg> as a stand-alone image.
+               Inside that image the root's margin / position / inset apply to
+               the drawing itself, so the slogan wave came out narrower and the
+               swoosh was pushed out of view. The class rules already lay the
+               SVGs out, so the copied inline styles are dropped. */
+            onclone: function(doc){
+              doc.querySelectorAll('svg').forEach(function(svg){ svg.removeAttribute('style'); });
+            }
+          });
+        });
+      }
       function triggerDownload(){
         if (!lastBlobUrl) return;
         var a = document.createElement('a');
@@ -1494,18 +1821,24 @@
         a.click();
         setTimeout(function(){ a.remove(); }, 400);
       }
+      var dlResetTimer = 0;
       document.getElementById('dl').addEventListener('click', function(){
         var btn = this; btn.disabled = true; btn.textContent = '生成中…';
         function done(msg){
+          clearTimeout(dlResetTimer);
           btn.disabled = false; btn.textContent = msg || '下載 PNG · Download';
-          if (msg) setTimeout(function(){ btn.textContent = '下載 PNG · Download'; }, 3000);
+          if (msg) dlResetTimer = setTimeout(function(){ btn.textContent = '下載 PNG · Download'; }, 3000);
         }
+        if (state.barcodeOn && !currentBarcode().ok){ done('條碼無效，請先修正'); return; }
         if (typeof html2canvas === 'undefined'){ done('元件未載入，請重試'); return; }
-        html2canvas(labelEl, { scale: 3, backgroundColor: '#ffffff', useCORS: true, logging: false }).then(function(canvas){
+        renderExportCanvas().then(function(canvas){
+          var dpi = Math.round(canvas.width / (labelCm().w / 2.54));
+          lastInfo = canvas.width + ' × ' + canvas.height + ' px · 約 ' + dpi + ' DPI';
           if (canvas.toBlob){
             canvas.toBlob(function(blob){
               if (!blob){ done('生成失敗，請再試'); return; }
-              finish(blob); done('已生成 ↓ 見下方成品圖');
+              var ppm = Math.round(canvas.width / (labelCm().w / 100));
+              pngWithDpi(blob, ppm).then(function(b){ finish(b); done('已生成 ↓ 見下方成品圖'); });
             }, 'image/png');
           } else {
             done('已生成 ↓ 見下方成品圖');
@@ -1522,14 +1855,38 @@
         function showResult(src){
           var box = document.getElementById('result');
           document.getElementById('result-img').src = src;
-          document.getElementById('result-name').textContent = lastFileName || ((state.sub || state.name || 'label').replace(/[^\w\-]+/g, '_') + '_label.png');
+          var fname = lastFileName || ((state.sub || state.name || 'label').replace(/[^\w\-]+/g, '_') + '_label.png');
+          document.getElementById('result-name').textContent = fname + (lastInfo ? '（' + lastInfo + '）' : '');
           box.classList.add('show');
           box.scrollIntoView({ behavior:'smooth', block:'nearest' });
         }
       });
       document.getElementById('dl-again').addEventListener('click', triggerDownload);
 
-      window.addEventListener('resize', fitLabel);
+      /* Re-fit at most once per frame, and only when the stage width really
+         changed (mobile URL-bar show/hide fires resize with the same width). */
+      var fitQueued = false, fitForce = false, lastStageW = stageEl.clientWidth;
+      function scheduleFit(force){
+        if (force) fitForce = true;
+        if (fitQueued) return;
+        fitQueued = true;
+        requestAnimationFrame(function(){
+          fitQueued = false;
+          var force = fitForce; fitForce = false;
+          var w = stageEl.clientWidth;
+          if (!force && w === lastStageW) return;
+          lastStageW = w;
+          fitLabel();
+        });
+      }
+      window.addEventListener('resize', function(){ scheduleFit(false); });
+      /* The first fit runs before the web fonts arrive, so it measures
+         fallback glyphs. Re-fit whenever a font batch finishes loading
+         (Archivo first, later Noto Sans TC slices for CJK text). */
+      if (document.fonts){
+        if (document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', function(){ scheduleFit(true); });
+        if (document.fonts.ready) document.fonts.ready.then(function(){ scheduleFit(true); });
+      }
       renderFeatEditor();
       renderLabel();
     </script>
