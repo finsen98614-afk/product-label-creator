@@ -1608,7 +1608,18 @@
         var scale = Math.min((cm.w * ppc) / previewW, EXPORT_MAX_SIDE / Math.max(previewW, previewH));
         var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
         return fontsReady.then(function(){
-          return html2canvas(labelEl, { scale: scale, backgroundColor: '#ffffff', useCORS: true, logging: false });
+          return html2canvas(labelEl, {
+            scale: scale, backgroundColor: '#ffffff', useCORS: true, logging: false,
+            /* html2canvas copies every computed style into each <svg>'s style
+               attribute and then serialises the <svg> as a stand-alone image.
+               Inside that image the root's margin / position / inset apply to
+               the drawing itself, so the slogan wave came out narrower and the
+               swoosh was pushed out of view. The class rules already lay the
+               SVGs out, so the copied inline styles are dropped. */
+            onclone: function(doc){
+              doc.querySelectorAll('svg').forEach(function(svg){ svg.removeAttribute('style'); });
+            }
+          });
         });
       }
       function triggerDownload(){
