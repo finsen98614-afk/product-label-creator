@@ -1757,6 +1757,37 @@
          element itself is rendered (html2canvas re-draws it at `scale`, no
          upscaling blur), so line breaks match exactly what is on screen. */
       var EXPORT_PX_PER_CM = 300 / 2.54, EXPORT_MAX_SIDE = 6000;
+      /* canvas.toBlob() writes a PNG with no resolution chunk, so Word, Preview,
+         print dialogs etc. assume 72/96 DPI and print the label several times
+         too big — which also stretches the barcode. Insert a pHYs chunk
+         (pixels per metre) right after IHDR so the file carries its real
+         physical size. Falls back to the untouched blob if anything is off. */
+      var CRC_TABLE = null;
+      function crc32(bytes){
+        if (!CRC_TABLE){
+          CRC_TABLE = [];
+          for (var n = 0; n < 256; n++){ var c = n; for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); CRC_TABLE[n] = c >>> 0; }
+        }
+        var crc = 0xFFFFFFFF;
+        for (var i = 0; i < bytes.length; i++) crc = CRC_TABLE[(crc ^ bytes[i]) & 255] ^ (crc >>> 8);
+        return (crc ^ 0xFFFFFFFF) >>> 0;
+      }
+      function pngWithDpi(blob, pxPerMetre){
+        if (!blob.arrayBuffer) return Promise.resolve(blob);
+        return blob.arrayBuffer().then(function(buf){
+          var src = new Uint8Array(buf), IHDR_END = 8 + 25;      /* signature + IHDR chunk */
+          var sig = [137, 80, 78, 71, 13, 10, 26, 10];
+          for (var i = 0; i < 8; i++) if (src[i] !== sig[i]) return blob;
+          var chunk = new Uint8Array(21), dv = new DataView(chunk.buffer);
+          dv.setUint32(0, 9);
+          chunk.set([0x70, 0x48, 0x59, 0x73], 4);                /* "pHYs" */
+          dv.setUint32(8, pxPerMetre); dv.setUint32(12, pxPerMetre); chunk[16] = 1;   /* unit: metre */
+          dv.setUint32(17, crc32(chunk.subarray(4, 17)));
+          var out = new Uint8Array(src.length + 21);
+          out.set(src.subarray(0, IHDR_END), 0); out.set(chunk, IHDR_END); out.set(src.subarray(IHDR_END), IHDR_END + 21);
+          return new Blob([out], { type:'image/png' });
+        }).catch(function(){ return blob; });
+      }
       function renderExportCanvas(){
         var cm = labelCm();
         var ppc = Math.min(EXPORT_PX_PER_CM, EXPORT_MAX_SIDE / Math.max(cm.w, cm.l));
@@ -1806,7 +1837,8 @@
           if (canvas.toBlob){
             canvas.toBlob(function(blob){
               if (!blob){ done('生成失敗，請再試'); return; }
-              finish(blob); done('已生成 ↓ 見下方成品圖');
+              var ppm = Math.round(canvas.width / (labelCm().w / 100));
+              pngWithDpi(blob, ppm).then(function(b){ finish(b); done('已生成 ↓ 見下方成品圖'); });
             }, 'image/png');
           } else {
             done('已生成 ↓ 見下方成品圖');
