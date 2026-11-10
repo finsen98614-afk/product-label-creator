@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -34,16 +34,29 @@
         background:var(--panel); border-right:1px solid var(--line);
         padding:22px 20px 40px; overflow-y:auto; max-height:100vh; position:sticky; top:0;
       }
-      .panel h1{ font-family:"Archivo",sans-serif; font-size:21px; font-weight:900; letter-spacing:.01em; margin:0 0 4px; }
+      .panel h1{ font-family:"Archivo",sans-serif; font-size:21px; font-weight:900; letter-spacing:.01em; margin:0 0 18px; }
       .panel .lede{ color:var(--ink-2); font-size:13px; margin:0 0 20px; line-height:1.55; }
       section.block{ border-top:1px solid var(--line); padding:18px 0 6px; }
       section.block:first-of-type{ border-top:none; padding-top:2px; }
-      .block-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px; }
+      .block-head{ display:flex; align-items:center; gap:8px; margin-bottom:12px; }
       .block-head h2{ font-size:13px; font-weight:900; letter-spacing:.14em; text-transform:uppercase; margin:0; }
-      .block-head h2 .zh{ letter-spacing:.05em; }
-      .block-head .hint{ font-size:11.5px; color:var(--ink-2); }
-      label.f{ display:block; font-size:12.5px; font-weight:700; color:var(--ink-2); margin:0 0 12px; }
-      label.f > span{ display:block; margin-bottom:5px; }
+      .block-head .hint{ font-size:11.5px; color:var(--ink-2); margin-left:auto; }
+      .block-head .sw{ margin-left:auto; }
+      /* "?" help: the explanations live behind this button, one tap to open */
+      .help{
+        flex:none; width:19px; height:19px; padding:0; border-radius:50%; cursor:pointer;
+        font:inherit; font-size:11.5px; font-weight:900; line-height:1; display:grid; place-items:center;
+        border:1.5px solid var(--line); background:var(--field); color:var(--ink-2);
+      }
+      .help:hover, .help:focus-visible, .help[aria-expanded="true"]{ border-color:var(--brand); background:var(--brand); color:var(--brand-ink); outline:none; }
+      .help-pop{
+        margin:-4px 0 12px; padding:9px 11px; border-radius:9px; background:var(--field); border:1px solid var(--line);
+        font-size:12px; line-height:1.55; color:var(--ink-2);
+      }
+      .help-pop[hidden]{ display:none; }
+      .help-pop b{ color:var(--ink); }
+      .f{ display:block; font-size:12.5px; font-weight:700; color:var(--ink-2); margin:0 0 12px; }
+      .f > span{ display:block; margin-bottom:5px; }
       input[type="text"], input[type="number"], select{
         width:100%; font:inherit; font-size:14.5px; color:var(--ink);
         background:var(--field); border:1.5px solid var(--line); border-radius:9px;
@@ -52,6 +65,9 @@
       input:focus, select:focus{ border-color:var(--brand); background:var(--panel); }
       .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
       .row3{ display:grid; grid-template-columns:1fr 1fr .8fr; gap:10px; }
+      .dc-box{ margin:0 0 12px; }
+      .dc-box summary{ cursor:pointer; font-size:12.5px; font-weight:700; color:var(--ink-2); padding:2px 0 8px; }
+      .dc-box summary:hover{ color:var(--ink); }
       .presets{ display:flex; flex-wrap:wrap; gap:6px; margin:-2px 0 12px; }
       .chip{
         font:inherit; font-size:12px; font-weight:700; cursor:pointer;
@@ -63,7 +79,7 @@
 
       /* feature rows */
       .feat-row{
-        display:grid; grid-template-columns:26px 1fr 118px 30px; gap:7px; align-items:center; margin-bottom:8px;
+        display:grid; grid-template-columns:26px 1fr 142px 30px; gap:7px; align-items:center; margin-bottom:8px;
       }
       .feat-row .num{
         width:26px; height:26px; border-radius:50%; background:var(--field); border:1.5px solid var(--line);
@@ -99,7 +115,6 @@
       /* switches */
       .switch-row{ display:flex; align-items:center; justify-content:space-between; padding:7px 0 12px; }
       .switch-row .t{ font-size:14px; font-weight:700; }
-      .switch-row .t small{ display:block; font-size:11.5px; font-weight:500; color:var(--ink-2); margin-top:1px; }
       .sw{ position:relative; width:46px; height:26px; flex:none; display:block; }
       .sw input{
         -webkit-appearance:none; appearance:none; display:block;
@@ -387,146 +402,135 @@
       <!-- ================= EDITOR ================= -->
       <aside class="panel">
         <h1>Product Label Creator</h1>
-        <p class="lede">填寫左邊內容，右邊即時生成產品標籤 —— 品牌名、產品名、尺寸、圖示功能、App 名稱、保養期、標語、條碼同價格，一張過。</p>
 
         <section class="block">
-          <div class="block-head"><h2><span class="zh">已儲存紀錄</span> · Records</h2><span class="hint" id="record-count"></span></div>
-          <p class="record-note">以產品名稱做 Key 儲存成個標籤設定。先喺下面「已有產品名」清單撳一個嚟揀選、撳「載入」拎返出嚟，唔使自己打 Key。新增 / 更改 / 刪除三粒掣喺表單最底 — 填好晒、改好晒先至去最底撳。紀錄儲喺呢部裝置嘅瀏覽器入面。</p>
-          <label class="f"><span>紀錄 Key（產品名稱）· Retrieval key</span>
-            <input type="text" id="record-key" value="Smart Sport Watch" placeholder="例如 Smart Sport Watch" autocomplete="off" /></label>
-          <label class="f"><span>選擇已儲存紀錄 Saved records</span>
-            <select id="record-list"><option value="">— 未有紀錄 No records —</option></select></label>
-          <span class="picker-label">已有產品名 · 撳一個揀選（載入 / 更改 / 刪除用）</span>
-          <div class="record-picker" id="record-picker"></div>
-          <div class="record-actions single">
-            <button type="button" class="rec-btn" id="rec-load">載入 Retrieve</button>
+          <div class="block-head"><h2>Barcode</h2><button type="button" class="help" aria-label="Help: Barcode" aria-expanded="false" aria-controls="h-barcode">?</button></div>
+          <div class="help-pop" id="h-barcode" hidden>The barcode value is the <b>record key</b>, so it is needed even when the barcode is not printed. <b>Auto</b> picks EAN-13 for 13 digits, UPC-A for 12 digits and Code 128 for anything else. EAN-13 and UPC-A check the check digit, or add it if you leave it out. Print the PNG at 100% (actual size) on a laser printer, then test-scan it.</div>
+          <label class="f"><span>Barcode value (record key)</span>
+            <input type="text" id="in-barcode" value="XO-W12-2026" autocomplete="off" /></label>
+          <div class="row2">
+            <label class="f"><span>Type</span>
+              <select id="in-barcode-type">
+                <option value="auto">Auto</option>
+                <option value="code128">Code 128 (any text)</option>
+                <option value="ean13">EAN-13 (13 digits)</option>
+                <option value="upca">UPC-A (12 digits)</option>
+              </select></label>
+            <div class="f"><span>Print on label</span>
+              <label class="sw" style="margin-top:3px"><input type="checkbox" id="in-barcode-on" aria-label="Print barcode on label" /></label></div>
           </div>
-          <p class="record-msg" id="record-msg" aria-live="polite"></p>
-          <span class="picker-label">備份 Backup · 防清 cache 唔見紀錄</span>
-          <div class="record-actions">
-            <button type="button" class="rec-btn" id="rec-export">匯出備份 Export</button>
-            <button type="button" class="rec-btn" id="rec-import">匯入還原 Import</button>
-          </div>
-          <input type="file" id="rec-import-file" accept=".json,application/json" hidden />
-          <p class="record-note">匯出會將全部紀錄下載成一個 JSON 檔案，存好佢；換機或者紀錄唔見咗嗰陣，用「匯入還原」開返個檔案就還原晒。匯入會合併現有紀錄，同產品名嘅會以檔案嗰份覆寫。</p>
+          <p class="record-note" id="barcode-hint" aria-live="polite"></p>
         </section>
 
         <section class="block">
-          <div class="block-head"><h2><span class="zh">基本內容</span> · Basics</h2></div>
-          <label class="f"><span>品牌名稱 Brand name</span>
+          <div class="block-head"><h2>Records</h2><button type="button" class="help" aria-label="Help: Records" aria-expanded="false" aria-controls="h-records">?</button><span class="hint" id="record-count"></span></div>
+          <div class="help-pop" id="h-records" hidden>Records are saved in this browser and keyed by the barcode value. Tap a saved record (or type its barcode in the field above) and press <b>Load</b>. <b>Add</b>, <b>Change</b> and <b>Delete</b> are at the bottom of the form. Export a backup now and then — clearing the browser&#39;s site data removes saved records. Importing merges with existing records; the same barcode is overwritten by the file.</div>
+          <div class="record-picker" id="record-picker"></div>
+          <div class="record-actions single">
+            <button type="button" class="rec-btn" id="rec-load">Load selected</button>
+          </div>
+          <p class="record-msg" id="record-msg" aria-live="polite"></p>
+          <div class="record-actions">
+            <button type="button" class="rec-btn" id="rec-export">Export backup</button>
+            <button type="button" class="rec-btn" id="rec-import">Import backup</button>
+          </div>
+          <input type="file" id="rec-import-file" accept=".json,application/json" hidden />
+        </section>
+
+        <section class="block">
+          <div class="block-head"><h2>Basics</h2></div>
+          <label class="f"><span>Brand name</span>
             <input type="text" id="in-name" value="XO-W12" autocomplete="off" /></label>
-          <label class="f"><span>產品名稱 Product name</span>
+          <label class="f"><span>Product name</span>
             <input type="text" id="in-sub" value="Smart Sport Watch" autocomplete="off" /></label>
           <div class="switch-row">
-            <div class="t">顯示標語 Slogan<small>最底標語橫額，可開可關</small></div>
-            <label class="sw"><input type="checkbox" id="in-slogan-on" checked aria-label="顯示標語 Slogan" /></label>
+            <div class="t">Slogan</div>
+            <label class="sw"><input type="checkbox" id="in-slogan-on" checked aria-label="Show slogan" /></label>
           </div>
           <div class="sub-fields" id="slogan-fields">
-            <label class="f"><span>標語文字 Slogan text</span>
+            <label class="f"><span>Slogan text</span>
               <input type="text" id="in-slogan" value="Build for smart life" autocomplete="off" /></label>
-            <span class="picker-label">標語款式 Slogan style</span>
+            <span class="picker-label">Slogan style</span>
             <div class="style-picker" id="slogan-styles">
-              <button type="button" class="style-opt sel" data-style="dynamic"><span class="opt-preview pv-dynamic"><b>GO!</b></span><b>賽道動感</b><span>RACER</span></button>
-              <button type="button" class="style-opt" data-style="minimal"><span class="opt-preview pv-minimal"><b>LESS</b></span><b>極簡留白</b><span>MINIMAL</span></button>
-              <button type="button" class="style-opt" data-style="retro"><span class="opt-preview pv-retro"><b>BADGE</b></span><b>復古徽章</b><span>RETRO</span></button>
+              <button type="button" class="style-opt sel" data-style="dynamic"><span class="opt-preview pv-dynamic"><b>GO!</b></span><b>Racer</b><span>BOLD</span></button>
+              <button type="button" class="style-opt" data-style="minimal"><span class="opt-preview pv-minimal"><b>LESS</b></span><b>Minimal</b><span>CLEAN</span></button>
+              <button type="button" class="style-opt" data-style="retro"><span class="opt-preview pv-retro"><b>BADGE</b></span><b>Retro</b><span>BADGE</span></button>
             </div>
           </div>
         </section>
 
         <section class="block">
-          <div class="block-head"><h2><span class="zh">App 名稱</span> · App</h2></div>
-          <div class="switch-row">
-            <div class="t">顯示 App 名稱 App name<small>出現在保養期下面、標語上面，方便顧客搵返個 App</small></div>
-            <label class="sw"><input type="checkbox" id="in-app-on" checked aria-label="顯示 App 名稱 App name" /></label>
-          </div>
+          <div class="block-head"><h2>App</h2><button type="button" class="help" aria-label="Help: App" aria-expanded="false" aria-controls="h-app">?</button><label class="sw"><input type="checkbox" id="in-app-on" checked aria-label="Show app name" /></label></div>
+          <div class="help-pop" id="h-app" hidden>Shown under the warranty line and above the slogan, so customers can find the app.</div>
           <div class="sub-fields" id="app-fields">
-            <label class="f"><span>App 名稱 App name</span>
-              <input type="text" id="in-app" value="FitPro" placeholder="例如 FitPro" autocomplete="off" /></label>
+            <label class="f"><span>App name</span>
+              <input type="text" id="in-app" value="FitPro" placeholder="e.g. FitPro" autocomplete="off" /></label>
           </div>
         </section>
 
         <section class="block">
-          <div class="block-head"><h2><span class="zh">標籤尺寸</span> · Size</h2><span class="hint">預覽按比例顯示</span></div>
+          <div class="block-head"><h2>Size</h2><button type="button" class="help" aria-label="Help: Size" aria-expanded="false" aria-controls="h-size">?</button></div>
+          <div class="help-pop" id="h-size" hidden>The preview is drawn to scale. The PNG is exported at 300 DPI and carries its real size, so print it at 100%.</div>
           <div class="presets" id="presets"></div>
           <div class="row3">
-            <label class="f"><span>闊 Width</span><input type="number" id="in-w" value="6.5" min="2" step="0.5" /></label>
-            <label class="f"><span>長 Length</span><input type="number" id="in-l" value="10" min="2" step="0.5" /></label>
-            <label class="f"><span>單位 Unit</span>
+            <label class="f"><span>Width</span><input type="number" id="in-w" value="6.5" min="2" step="0.5" /></label>
+            <label class="f"><span>Length</span><input type="number" id="in-l" value="10" min="2" step="0.5" /></label>
+            <label class="f"><span>Unit</span>
               <select id="in-unit"><option value="cm">cm</option><option value="in">inch</option></select></label>
           </div>
         </section>
 
         <section class="block">
-          <div class="block-head"><h2><span class="zh">圖示功能</span> · Features</h2><span class="hint">打字自動配圖示</span></div>
-          <span class="picker-label">Dash Cam 常用功能 · 撳一下即加一個</span>
-          <div class="presets" id="dc-presets"></div>
+          <div class="block-head"><h2>Features</h2><button type="button" class="help" aria-label="Help: Features" aria-expanded="false" aria-controls="h-feat">?</button></div>
+          <div class="help-pop" id="h-feat" hidden>Type a feature and an icon is matched automatically; pick another icon from the dropdown. If nothing matches you get a search link, or choose <b>Custom image URL</b> to paste your own icon. The dash cam chips add a feature in one tap.</div>
+          <details class="dc-box">
+            <summary>Dash cam quick add</summary>
+            <div class="presets" id="dc-presets"></div>
+          </details>
           <div id="feat-list"></div>
-          <button class="add-btn" id="add-feat" type="button">＋ 加一個功能 Add feature</button>
-          <p class="record-note" style="margin-top:10px">如果打嘅功能冇內置圖示配對，該行會即刻提示「上網搵圖示」（開 Google 圖片搜尋），亦可以直接貼上圖示圖片網址，自訂嗰個功能嘅 icon，唔使死用通用星星圖示。</p>
+          <button class="add-btn" id="add-feat" type="button">+ Add feature</button>
         </section>
 
         <section class="block">
-          <div class="block-head"><h2><span class="zh">保養期</span> · Warranty</h2></div>
-          <div class="switch-row">
-            <div class="t">顯示保養期 Warranty<small>出現在圖示功能下面、標語上面</small></div>
-            <label class="sw"><input type="checkbox" id="in-warranty-on" checked aria-label="顯示保養期 Warranty" /></label>
-          </div>
+          <div class="block-head"><h2>Warranty</h2><button type="button" class="help" aria-label="Help: Warranty" aria-expanded="false" aria-controls="h-warr">?</button><label class="sw"><input type="checkbox" id="in-warranty-on" checked aria-label="Show warranty" /></label></div>
+          <div class="help-pop" id="h-warr" hidden>Shown under the features and above the app line.</div>
           <div class="sub-fields" id="warranty-fields">
-            <div class="presets" id="warranty-presets" aria-label="常用保養期 Quick warranty periods">
-              <button type="button" class="chip sel" data-wv="1" data-wu="years">1 Year · 1 年</button>
-              <button type="button" class="chip" data-wv="6" data-wu="months">6 Months · 6 個月</button>
+            <div class="presets" id="warranty-presets" aria-label="Quick warranty periods">
+              <button type="button" class="chip sel" data-wv="1" data-wu="years">1 Year</button>
+              <button type="button" class="chip" data-wv="6" data-wu="months">6 Months</button>
             </div>
             <div class="row2">
-              <label class="f"><span>保養期長度 Period（可自訂）</span>
+              <label class="f"><span>Period</span>
                 <input type="number" id="in-warranty" value="1" min="0" step="1" /></label>
-              <label class="f"><span>單位 Unit</span>
+              <label class="f"><span>Unit</span>
                 <select id="in-warranty-unit">
-                  <option value="months">個月 Months</option>
-                  <option value="years" selected>年 Years</option>
+                  <option value="months">Months</option>
+                  <option value="years" selected>Years</option>
                 </select></label>
             </div>
           </div>
         </section>
 
         <section class="block">
-          <div class="block-head"><h2><span class="zh">條碼與價格</span> · Extras</h2></div>
-          <div class="switch-row">
-            <div class="t">顯示條碼 Barcode<small>輸入編號，自動生成條碼圖案</small></div>
-            <label class="sw"><input type="checkbox" id="in-barcode-on" aria-label="顯示條碼 Barcode" /></label>
-          </div>
-          <div class="sub-fields off" id="barcode-fields">
-            <label class="f"><span>條碼類型 Type</span>
-              <select id="in-barcode-type">
-                <option value="auto">自動 Auto（13 位 → EAN-13、12 位 → UPC-A、其他 → Code 128）</option>
-                <option value="code128">Code 128 — 英數字，任何自訂編號</option>
-                <option value="ean13">EAN-13 — 13 位數字，零售通用</option>
-                <option value="upca">UPC-A — 12 位數字，北美零售</option>
-              </select></label>
-            <label class="f"><span>條碼編號 Code</span>
-              <input type="text" id="in-barcode" value="XO-W12-2026" autocomplete="off" /></label>
-            <p class="record-note" id="barcode-hint" aria-live="polite"></p>
-          </div>
-          <div class="switch-row">
-            <div class="t">顯示價格 Price<small>出現在標籤右下角</small></div>
-            <label class="sw"><input type="checkbox" id="in-price-on" aria-label="顯示價格 Price" /></label>
-          </div>
+          <div class="block-head"><h2>Price</h2><button type="button" class="help" aria-label="Help: Price" aria-expanded="false" aria-controls="h-price">?</button><label class="sw"><input type="checkbox" id="in-price-on" aria-label="Show price" /></label></div>
+          <div class="help-pop" id="h-price" hidden>Shown in red in the footer. Currency is fixed to $.</div>
           <div class="sub-fields off" id="price-fields">
-            <label class="f"><span>價錢 Amount（$）</span><input type="text" id="in-price" value="299" autocomplete="off" /></label>
+            <label class="f"><span>Amount ($)</span><input type="text" id="in-price" value="299" autocomplete="off" /></label>
           </div>
         </section>
 
         <section class="block">
-          <div class="block-head"><h2><span class="zh">主題顏色</span> · Accent</h2></div>
+          <div class="block-head"><h2>Accent colour</h2></div>
           <div class="swatches" id="swatches"></div>
         </section>
 
         <section class="block">
-          <div class="block-head"><h2><span class="zh">儲存紀錄</span> · Save record</h2></div>
-          <p class="record-note">嚟到最底，即係成個標籤已經填好晒：新產品撳「新增 Add」儲存；改好咗已揀選嘅產品就撳「更改 Change」覆寫；唔要嗰條紀錄就撳「刪除 Delete」（要再撳一次確認）。Key 用返產品名稱。</p>
+          <div class="block-head"><h2>Save</h2><button type="button" class="help" aria-label="Help: Save" aria-expanded="false" aria-controls="h-save">?</button></div>
+          <div class="help-pop" id="h-save" hidden><b>Add</b> saves a new record keyed by the barcode value. <b>Change</b> overwrites the selected record (if you edited the barcode, the record is re-keyed to the new value). <b>Delete</b> asks for a second tap to confirm.</div>
           <div class="record-actions record-actions-bottom">
-            <button type="button" class="rec-btn primary" id="rec-add">＋ 新增 Add</button>
-            <button type="button" class="rec-btn" id="rec-change">更改 Change</button>
-            <button type="button" class="rec-btn danger" id="rec-delete">刪除 Delete</button>
+            <button type="button" class="rec-btn primary" id="rec-add">+ Add</button>
+            <button type="button" class="rec-btn" id="rec-change">Change</button>
+            <button type="button" class="rec-btn danger" id="rec-delete">Delete</button>
           </div>
           <p class="record-msg" id="record-msg-bottom" aria-live="polite"></p>
         </section>
@@ -536,14 +540,14 @@
       <main class="stage">
         <div class="stage-bar">
           <div class="dim-caption" id="dim-caption"></div>
-          <button class="dl-btn" id="dl" type="button">下載 PNG · Download</button>
+          <button class="dl-btn" id="dl" type="button">Download PNG</button>
         </div>
         <div class="label-shadow"><div class="label" id="label"></div></div>
         <div class="result" id="result">
-          <h3>成品圖已生成 ✓</h3>
-          <p>如果 Files &gt; Downloads 搵唔到個檔案，<b>長按下面張圖</b>，揀「儲存圖片 / Save Image」就會入咗你部機嘅相簿。</p>
-          <img id="result-img" alt="生成的產品標籤 PNG" />
-          <button class="dl-again" id="dl-again" type="button">再下載一次 Download again</button>
+          <h3>Image ready ✓</h3>
+          <p>Can&#39;t find the file in Downloads? <b>Long-press the image below</b> and choose Save Image.</p>
+          <img id="result-img" alt="Generated product label PNG" />
+          <button class="dl-again" id="dl-again" type="button">Download again</button>
           <div class="fname" id="result-name"></div>
         </div>
       </main>
@@ -556,155 +560,155 @@
       function S(d, w){ return '<path fill="none" stroke="#0b0b0c" stroke-width="' + (w||2.1) + '" stroke-linecap="round" stroke-linejoin="round" d="' + d + '"/>'; }
 
       var ICONS = {
-        pulse: { name:'血壓脈搏 BP pulse', svg: svgWrap(
+        pulse: { name:'BP pulse', svg: svgWrap(
           F('M12 2.2s6.8 7.3 6.8 12a6.8 6.8 0 1 1-13.6 0c0-4.7 6.8-12 6.8-12z') +
           '<polyline points="7.6,14.6 10.2,14.6 11.4,11.8 13.2,16.4 14.4,14.6 16.6,14.6" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>') },
-        heart: { name:'心率 Heart rate', svg: svgWrap(
+        heart: { name:'Heart rate', svg: svgWrap(
           F('M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z')) },
-        health: { name:'健康監測 Health monitoring', svg: svgWrap(
+        health: { name:'Health monitoring', svg: svgWrap(
           '<circle cx="6" cy="2.9" r="1.35" fill="#0b0b0c"/><circle cx="14" cy="2.9" r="1.35" fill="#0b0b0c"/>' +
           S('M6 4.2V8a4 4 0 0 0 8 0V4.2', 2.1) +
           S('M10 12v3.6a4.9 4.9 0 0 0 4.9 4.9h1.9', 2.1) +
           '<circle cx="19.4" cy="20.5" r="2.7" fill="#0b0b0c"/><circle cx="19.4" cy="20.5" r="1.2" fill="#fff"/>') },
-        water: { name:'防水 Waterproof', svg: svgWrap(
+        water: { name:'Waterproof', svg: svgWrap(
           F('M12 2.6s5.6 6 5.6 10a5.6 5.6 0 1 1-11.2 0c0-4 5.6-10 5.6-10z') +
           S('M3.5 19.6c1.8-1.3 3.6-1.3 5.4 0s3.6 1.3 5.4 0 3.6-1.3 5.4 0', 1.9) +
           S('M3.5 22.4c1.8-1.3 3.6-1.3 5.4 0s3.6 1.3 5.4 0 3.6-1.3 5.4 0', 1.9)) },
-        battery: { name:'電池 Battery', svg: svgWrap(
+        battery: { name:'Battery', svg: svgWrap(
           '<rect x="2.6" y="7.6" width="17" height="9.6" rx="1.8" fill="#0b0b0c"/>' +
           '<rect x="20.6" y="10.6" width="2.2" height="3.6" rx="1" fill="#0b0b0c"/>' +
           '<path fill="#fff" d="M12.6 8.9l-3.6 4.9h2.4l-1.1 3.4 4-5.2h-2.5l.8-3.1z"/>') },
-        wireless: { name:'無線充電 Wireless charging', svg: svgWrap(
+        wireless: { name:'Wireless charging', svg: svgWrap(
           S('M4.8 5.6a11 11 0 0 1 14.4 0M7.4 8.9a7.2 7.2 0 0 1 9.2 0', 2) +
           F('M13.1 9.3l-4.3 6h2.7l-1.2 4.3 4.5-6.2h-2.8l1.1-4.1z') +
           S('M3.4 22h17.2', 2.2)) },
-        phone: { name:'通話 Phone call', svg: svgWrap(
+        phone: { name:'Phone call', svg: svgWrap(
           F('M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C10.85 21 3 13.15 3 3.99 3 3.44 3.44 3 3.99 3h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z') +
           S('M15.5 4.2a8.5 8.5 0 0 1 4.3 4.3M15.5 1.6a12 12 0 0 1 6.9 6.9', 1.9)) },
-        bluetooth: { name:'藍牙 Bluetooth', svg: svgWrap(
+        bluetooth: { name:'Bluetooth', svg: svgWrap(
           S('M6.8 6.8l10.4 10.4L12 22.4V1.6l5.2 5.2L6.8 17.2', 2.3)) },
-        card: { name:'NFC / 卡 Card', svg: svgWrap(
+        card: { name:'NFC / Card', svg: svgWrap(
           '<rect x="2.2" y="6.4" width="15.4" height="12.4" rx="1.8" transform="rotate(-7 10 12)" fill="#0b0b0c"/>' +
           '<rect x="4.6" y="4" width="15.4" height="12.4" rx="1.8" transform="rotate(4 12 10)" fill="#0b0b0c" opacity=".28"/>' +
           S('M16.8 9.6a5.4 5.4 0 0 1 0 5.4M19.2 7a9 9 0 0 1 0 10.6', 1.9)) },
-        screen: { name:'螢幕 Screen', svg: svgWrap(
+        screen: { name:'Screen', svg: svgWrap(
           '<rect x="2.8" y="4.4" width="18.4" height="12.4" rx="1.8" fill="#0b0b0c"/>' +
           '<rect x="10" y="18.6" width="4" height="2" fill="#0b0b0c"/><rect x="7.6" y="20.4" width="8.8" height="1.6" rx=".8" fill="#0b0b0c"/>') },
-        amoled: { name:'AMOLED 螢幕', svg: svgWrap(
+        amoled: { name:'AMOLED screen', svg: svgWrap(
           '<rect x="2.6" y="4.4" width="18.8" height="13.6" rx="2.4" fill="#0b0b0c"/>' +
           '<circle cx="7.9" cy="8.9" r="1.55" fill="#ff453a"/><circle cx="12" cy="8.9" r="1.55" fill="#32d74b"/><circle cx="16.1" cy="8.9" r="1.55" fill="#0a84ff"/>' +
           '<circle cx="7.9" cy="13.5" r="1.55" fill="#ffd60a"/><circle cx="12" cy="13.5" r="1.55" fill="#bf5af2"/><circle cx="16.1" cy="13.5" r="1.55" fill="#64d2ff"/>' +
           '<rect x="10.7" y="19" width="2.6" height="1.7" fill="#0b0b0c"/><rect x="8" y="20.7" width="8" height="1.5" rx=".75" fill="#0b0b0c"/>') },
-        'case': { name:'錶殼物料 Case material', svg: svgWrap(
+        'case': { name:'Case material', svg: svgWrap(
           '<path fill="#0b0b0c" d="M9.3 1.5h5.4l-.6 2.1H9.9l-.6-2.1zM9.9 20.4h4.2l.6 2.1H9.3l.6-2.1z"/>' +
           '<rect x="4.9" y="3.3" width="14.2" height="17.4" rx="4.9" fill="#0b0b0c"/>' +
           '<rect x="19.1" y="9.2" width="2.2" height="5.6" rx="1.1" fill="#0b0b0c"/>' +
           '<rect x="7.2" y="5.6" width="9.6" height="12.8" rx="3.1" fill="#fff"/>' +
           S('M12 9.4V12l1.8 1.2', 1.7) +
           '<circle cx="12" cy="12" r="1.05" fill="#0b0b0c"/>') },
-        runner: { name:'運動 Running', svg: svgWrap(
+        runner: { name:'Running', svg: svgWrap(
           '<circle cx="15.6" cy="4.4" r="2.1" fill="#0b0b0c"/>' +
           S('M13.4 8.2l-3.2 2.4-3 .8M10.2 10.6l.6 3.4-2.7 3.4M10.8 14l3.4 1.6 1.2 3.8M13.4 8.2l2.8 2 2.6.4M4 13.4H1.8M5 16.8H2.6', 2.2)) },
-        robot: { name:'AI 助手 AI', svg: svgWrap(
+        robot: { name:'AI assistant', svg: svgWrap(
           S('M12 5.4V2.8', 2.1) + '<circle cx="12" cy="2.4" r="1.3" fill="#0b0b0c"/>' +
           '<rect x="4" y="5.6" width="16" height="12" rx="3.4" fill="#0b0b0c"/>' +
           '<circle cx="9.2" cy="11.2" r="1.5" fill="#fff"/><circle cx="14.8" cy="11.2" r="1.5" fill="#fff"/>' +
           '<path d="M9.4 14.6a3.4 3.4 0 0 0 5.2 0" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>' +
           '<rect x="6.4" y="18.6" width="11.2" height="2.6" rx="1.3" fill="#0b0b0c"/>') },
-        pin: { name:'GPS 定位 Location', svg: svgWrap(
+        pin: { name:'GPS location', svg: svgWrap(
           F('M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z')) },
-        moon: { name:'睡眠 Sleep', svg: svgWrap(
+        moon: { name:'Sleep', svg: svgWrap(
           F('M12.6 2.4a9.6 9.6 0 1 0 9 11.4A10.8 10.8 0 0 1 12.6 2.4z')) },
-        music: { name:'音樂 Music', svg: svgWrap(
+        music: { name:'Music', svg: svgWrap(
           F('M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z')) },
-        camera: { name:'相機 Camera', svg: svgWrap(
+        camera: { name:'Camera', svg: svgWrap(
           F('M9 2.4L7.2 4.6H4a2 2 0 0 0-2 2v11.6A2 2 0 0 0 4 20.2h16a2 2 0 0 0 2-2V6.6a2 2 0 0 0-2-2h-3.2L15 2.4H9zm3 15.4a5.2 5.2 0 1 1 0-10.4 5.2 5.2 0 0 1 0 10.4z') +
           '<circle cx="12" cy="12.6" r="2.9" fill="#fff"/>') },
-        steps: { name:'計步 Steps', svg: svgWrap(
+        steps: { name:'Steps', svg: svgWrap(
           '<ellipse cx="8" cy="7.6" rx="3.1" ry="4.4" transform="rotate(-14 8 7.6)" fill="#0b0b0c"/>' +
           '<ellipse cx="16" cy="16.4" rx="3.1" ry="4.4" transform="rotate(-14 16 16.4)" fill="#0b0b0c"/>') },
         wifi: { name:'Wi-Fi', svg: svgWrap(
           S('M2.8 9.6a14.5 14.5 0 0 1 18.4 0M5.6 13.2a10 10 0 0 1 12.8 0M8.5 16.7a5.4 5.4 0 0 1 7 0', 2.2) +
           '<circle cx="12" cy="19.8" r="1.5" fill="#0b0b0c"/>') },
-        mic: { name:'語音 Voice', svg: svgWrap(
+        mic: { name:'Voice', svg: svgWrap(
           F('M12 14.4a3.2 3.2 0 0 0 3.2-3.2V6a3.2 3.2 0 1 0-6.4 0v5.2A3.2 3.2 0 0 0 12 14.4zm5.2-3.2a5.2 5.2 0 0 1-10.4 0H4.9a7.1 7.1 0 0 0 6.1 7v2.9h2v-2.9a7.1 7.1 0 0 0 6.1-7h-1.9z')) },
-        sun: { name:'天氣 Weather', svg: svgWrap(
+        sun: { name:'Weather', svg: svgWrap(
           '<circle cx="12" cy="12" r="4" fill="#0b0b0c"/>' +
           S('M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5 5l1.7 1.7M17.3 17.3L19 19M19 5l-1.7 1.7M6.7 17.3L5 19', 2.1)) },
-        thermo: { name:'溫度 Temperature', svg: svgWrap(
+        thermo: { name:'Temperature', svg: svgWrap(
           S('M10 4a2 2 0 0 1 4 0v9.3a4.4 4.4 0 1 1-4 0V4z', 2.2) +
           '<circle cx="12" cy="17.6" r="2" fill="#0b0b0c"/>') },
-        clock: { name:'時鐘 Clock', svg: svgWrap(
+        clock: { name:'Clock', svg: svgWrap(
           F('M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm4.2 14.2L11 13V7h1.5v5.2l4.5 2.7-.8 1.3z')) },
-        flash: { name:'電筒 Flashlight', svg: svgWrap(
+        flash: { name:'Flashlight', svg: svgWrap(
           F('M9.5 2.4h5l-.8 4H10.3l-.8-4zM10.3 7.6h3.4l.9 13.6a1.4 1.4 0 0 1-1.4 1.5h-2.4a1.4 1.4 0 0 1-1.4-1.5l.9-13.6z')) },
-        bell: { name:'提醒 Notifications', svg: svgWrap(
+        bell: { name:'Notifications', svg: svgWrap(
           F('M12 22c1.1 0 2-.9 2-2h-4a2 2 0 0 0 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4.2a1.5 1.5 0 0 0-3 0v.48C7.63 5.36 6 7.93 6 11v5l-2 2v1h16v-1l-2-2z')) },
-        o2: { name:'血氧 SpO2', svg: svgWrap(
+        o2: { name:'Blood oxygen (SpO2)', svg: svgWrap(
           F('M12 2.2s6.8 7.3 6.8 12a6.8 6.8 0 1 1-13.6 0c0-4.7 6.8-12 6.8-12z') +
           '<text x="12" y="16.6" text-anchor="middle" font-family="Archivo,sans-serif" font-weight="900" font-size="5.2" fill="#fff">O₂</text>') },
-        dashcam: { name:'行車記錄儀 Dash cam', svg: svgWrap(
+        dashcam: { name:'Dash cam', svg: svgWrap(
           F('M6.9 4.9A2 2 0 0 1 8.8 3.6h6.4a2 2 0 0 1 1.9 1.3L18.6 9c1.3.5 2.4 1.7 2.4 3.4v5a1.6 1.6 0 0 1-1.6 1.6h-.9a1.6 1.6 0 0 1-1.6-1.6v-.9H7.1v.9A1.6 1.6 0 0 1 5.5 19h-.9A1.6 1.6 0 0 1 3 17.4v-5C3 10.7 4.1 9.5 5.4 9L6.9 4.9z') +
           '<rect x="7.7" y="6.1" width="8.6" height="2.7" rx="1" fill="#fff"/>' +
           '<circle cx="6.4" cy="13.6" r="1.35" fill="#fff"/><circle cx="17.6" cy="13.6" r="1.35" fill="#fff"/>' +
           '<rect x="9.6" y="12.9" width="4.8" height="1.5" rx=".75" fill="#fff"/>') },
-        video: { name:'錄影 Video recording', svg: svgWrap(
+        video: { name:'Video recording', svg: svgWrap(
           '<rect x="2.4" y="7" width="13.2" height="10.2" rx="2.1" fill="#0b0b0c"/>' +
           F('M15.6 10.7l5.9-3.2v9.2l-5.9-3.2z') +
           '<circle cx="9" cy="12.1" r="2.7" fill="#fff"/><circle cx="9" cy="12.1" r="1.25" fill="#0b0b0c"/>') },
-        res4k: { name:'4K 超高清 4K UHD', svg: svgWrap(
+        res4k: { name:'4K UHD', svg: svgWrap(
           '<rect x="2.4" y="5.4" width="19.2" height="13.2" rx="2.6" fill="#0b0b0c"/>' +
           '<text x="12" y="15.9" text-anchor="middle" font-family="Archivo,sans-serif" font-weight="900" font-size="7.6" fill="#fff">4K</text>') },
-        hd: { name:'高清 HD resolution', svg: svgWrap(
+        hd: { name:'HD resolution', svg: svgWrap(
           '<rect x="2.4" y="5.4" width="19.2" height="13.2" rx="2.6" fill="#0b0b0c"/>' +
           '<text x="12" y="15.9" text-anchor="middle" font-family="Archivo,sans-serif" font-weight="900" font-size="7.6" fill="#fff">HD</text>') },
-        wideangle: { name:'廣角 Wide angle', svg: svgWrap(
+        wideangle: { name:'Wide angle', svg: svgWrap(
           S('M2.6 12c2.8-4.4 6-6.6 9.4-6.6s6.6 2.2 9.4 6.6c-2.8 4.4-6 6.6-9.4 6.6s-6.6-2.2-9.4-6.6z', 2.1) +
           '<circle cx="12" cy="12" r="2.7" fill="#0b0b0c"/>') },
-        loop: { name:'循環錄影 Loop recording', svg: svgWrap(
+        loop: { name:'Loop recording', svg: svgWrap(
           S('M20.9 5.4v4.8h-4.8M3.6 18.6v-4.8h4.8', 2.2) +
           S('M19.9 10.4a8 8 0 0 0-13.7-2.6L3.6 10.4M4.4 13.6a8 8 0 0 0 13.7 2.6l2.6-2.6', 2.2)) },
-        gsensor: { name:'G-Sensor 碰撞感應', svg: svgWrap(
+        gsensor: { name:'G-Sensor', svg: svgWrap(
           '<circle cx="12" cy="12" r="6.3" fill="#0b0b0c"/>' +
           '<text x="12" y="16.1" text-anchor="middle" font-family="Archivo,sans-serif" font-weight="900" font-size="8" fill="#fff">G</text>' +
           S('M3.1 8.4a9.2 9.2 0 0 0 0 7.2M20.9 8.4a9.2 9.2 0 0 1 0 7.2', 1.9)) },
-        parking: { name:'停車監控 Parking mode', svg: svgWrap(
+        parking: { name:'Parking mode', svg: svgWrap(
           '<rect x="3.4" y="3.4" width="17.2" height="17.2" rx="3.6" fill="#0b0b0c"/>' +
           '<text x="12" y="16.9" text-anchor="middle" font-family="Archivo,sans-serif" font-weight="900" font-size="11.5" fill="#fff">P</text>') },
-        nightvision: { name:'夜視 Night vision', svg: svgWrap(
+        nightvision: { name:'Night vision', svg: svgWrap(
           F('M12.4 2.6a9.4 9.4 0 1 0 8.8 11.1A10.6 10.6 0 0 1 12.4 2.6z') +
           F('M18.6 1.8l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z')) },
-        dualcam: { name:'前後雙鏡 Dual camera', svg: svgWrap(
+        dualcam: { name:'Dual camera', svg: svgWrap(
           '<rect x="2.4" y="6.4" width="19.2" height="11.2" rx="2.2" fill="#0b0b0c"/>' +
           '<circle cx="8.1" cy="12" r="2.3" fill="#fff"/><circle cx="15.9" cy="12" r="2.3" fill="#fff"/>' +
           '<circle cx="8.1" cy="12" r="1.05" fill="#0b0b0c"/><circle cx="15.9" cy="12" r="1.05" fill="#0b0b0c"/>') },
-        adas: { name:'ADAS 車道輔助 Lane assist', svg: svgWrap(
+        adas: { name:'ADAS lane assist', svg: svgWrap(
           S('M6.4 21.2L10.1 3M17.6 21.2L13.9 3', 2.2) +
           S('M12 19v-2.6M12 13.4v-2.6M12 7.8V5.2', 1.9)) },
-        speedalert: { name:'測速提醒 Speed alert', svg: svgWrap(
+        speedalert: { name:'Speed alert', svg: svgWrap(
           S('M4.2 15.2a7.8 7.8 0 1 1 15.6 0', 2.2) +
           S('M12 15.2l4.1-4.5M5.9 12.4h1.9M16.2 12.4h1.9M12 5.8v1.9', 1.9) +
           '<circle cx="12" cy="15.2" r="1.6" fill="#0b0b0c"/>' +
           S('M3 20h18', 2.1)) },
-        hdr: { name:'HDR / WDR 高動態', svg: svgWrap(
+        hdr: { name:'HDR / WDR', svg: svgWrap(
           '<circle cx="12" cy="12" r="8.2" fill="none" stroke="#0b0b0c" stroke-width="2.2"/>' +
           F('M12 3.8a8.2 8.2 0 0 1 0 16.4z')) },
-        motion: { name:'移動偵測 Motion detection', svg: svgWrap(
+        motion: { name:'Motion detection', svg: svgWrap(
           S('M8 3.5H5A1.5 1.5 0 0 0 3.5 5v3M16 3.5h3A1.5 1.5 0 0 1 20.5 5v3M20.5 16v3a1.5 1.5 0 0 1-1.5 1.5h-3M8 20.5H5A1.5 1.5 0 0 1 3.5 19v-3', 2) +
           '<circle cx="12" cy="9.6" r="2.1" fill="#0b0b0c"/>' +
           S('M12 12v3.2l2.1 3M12 15.2l-2.3 2.6', 2)) },
-        timelapse: { name:'縮時錄影 Time-lapse', svg: svgWrap(
+        timelapse: { name:'Time-lapse', svg: svgWrap(
           '<circle cx="10" cy="12" r="7.4" fill="none" stroke="#0b0b0c" stroke-width="2.2"/>' +
           S('M10 8.4V12l2.5 1.6', 1.9) +
           F('M16.6 9.1l4.9 2.9-4.9 2.9z')) },
-        lock: { name:'緊急鎖定 Emergency lock', svg: svgWrap(
+        lock: { name:'Emergency lock', svg: svgWrap(
           S('M8 11V7.8a4 4 0 0 1 8 0V11', 2.3) +
           '<rect x="5.4" y="10.4" width="13.2" height="9.8" rx="2" fill="#0b0b0c"/>' +
           '<circle cx="12" cy="14.3" r="1.6" fill="#fff"/><rect x="11.2" y="14.9" width="1.6" height="2.6" rx=".8" fill="#fff"/>') },
-        sdcard: { name:'記憶卡 SD card', svg: svgWrap(
+        sdcard: { name:'SD card', svg: svgWrap(
           F('M6.8 2.8h6.7l6.7 6.7v10.7a1.8 1.8 0 0 1-1.8 1.8H6.8A1.8 1.8 0 0 1 5 20.2V4.6A1.8 1.8 0 0 1 6.8 2.8z') +
           '<path d="M9.2 3.6v3.8M12.6 3.6v3.8M16 5.2v3.4" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>') },
-        star: { name:'特色 Feature', svg: svgWrap(
+        star: { name:'Feature', svg: svgWrap(
           F('M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z')) }
       };
 
@@ -896,9 +900,9 @@
         var i, codes, sum;
         for (i = 0; i < text.length; i++){
           var cc = text.charCodeAt(i);
-          if (cc < 32 || cc > 126) return { error:'Code 128 只支援英文字母、數字同常用符號（唔支援中文）。' };
+          if (cc < 32 || cc > 126) return { error:'Code 128 supports English letters, digits and common symbols only (no Chinese).' };
         }
-        if (text.length > 40) return { error:'Code 128 編號最多 40 個字元。' };
+        if (text.length > 40) return { error:'Code 128 values are limited to 40 characters.' };
         if (/^\d+$/.test(text) && text.length >= 4 && text.length % 2 === 0){
           codes = [105];                                   /* Start C: two digits per symbol */
           for (i = 0; i < text.length; i += 2) codes.push(parseInt(text.substr(i, 2), 10));
@@ -921,7 +925,7 @@
       /* -> { ok, type, bits, text, note } or { ok:false, error } */
       function barcodeInfo(type, raw){
         var code = String(raw == null ? '' : raw).trim(), digits = /^\d+$/.test(code);
-        if (!code) return { ok:false, error:'請輸入條碼編號。' };
+        if (!code) return { ok:false, error:'Enter a barcode value.' };
         var t = type;
         if (t !== 'code128' && t !== 'ean13' && t !== 'upca'){
           t = digits && code.length === 13 ? 'ean13' : (digits && code.length === 12 ? 'upca' : 'code128');
@@ -934,13 +938,13 @@
         }
         var body = t === 'ean13' ? 12 : 11;
         if (!digits || (code.length !== body && code.length !== body + 1)){
-          return { ok:false, error:BARCODE_TYPE_NAMES[t] + ' 要 ' + body + ' 或 ' + (body + 1) + ' 位數字（' + (body + 1) + ' 位連校驗碼；' + body + ' 位會自動補校驗碼）。' };
+          return { ok:false, error:BARCODE_TYPE_NAMES[t] + ' needs ' + body + ' or ' + (body + 1) + ' digits (' + (body + 1) + ' includes the check digit; with ' + body + ' it is added for you).' };
         }
         var data = code.slice(0, body), check = gs1Check(data);
         if (code.length === body + 1){
-          if (+code[body] !== check) return { ok:false, error:'校驗碼唔啱：前 ' + body + ' 位 ' + data + ' 嘅校驗碼應該係 ' + check + '，而唔係 ' + code[body] + '。' };
+          if (+code[body] !== check) return { ok:false, error:'Wrong check digit: the first ' + body + ' digits ' + data + ' need check digit ' + check + ', not ' + code[body] + '.' };
         } else {
-          note = '已自動補校驗碼 ' + check;
+          note = 'check digit ' + check + ' added';
         }
         var full = data + check;
         if (t === 'ean13'){
@@ -1002,14 +1006,14 @@
         var bc = currentBarcode(), msg, cls = 'record-note';
         if (!bc.ok){ msg = '⚠ ' + bc.error; cls += ' bc-err'; }
         else {
-          msg = '類型：' + BARCODE_TYPE_NAMES[bc.type] + (bc.note ? '（' + bc.note + '）' : '');
+          msg = 'Type: ' + BARCODE_TYPE_NAMES[bc.type] + (bc.note ? ' (' + bc.note + ')' : '');
           var svg = labelEl.querySelector('.barcode .bars');
           if (svg){
             var modules = +svg.getAttribute('data-modules') || 1;
             var wCm = labelCm().w * svg.getBoundingClientRect().width / (labelEl.getBoundingClientRect().width || 1);
             var mm = wCm * 10 / modules;
-            msg += ' · 每條最幼約 ' + mm.toFixed(2) + ' mm';
-            if (mm < 0.19){ msg += ' ⚠ 太密，印出嚟可能掃唔到 — 放大標籤、縮短編號或轉用 EAN-13 / UPC-A'; cls += ' bc-err'; }
+            msg += ' · narrowest bar ≈ ' + mm.toFixed(2) + ' mm';
+            if (mm < 0.19){ msg += ' ⚠ Too dense — may not scan when printed. Enlarge the label, shorten the value or use EAN-13 / UPC-A.'; cls += ' bc-err'; }
           }
         }
         el.textContent = msg;
@@ -1106,7 +1110,7 @@
             var bc = currentBarcode();
             html += '<div class="barcode">' +
               (bc.ok ? barcodeBars(bc) + '<div class="code">' + esc(bc.text) + '</div>'
-                     : '<div class="bc-invalid">條碼無效</div><div class="code">' + esc(String(state.barcode || '').slice(0, 24)) + '</div>') +
+                     : '<div class="bc-invalid">INVALID BARCODE</div><div class="code">' + esc(String(state.barcode || '').slice(0, 24)) + '</div>') +
               '</div>';
           }
           if (state.priceOn){
@@ -1200,8 +1204,8 @@
       function renderCaption(){
         var u = state.unit === 'in' ? 'inch' : 'cm';
         document.getElementById('dim-caption').innerHTML =
-          '標籤尺寸 <b>' + esc(state.w) + ' × ' + esc(state.l) + ' ' + u + '</b>（闊 × 長）· ' +
-          state.features.length + ' 個功能';
+          'Label size <b>' + esc(state.w) + ' × ' + esc(state.l) + ' ' + u + '</b> (W × L) · ' +
+          state.features.length + (state.features.length === 1 ? ' feature' : ' features');
         /* keep the preset chips in sync with the current size */
         if (typeof presetBox !== 'undefined' && presetBox){
           presetBox.querySelectorAll('.chip').forEach(function(chip){
@@ -1215,12 +1219,17 @@
 
       /* ================= FEATURE EDITOR ================= */
       var featList = document.getElementById('feat-list');
-      function iconOptions(sel){
-        var out = '<option value="auto"' + (sel === 'auto' ? ' selected' : '') + '>自動配對 Auto</option>';
+      /* what the icon dropdown shows: a built-in icon key, 'auto', or 'custom'
+         (an image URL is in use / being entered) */
+      function hasImg(f){ return !!(f.img && String(f.img).trim()); }
+      function featSelectValue(f){ return (hasImg(f) || f.custom) ? 'custom' : (f.icon || 'auto'); }
+      function iconOptions(f){
+        var cur = featSelectValue(f);
+        var out = '<option value="auto"' + (cur === 'auto' ? ' selected' : '') + '>Auto · ' + esc(ICONS[autoIcon(f.text)].name) + '</option>';
         Object.keys(ICONS).forEach(function(k){
-          out += '<option value="' + k + '"' + (sel === k ? ' selected' : '') + '>' + ICONS[k].name + '</option>';
+          out += '<option value="' + k + '"' + (cur === k ? ' selected' : '') + '>' + esc(ICONS[k].name) + '</option>';
         });
-        return out;
+        return out + '<option value="custom"' + (cur === 'custom' ? ' selected' : '') + '>Custom image URL…</option>';
       }
       /* when no built-in icon matches, offer an online icon search
          (Google Images) and a paste-an-image-URL custom icon instead of
@@ -1229,23 +1238,22 @@
         return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent((String(text || '').trim() || 'icon') + ' icon png');
       }
       function isUnmatched(f){
-        return autoIcon(f.text) === 'star' && f.icon === 'auto' && !(f.img && String(f.img).trim());
+        return String(f.text || '').trim() !== '' && autoIcon(f.text) === 'star' && f.icon === 'auto' && !hasImg(f) && !f.custom;
       }
+      /* keeps one row's dropdown label and its optional warning / URL row in
+         step with the feature; nothing extra is shown for a normal row */
       function refreshTag(wrap, i){
         var f = state.features[i];
-        var autoKey = autoIcon(f.text);
-        var status = wrap.querySelector('.auto-status');
-        var extra = '';
-        if (f.img && String(f.img).trim()) extra = ' · 已用<b>自訂圖片圖示</b>';
-        else if (f.icon !== 'auto' && ICONS[f.icon]) extra = ' · 已手動改為 <b>' + ICONS[f.icon].name + '</b>';
-        status.innerHTML = '自動配對：<b>' + (ICONS[autoKey] ? ICONS[autoKey].name : '') + '</b>' + extra;
+        var sel = wrap.querySelector('select');
+        sel.options[0].textContent = 'Auto · ' + ICONS[autoIcon(f.text)].name;
+        sel.value = featSelectValue(f);
         var unmatched = isUnmatched(f);
+        var showImg = hasImg(f) || !!f.custom || unmatched;
         var nomatch = wrap.querySelector('.nomatch');
         nomatch.style.display = unmatched ? 'block' : 'none';
         if (unmatched) nomatch.querySelector('a').href = iconSearchUrl(f.text);
-        var showImg = !!(f.img && String(f.img).trim()) || !!f.custom || unmatched;
         wrap.querySelector('.img-row').style.display = showImg ? 'flex' : 'none';
-        wrap.querySelector('[data-custom]').style.display = showImg ? 'none' : 'inline-block';
+        wrap.querySelector('.auto-tag').style.display = (unmatched || showImg) ? 'block' : 'none';
       }
       function renderFeatEditor(){
         featList.innerHTML = '';
@@ -1255,26 +1263,24 @@
           row.innerHTML =
             '<div class="feat-row">' +
               '<div class="num">' + (i + 1) + '</div>' +
-              '<input type="text" class="feat-text" data-i="' + i + '" value="' + esc(f.text) + '" placeholder="例如 Bluetooth Call" autocomplete="off" />' +
-              '<select data-i="' + i + '">' + iconOptions(f.icon) + '</select>' +
-              '<button class="icon-btn" type="button" data-del="' + i + '" title="刪除">✕</button>' +
+              '<input type="text" class="feat-text" data-i="' + i + '" value="' + esc(f.text) + '" placeholder="e.g. Bluetooth Call" autocomplete="off" />' +
+              '<select data-i="' + i + '" aria-label="Icon for feature ' + (i + 1) + '">' + iconOptions(f) + '</select>' +
+              '<button class="icon-btn" type="button" data-del="' + i + '" title="Remove" aria-label="Remove feature ' + (i + 1) + '">✕</button>' +
             '</div>' +
-            '<div class="auto-tag">' +
-              '<div class="auto-status"></div>' +
-              '<div class="nomatch" style="display:none">⚠ 未有內置圖示配對 — <a href="#" target="_blank" rel="noopener">上網搵圖示 Search online ↗</a>，或者貼上圖片網址自訂：</div>' +
+            '<div class="auto-tag" style="display:none">' +
+              '<div class="nomatch" style="display:none">No built-in icon matches — <a href="#" target="_blank" rel="noopener">search icons online ↗</a> or paste an image URL:</div>' +
               '<div class="img-row" style="display:none">' +
-                '<input type="text" class="img-url" data-i="' + i + '" value="' + esc(f.img || '') + '" placeholder="貼上圖示圖片網址 https://…（會取代內置圖示）" autocomplete="off" />' +
-                '<button class="mini-btn" type="button" data-clearimg="' + i + '">清除</button>' +
+                '<input type="text" class="img-url" data-i="' + i + '" value="' + esc(f.img || '') + '" placeholder="Icon image URL https://… (replaces the built-in icon)" autocomplete="off" />' +
+                '<button class="mini-btn" type="button" data-clearimg="' + i + '">Clear</button>' +
               '</div>' +
-              '<button class="mini-btn" type="button" data-custom="' + i + '">＋ 自訂圖示圖片網址</button>' +
             '</div>';
           featList.appendChild(row);
           refreshTag(row, i);
         });
       }
       /* One set of listeners on the list itself (event delegation) instead of
-         re-binding five handlers per row on every rebuild. Typing and icon
-         changes only touch that row, so the focused input is never replaced. */
+         re-binding handlers per row on every rebuild. Typing and icon changes
+         only touch that row, so the focused input is never replaced. */
       featList.addEventListener('input', function(e){
         var t = e.target, row = t.closest('.feat-item');
         if (!row) return;
@@ -1291,11 +1297,17 @@
       featList.addEventListener('change', function(e){
         var t = e.target, row = t.closest('.feat-item');
         if (!row || t.tagName !== 'SELECT') return;
-        var idx = +t.dataset.i;
-        if (!state.features[idx]) return;
-        state.features[idx].icon = t.value;
+        var idx = +t.dataset.i, f = state.features[idx];
+        if (!f) return;
+        if (t.value === 'custom'){
+          f.custom = true;                         /* keep f.icon as the fallback */
+        } else {
+          f.icon = t.value; f.img = ''; f.custom = false;
+          var u = row.querySelector('.img-url'); if (u) u.value = '';
+        }
         renderLabel();
         refreshTag(row, idx);
+        if (t.value === 'custom'){ var inp = row.querySelector('.img-url'); if (inp) inp.focus(); }
       });
       featList.addEventListener('click', function(e){
         var btn = e.target.closest('button');
@@ -1305,18 +1317,12 @@
         if (btn.dataset.del !== undefined){
           state.features.splice(+btn.dataset.del, 1);
           renderLabel(); renderFeatEditor();
-        } else if (btn.dataset.custom !== undefined){
-          idx = +btn.dataset.custom;
-          state.features[idx].custom = true;
-          refreshTag(row, idx);
-          var urlInp = row.querySelector('.img-url');
-          if (urlInp) urlInp.focus();
         } else if (btn.dataset.clearimg !== undefined){
           idx = +btn.dataset.clearimg;
           state.features[idx].img = '';
           state.features[idx].custom = false;
-          var u = row.querySelector('.img-url');
-          if (u) u.value = '';
+          var u2 = row.querySelector('.img-url');
+          if (u2) u2.value = '';
           renderLabel();
           refreshTag(row, idx);
         }
@@ -1422,7 +1428,6 @@
       });
       document.getElementById('in-barcode-on').addEventListener('change', function(e){
         state.barcodeOn = e.target.checked;
-        document.getElementById('barcode-fields').classList.toggle('off', !e.target.checked);
         renderLabel();
       });
       document.getElementById('in-price-on').addEventListener('change', function(e){
@@ -1432,7 +1437,7 @@
       });
 
       /* size presets */
-      var PRESETS = [ [6.5,10,'6.5 × 10'], [6,9,'6 × 9'], [8,12,'8 × 12'], [10,16,'10 × 16'], [12,18,'12 × 18'], [5,5,'5 × 5 方形'] ];
+      var PRESETS = [ [6.5,10,'6.5 × 10'], [6,9,'6 × 9'], [8,12,'8 × 12'], [10,16,'10 × 16'], [12,18,'12 × 18'], [5,5,'5 × 5'] ];
       var presetBox = document.getElementById('presets');
       PRESETS.forEach(function(p){
         var b = document.createElement('button');
@@ -1463,31 +1468,77 @@
         swBox.appendChild(b);
       });
       var colorIn = document.createElement('input');
-      colorIn.type = 'color'; colorIn.value = state.accent; colorIn.title = '自訂顏色';
+      colorIn.type = 'color'; colorIn.value = state.accent; colorIn.title = 'Custom colour'; colorIn.setAttribute('aria-label', 'Custom colour');
       colorIn.addEventListener('input', function(){ state.accent = colorIn.value; renderLabel(); });
       swBox.appendChild(colorIn);
 
-      /* ================= SAVED RECORDS (key = product name) =================
-         Records are kept in this browser on this device, keyed by the
-         product name, so a label setup can be retrieved instead of retyped. */
-      var RECORDS_KEY = 'plc_records_v1';
-      /* null-prototype store: product names like "constructor" or "__proto__"
-         are then ordinary keys, not inherited properties */
+      /* ================= SAVED RECORDS (key = barcode value) =================
+         Records are kept in this browser on this device, keyed by the barcode
+         value, so a label setup can be retrieved by typing / scanning its
+         barcode instead of retyped. Retail barcodes are keyed by their full
+         digits (EAN-13 / UPC-A including the check digit), so the same product
+         typed with or without the check digit is one record. */
+      var RECORDS_KEY = 'plc_records_v2';
+      var LEGACY_RECORDS_KEY = 'plc_records_v1';          /* keyed by product name */
+      /* null-prototype store: keys like "constructor" or "__proto__" are then
+         ordinary keys, not inherited properties */
       var records = Object.create(null);
       function looksLikeRecord(v){
         return !!v && typeof v === 'object' && !Array.isArray(v) &&
           ('sub' in v || 'name' in v || 'features' in v);
       }
+      function recordKeyFor(st){
+        var info = barcodeInfo(st.barcodeType, st.barcode);
+        if (info.ok && info.type !== 'code128') return info.text.replace(/ /g, '');
+        return String(st.barcode == null ? '' : st.barcode).trim();
+      }
+      /* two records may not share a key: a duplicate is stored as
+         "<barcode> [<product>]" so nothing is lost and the user can fix it */
+      function uniqueRecordKey(base, st, taken){
+        if (!taken[base]) return base;
+        var alt = base + ' [' + (String(st.sub || '').trim() || String(st.name || '').trim() || 'record') + ']', k = alt, n = 2;
+        while (taken[k]) k = alt + ' #' + n++;
+        return k;
+      }
+      /* records saved by the previous version were keyed by product name;
+         re-key them by barcode (the old storage entry is left untouched) */
+      function rekeyLegacy(source, taken){
+        var out = Object.create(null), collided = 0;
+        Object.keys(source).sort().forEach(function(oldKey){
+          if (!looksLikeRecord(source[oldKey])) return;
+          var st = normalizeState(source[oldKey]);
+          var base = recordKeyFor(st) || String(oldKey).trim();
+          if (!base) return;
+          var key = uniqueRecordKey(base, st, taken || out);
+          if (key !== base) collided++;
+          out[key] = st;
+          if (taken) taken[key] = st;
+        });
+        return { map: out, collided: collided };
+      }
+      var migrationNote = '';
       try {
-        var rawRecords = JSON.parse(localStorage.getItem(RECORDS_KEY) || 'null');
-        if (rawRecords && typeof rawRecords === 'object' && !Array.isArray(rawRecords)){
-          Object.keys(rawRecords).forEach(function(k){
-            if (looksLikeRecord(rawRecords[k])) records[k] = normalizeState(rawRecords[k]);
-          });
+        var rawV2 = localStorage.getItem(RECORDS_KEY);
+        if (rawV2 !== null){
+          var parsedV2 = JSON.parse(rawV2 || 'null');
+          if (parsedV2 && typeof parsedV2 === 'object' && !Array.isArray(parsedV2)){
+            Object.keys(parsedV2).forEach(function(k){
+              if (looksLikeRecord(parsedV2[k])) records[k] = normalizeState(parsedV2[k]);
+            });
+          }
+        } else {
+          var rawV1 = localStorage.getItem(LEGACY_RECORDS_KEY);
+          var parsedV1 = rawV1 ? JSON.parse(rawV1) : null;
+          if (parsedV1 && typeof parsedV1 === 'object' && !Array.isArray(parsedV1)){
+            var mig = rekeyLegacy(parsedV1, null), n = Object.keys(mig.map).length;
+            Object.keys(mig.map).forEach(function(k){ records[k] = mig.map[k]; });
+            if (n){
+              migrationNote = 'Records are now keyed by barcode value: ' + n + ' existing record' + (n === 1 ? '' : 's') + ' converted.' +
+                (mig.collided ? ' ' + mig.collided + ' shared a barcode value and ' + (mig.collided === 1 ? 'is' : 'are') + ' stored as “barcode [product]” — edit the barcode and press Change to fix.' : '');
+            }
+          }
         }
       } catch (e) { /* unreadable storage — start empty */ }
-      var recKeyEl = document.getElementById('record-key');
-      var recListEl = document.getElementById('record-list');
       var recMsgEl = document.getElementById('record-msg');
       var recMsgBottomEl = document.getElementById('record-msg-bottom');
       var recDeleteBtn = document.getElementById('rec-delete');
@@ -1501,14 +1552,14 @@
         try { localStorage.setItem(RECORDS_KEY, JSON.stringify(records)); return true; }
         catch (e) { return false; }
       }
-      var SAVE_FAIL = ' ⚠ 但瀏覽器寫入失敗（私隱模式或儲存空間已滿）— 呢個變更只喺今次開啟期間有效，請即刻撳「匯出備份 Export」存低。';
+      var SAVE_FAIL = ' ⚠ But the browser refused to write it (private mode or storage full) — this change only lasts while the page stays open. Press Export backup now to keep it.';
       function recSaved(okText){
         var ok = persistRecords();
         recMsg(ok ? okText : okText + SAVE_FAIL, ok ? 'ok' : 'err');
       }
       function recMsg(text, kind){
-        /* messages show in both spots: by Retrieve / Backup at the top and
-           by Add / Change / Delete at the bottom of the form, so feedback
+        /* messages show in both spots: under Load / Backup near the top and
+           under Add / Change / Delete at the bottom of the form, so feedback
            always appears next to the button that was just pressed */
         recMsgEl.textContent = text || '';
         recMsgEl.className = 'record-msg' + (kind ? ' ' + kind : '');
@@ -1520,38 +1571,26 @@
       function snapshotState(){ return JSON.parse(JSON.stringify(state)); }
       function refreshRecordList(keepKey){
         var keys = Object.keys(records).sort(function(a, b){ return a.localeCompare(b); });
-        document.getElementById('record-count').textContent = keys.length ? keys.length + ' 條紀錄' : '';
-        recListEl.innerHTML = '';
-        if (!keys.length){
-          var empty = document.createElement('option');
-          empty.value = ''; empty.textContent = '— 未有紀錄 No records —';
-          recListEl.appendChild(empty);
-        } else {
-          var ph = document.createElement('option');
-          ph.value = ''; ph.textContent = '— 揀一個 Key —';
-          recListEl.appendChild(ph);
-          keys.forEach(function(k){
-            var o = document.createElement('option');
-            o.value = k; o.textContent = k;
-            recListEl.appendChild(o);
-          });
-        }
-        if (keepKey && records[keepKey]){ selectedKey = keepKey; recListEl.value = keepKey; }
-        /* clickable list of existing product names — tap one to select it
-           for Retrieve / Change / Delete instead of typing the key */
+        document.getElementById('record-count').textContent = keys.length ? keys.length + (keys.length === 1 ? ' record' : ' records') : '';
+        if (keepKey && records[keepKey]) selectedKey = keepKey;
+        if (selectedKey && !records[selectedKey]) selectedKey = '';
+        /* clickable list of saved barcodes — tap one to select it for Load /
+           Change / Delete (the product name is shown as a hint) */
         recPickerEl.innerHTML = '';
         if (!keys.length){
           var none = document.createElement('span');
           none.className = 'record-picker-empty';
-          none.textContent = '未有已儲存嘅產品名 — 填好表單之後，去最底用「新增 Add」儲存一個。';
+          none.textContent = 'No saved records yet.';
           recPickerEl.appendChild(none);
         } else {
           keys.forEach(function(k){
             var chip = document.createElement('button');
             chip.type = 'button';
             chip.className = 'rec-chip' + (k === selectedKey ? ' sel' : '');
-            chip.textContent = k;
-            chip.title = k;
+            chip.dataset.key = k;
+            var sub = String(records[k].sub || '').trim();
+            chip.textContent = sub ? k + ' · ' + sub : k;
+            chip.title = chip.textContent;
             chip.addEventListener('click', function(){ selectRecord(k); });
             recPickerEl.appendChild(chip);
           });
@@ -1559,32 +1598,23 @@
       }
       function syncPickerChips(){
         recPickerEl.querySelectorAll('.rec-chip').forEach(function(chip){
-          chip.classList.toggle('sel', chip.textContent === selectedKey);
+          chip.classList.toggle('sel', chip.dataset.key === selectedKey);
         });
       }
       function selectRecord(k){
         if (!records[k]) return;
         selectedKey = k;
-        recKeyEl.value = k;
-        recListEl.value = k;
         disarmDelete();
         syncPickerChips();
-        recMsg('已揀選「' + k + '」— 可以撳「載入 Retrieve」拎返出嚟；更改 / 刪除掣喺表單最底。', 'ok');
-      }
-      function retrievalKey(){
-        if (selectedKey && records[selectedKey]) return selectedKey;
-        var typed = String(recKeyEl.value || '').trim();
-        if (typed) return typed;
-        return String(recListEl.value || '').trim();
+        recMsg('Selected “' + k + '”. Press Load to bring it back.', 'ok');
       }
       function disarmDelete(){
         deleteArmedKey = '';
         recDeleteBtn.classList.remove('armed');
-        recDeleteBtn.textContent = '刪除 Delete';
+        recDeleteBtn.textContent = 'Delete';
       }
       function syncFormFromState(){
         document.getElementById('in-name').value = state.name || '';
-        recKeyEl.value = state.sub || '';
         document.getElementById('in-sub').value = state.sub || '';
         document.getElementById('in-slogan').value = state.slogan || '';
         document.getElementById('in-slogan-on').checked = !!state.sloganOn;
@@ -1606,7 +1636,6 @@
         document.getElementById('in-barcode').value = state.barcode || '';
         document.getElementById('in-barcode-type').value = state.barcodeType || 'auto';
         document.getElementById('in-barcode-on').checked = !!state.barcodeOn;
-        document.getElementById('barcode-fields').classList.toggle('off', !state.barcodeOn);
         document.getElementById('in-price').value = state.price || '';
         document.getElementById('in-price-on').checked = !!state.priceOn;
         document.getElementById('price-fields').classList.toggle('off', !state.priceOn);
@@ -1622,77 +1651,82 @@
         if (!m || m.length < 3) return String(rgb).toLowerCase();
         return '#' + m.slice(0, 3).map(function(n){ return (+n).toString(16).padStart(2, '0'); }).join('');
       }
-      /* typing a product name (the second Basics field; the first field
-         holds the brand name) keeps the retrieval key in step */
-      document.getElementById('in-sub').addEventListener('input', function(e){
-        recKeyEl.value = e.target.value;
-        var v = String(e.target.value || '').trim();
-        selectedKey = records[v] ? v : '';
-        syncPickerChips();
-        disarmDelete();
-      });
-      recListEl.addEventListener('change', function(){
-        if (recListEl.value){ selectRecord(recListEl.value); }
-        else { selectedKey = ''; syncPickerChips(); disarmDelete(); }
-      });
-      recKeyEl.addEventListener('input', function(){
-        var v = String(recKeyEl.value || '').trim();
-        selectedKey = records[v] ? v : '';
-        if (selectedKey) recListEl.value = selectedKey;
-        syncPickerChips();
-        disarmDelete();
-      });
+      /* typing or scanning a barcode that already has a record selects it, so
+         Load / Change / Delete act on it. A barcode with no record leaves the
+         selection alone — that is how a selected record is re-keyed (edit the
+         barcode, then Change). */
+      function selectByBarcode(){
+        var k = recordKeyFor(state);
+        if (k && records[k] && k !== selectedKey){ selectedKey = k; syncPickerChips(); disarmDelete(); }
+      }
+      var barcodeInputEl = document.getElementById('in-barcode');
+      barcodeInputEl.addEventListener('input', selectByBarcode);
+      barcodeInputEl.addEventListener('change', selectByBarcode);
+      document.getElementById('in-barcode-type').addEventListener('change', selectByBarcode);
       document.getElementById('rec-add').addEventListener('click', function(){
-        var key = String(state.sub || '').trim() || String(recKeyEl.value || '').trim();
-        if (!key){ recMsg('請先輸入產品名稱做 Key。', 'err'); return; }
-        if (records[key]){ recMsg('已有紀錄「' + key + '」— 要覆寫請用「更改 Change」。', 'err'); return; }
+        var key = recordKeyFor(state);
+        if (!key){ recMsg('Enter a barcode value first — it is the record key.', 'err'); return; }
+        if (records[key]){ recMsg('A record for barcode “' + key + '” already exists — select it and use Change to overwrite.', 'err'); return; }
         records[key] = snapshotState();
         refreshRecordList(key); disarmDelete();
-        recSaved('已新增紀錄「' + key + '」。');
+        recSaved('Added record “' + key + '”.');
       });
       document.getElementById('rec-load').addEventListener('click', function(){
-        var key = retrievalKey();
-        if (!key || !records[key]){ recMsg('搵唔到呢個 Key 嘅紀錄 — 請先喺「已有產品名」清單撳一個嚟揀選。', 'err'); return; }
+        var key = selectedKey;
+        if (!key || !records[key]){ recMsg('Select a saved record first — tap one in the list, or type its barcode.', 'err'); return; }
         state = normalizeState(records[key]);
         syncFormFromState(); refreshRecordList(key); disarmDelete();
-        recMsg('已載入紀錄「' + key + '」。', 'ok');
+        recMsg('Loaded record “' + key + '”.', 'ok');
       });
       document.getElementById('rec-change').addEventListener('click', function(){
-        var key = retrievalKey();
-        if (!key || !records[key]){ recMsg('搵唔到呢個 Key 嘅紀錄，未能更改 — 請先喺「已有產品名」清單撳一個嚟揀選（未有紀錄就先用「新增 Add」儲存）。', 'err'); return; }
-        records[key] = snapshotState();
-        refreshRecordList(key); disarmDelete();
-        recSaved('已更改紀錄「' + key + '」。');
+        var oldKey = selectedKey;
+        if (!oldKey || !records[oldKey]){ recMsg('Select a saved record first — or use Add for a new barcode.', 'err'); return; }
+        var newKey = recordKeyFor(state);
+        if (!newKey){ recMsg('Enter a barcode value first — it is the record key.', 'err'); return; }
+        if (newKey !== oldKey){
+          if (records[newKey]){ recMsg('Another record already uses barcode “' + newKey + '”.', 'err'); return; }
+          delete records[oldKey];
+        }
+        records[newKey] = snapshotState();
+        refreshRecordList(newKey); disarmDelete();
+        recSaved(newKey === oldKey ? 'Updated record “' + newKey + '”.' : 'Updated record — barcode changed from “' + oldKey + '” to “' + newKey + '”.');
       });
       recDeleteBtn.addEventListener('click', function(){
-        var key = retrievalKey();
-        if (!key || !records[key]){ recMsg('搵唔到呢個 Key 嘅紀錄，未能刪除 — 請先喺「已有產品名」清單撳一個嚟揀選。', 'err'); return; }
+        var key = selectedKey;
+        if (!key || !records[key]){ recMsg('Select a saved record first.', 'err'); return; }
         if (deleteArmedKey !== key){
           deleteArmedKey = key;
           recDeleteBtn.classList.add('armed');
-          recDeleteBtn.textContent = '再撳一次確認刪除';
-          recMsg('確定要刪除紀錄「' + key + '」？再撳一次「刪除」確認。', 'err');
+          recDeleteBtn.textContent = 'Press again to confirm';
+          recMsg('Delete record “' + key + '”? Press Delete again to confirm.', 'err');
           return;
         }
         delete records[key];
         selectedKey = '';
         refreshRecordList(''); disarmDelete();
-        recSaved('已刪除紀錄「' + key + '」。');
+        recSaved('Deleted record “' + key + '”.');
       });
       refreshRecordList('');
+      if (migrationNote){
+        if (persistRecords()) recMsg(migrationNote, 'ok');
+        else recMsg(migrationNote + SAVE_FAIL, 'err');
+      }
 
       /* ================= BACKUP: EXPORT / IMPORT =================
          Export downloads every saved record as one JSON file the user
          keeps (phone / Drive). Import reads that file back and merges
          it into localStorage, so records survive a cleared cache or a
-         new device. Same product name = overwritten by the file copy. */
+         new device. Same barcode key = overwritten by the file copy. Backups
+         from the previous version (keyed by product name) are re-keyed by
+         barcode on import. */
       document.getElementById('rec-export').addEventListener('click', function(){
         var keys = Object.keys(records);
-        if (!keys.length){ recMsg('未有紀錄可以匯出 — 先用「新增 Add」儲存一個。', 'err'); return; }
+        if (!keys.length){ recMsg('No records to export — add one first.', 'err'); return; }
         var payload = {
           app: 'product-label-creator',
           kind: 'label-records-backup',
-          version: 1,
+          version: 2,
+          keyedBy: 'barcode',
           exportedAt: new Date().toISOString(),
           records: records
         };
@@ -1706,7 +1740,7 @@
         document.body.appendChild(a);
         a.click();
         setTimeout(function(){ a.remove(); URL.revokeObjectURL(url); }, 600);
-        recMsg('已匯出備份檔案「' + fname + '」（共 ' + keys.length + ' 條紀錄）。記得存好個檔案。', 'ok');
+        recMsg('Exported “' + fname + '” (' + keys.length + (keys.length === 1 ? ' record' : ' records') + '). Keep the file safe.', 'ok');
       });
       var importFileEl = document.getElementById('rec-import-file');
       document.getElementById('rec-import').addEventListener('click', function(){
@@ -1724,27 +1758,36 @@
               data.records && typeof data.records === 'object' && !Array.isArray(data.records))
               ? data.records : data;
             if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)){
-              recMsg('匯入失敗：呢個檔案唔係有效嘅備份檔案。', 'err'); return;
+              recMsg('Import failed: this is not a valid backup file.', 'err'); return;
             }
-            var added = 0, overwritten = 0, skipped = 0;
-            Object.keys(incoming).forEach(function(k){
-              var key = String(k || '').trim();
-              var v = incoming[k];
-              if (!key || !looksLikeRecord(v)){ skipped++; return; }
+            /* version 2+ backups are already keyed by barcode; anything older
+               (or a bare map) was keyed by product name and is re-keyed */
+            var current = data && typeof data.version === 'number' && data.version >= 2;
+            var mapped = Object.create(null);
+            if (current){
+              Object.keys(incoming).forEach(function(k){
+                var key = String(k || '').trim();
+                if (key && looksLikeRecord(incoming[k])) mapped[key] = normalizeState(incoming[k]);
+              });
+            } else {
+              mapped = rekeyLegacy(incoming, Object.create(null)).map;
+            }
+            var added = 0, overwritten = 0, skipped = Object.keys(incoming).length - Object.keys(mapped).length;
+            Object.keys(mapped).forEach(function(key){
               if (records[key]) overwritten++; else added++;
-              records[key] = normalizeState(v);
+              records[key] = mapped[key];
             });
             if (!added && !overwritten){
-              recMsg('呢個檔案入面搵唔到有效紀錄，未有匯入任何嘢。', 'err'); return;
+              recMsg('No valid records found in the file; nothing was imported.', 'err'); return;
             }
             refreshRecordList(''); disarmDelete();
-            recSaved('匯入完成：新增 ' + added + ' 條、覆寫 ' + overwritten + ' 條' +
-              (skipped ? '、跳過 ' + skipped + ' 條無效資料' : '') + '。');
+            recSaved('Imported: ' + added + ' added, ' + overwritten + ' overwritten' +
+              (skipped ? ', ' + skipped + ' invalid skipped' : '') + '.');
           } catch (e) {
-            recMsg('匯入失敗：檔案唔係有效嘅備份 JSON，請揀返「匯出備份」下載嗰個檔案。', 'err');
+            recMsg('Import failed: not valid backup JSON — choose the file saved by Export backup.', 'err');
           }
         };
-        reader.onerror = function(){ recMsg('匯入失敗：讀唔到個檔案，請再試。', 'err'); };
+        reader.onerror = function(){ recMsg('Import failed: could not read the file — please try again.', 'err'); };
         reader.readAsText(file);
       });
 
@@ -1823,28 +1866,28 @@
       }
       var dlResetTimer = 0;
       document.getElementById('dl').addEventListener('click', function(){
-        var btn = this; btn.disabled = true; btn.textContent = '生成中…';
+        var btn = this; btn.disabled = true; btn.textContent = 'Generating…';
         function done(msg){
           clearTimeout(dlResetTimer);
-          btn.disabled = false; btn.textContent = msg || '下載 PNG · Download';
-          if (msg) dlResetTimer = setTimeout(function(){ btn.textContent = '下載 PNG · Download'; }, 3000);
+          btn.disabled = false; btn.textContent = msg || 'Download PNG';
+          if (msg) dlResetTimer = setTimeout(function(){ btn.textContent = 'Download PNG'; }, 3000);
         }
-        if (state.barcodeOn && !currentBarcode().ok){ done('條碼無效，請先修正'); return; }
-        if (typeof html2canvas === 'undefined'){ done('元件未載入，請重試'); return; }
+        if (state.barcodeOn && !currentBarcode().ok){ done('Barcode invalid — fix it first'); return; }
+        if (typeof html2canvas === 'undefined'){ done('Component not loaded — please retry'); return; }
         renderExportCanvas().then(function(canvas){
           var dpi = Math.round(canvas.width / (labelCm().w / 2.54));
-          lastInfo = canvas.width + ' × ' + canvas.height + ' px · 約 ' + dpi + ' DPI';
+          lastInfo = canvas.width + ' × ' + canvas.height + ' px · about ' + dpi + ' DPI';
           if (canvas.toBlob){
             canvas.toBlob(function(blob){
-              if (!blob){ done('生成失敗，請再試'); return; }
+              if (!blob){ done('Generation failed — please retry'); return; }
               var ppm = Math.round(canvas.width / (labelCm().w / 100));
-              pngWithDpi(blob, ppm).then(function(b){ finish(b); done('已生成 ↓ 見下方成品圖'); });
+              pngWithDpi(blob, ppm).then(function(b){ finish(b); done('Done ↓ see the image below'); });
             }, 'image/png');
           } else {
-            done('已生成 ↓ 見下方成品圖');
+            done('Done ↓ see the image below');
             showResult(canvas.toDataURL('image/png'));
           }
-        }).catch(function(){ done('生成失敗，請再試'); });
+        }).catch(function(){ done('Generation failed — please retry'); });
         function finish(blob){
           if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
           lastBlobUrl = URL.createObjectURL(blob);
@@ -1856,7 +1899,7 @@
           var box = document.getElementById('result');
           document.getElementById('result-img').src = src;
           var fname = lastFileName || ((state.sub || state.name || 'label').replace(/[^\w\-]+/g, '_') + '_label.png');
-          document.getElementById('result-name').textContent = fname + (lastInfo ? '（' + lastInfo + '）' : '');
+          document.getElementById('result-name').textContent = fname + (lastInfo ? ' (' + lastInfo + ')' : '');
           box.classList.add('show');
           box.scrollIntoView({ behavior:'smooth', block:'nearest' });
         }
@@ -1887,6 +1930,27 @@
         if (document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', function(){ scheduleFit(true); });
         if (document.fonts.ready) document.fonts.ready.then(function(){ scheduleFit(true); });
       }
+      /* "?" help buttons: one tap opens the explanation under the heading, a
+         tap elsewhere (or Esc) closes it. Only one is open at a time. */
+      function closeHelp(except){
+        document.querySelectorAll('.help[aria-expanded="true"]').forEach(function(h){
+          if (h === except) return;
+          h.setAttribute('aria-expanded', 'false');
+          var pop = document.getElementById(h.getAttribute('aria-controls'));
+          if (pop) pop.hidden = true;
+        });
+      }
+      document.addEventListener('click', function(e){
+        var btn = e.target.closest('.help');
+        if (!btn){ if (!e.target.closest('.help-pop')) closeHelp(null); return; }
+        var pop = document.getElementById(btn.getAttribute('aria-controls'));
+        var open = btn.getAttribute('aria-expanded') !== 'true';
+        closeHelp(btn);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (pop) pop.hidden = !open;
+      });
+      document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeHelp(null); });
+
       renderFeatEditor();
       renderLabel();
     </script>
