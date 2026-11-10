@@ -142,6 +142,7 @@
       .dim-caption{ font-size:13px; color:var(--ink-2); font-weight:700; }
       .dim-caption b{ color:var(--ink); }
       .dim-caption .cap-warn{ display:block; color:var(--danger); margin-top:2px; }
+      .cap-btn{ font:inherit; font-weight:800; color:inherit; background:none; border:none; padding:0; cursor:pointer; text-decoration:underline; }
       .dl-btn{
         font:inherit; font-size:14px; font-weight:900; cursor:pointer; border:none;
         background:var(--brand); color:var(--brand-ink); border-radius:10px; padding:11px 20px;
@@ -1227,17 +1228,26 @@
         var cw = el.clientWidth, w = el.scrollWidth;
         if (cw > 0 && w > cw) set(Math.max(base * (cw / w) * .97, unit ? .7 : .55));
       }
+      /* Tell the user when the label cannot do justice to its content instead of
+         silently clipping or squashing it, and offer the fix when it is the
+         slogan. Never changes a setting by itself. */
+      function captionWarning(){
+        var sloganShown = state.sloganOn && String(state.slogan || '').trim() !== '';
+        var over = labelEl.scrollHeight > labelEl.clientHeight + 1;
+        var art = sloganShown ? labelEl.querySelector('.sz-dynamic .art') : null;
+        var squashed = !!art && art.getBoundingClientRect().height / (art.getBoundingClientRect().width || 1) < SLOGAN_ART.h / SLOGAN_ART.w * 0.85;
+        if (!over && !squashed) return '';
+        var msg = over
+          ? (sloganShown ? 'Does not fit with the slogan' : 'Does not fit — use a larger size or fewer features')
+          : 'The slogan band is squashed at this shape';
+        return ' <span class="cap-warn">⚠ ' + msg + (sloganShown ? ' — use a taller label or <button type="button" class="cap-btn" data-slogan-off>turn the slogan off</button>' : '') + '</span>';
+      }
       function renderCaption(){
         var u = state.unit === 'in' ? 'inch' : 'cm';
         document.getElementById('dim-caption').innerHTML =
           'Label size <b>' + esc(state.w) + ' × ' + esc(state.l) + ' ' + u + '</b> (W × L) · ' +
           state.features.length + (state.features.length === 1 ? ' feature' : ' features') +
-          /* the content could not be shrunk into the label: say so instead of silently clipping it */
-          (labelEl.scrollHeight > labelEl.clientHeight + 1
-            ? ' <span class="cap-warn">⚠ ' + (state.sloganOn && String(state.slogan || '').trim()
-                ? 'Does not fit with the slogan — turn the slogan off or use a larger size'
-                : 'Does not fit — use a larger size or fewer features') + '</span>'
-            : '');
+          captionWarning();
         /* keep the preset chips in sync with the current size */
         if (typeof presetBox !== 'undefined' && presetBox){
           presetBox.querySelectorAll('.chip').forEach(function(chip){
@@ -1481,6 +1491,12 @@
         document.getElementById('in-slogan-on').checked = on;
         document.getElementById('slogan-fields').classList.toggle('off', !on);
       }
+      /* "turn the slogan off" link inside the size warning */
+      document.getElementById('dim-caption').addEventListener('click', function(e){
+        if (!e.target.closest('[data-slogan-off]')) return;
+        setSloganOn(false); sloganAutoOff = false;
+        renderLabel();
+      });
       var presetBox = document.getElementById('presets');
       PRESETS.forEach(function(p){
         var b = document.createElement('button');
