@@ -453,7 +453,10 @@
         </section>
 
         <section class="block">
-          <div class="block-head"><h2>Basics</h2></div>
+          <div class="block-head"><h2>Basics</h2><button type="button" class="help" aria-label="Help: Basics" aria-expanded="false" aria-controls="h-basics">?</button></div>
+          <div class="help-pop" id="h-basics" hidden>The <b>product category</b> decides which icons are suggested first, how Auto picks an icon from the words you type (the same word can mean different things per product), and which quick-add features you see. Changing it never edits features you already typed; Auto icons are re-picked, icons you chose by hand stay. <b>General</b> lists every icon.</div>
+          <label class="f"><span>Product category</span>
+            <select id="in-category"></select></label>
           <label class="f"><span>Brand name</span>
             <input type="text" id="in-name" value="XO-W12" maxlength="80" autocomplete="off" /></label>
           <label class="f"><span>Product name</span>
@@ -498,9 +501,9 @@
         <section class="block">
           <div class="block-head"><h2>Features</h2><button type="button" class="help" aria-label="Help: Features" aria-expanded="false" aria-controls="h-feat">?</button></div>
           <div class="help-pop" id="h-feat" hidden>Type a feature and an icon is matched automatically; pick another icon from the dropdown. If nothing matches you get a search link, or choose <b>Custom image URL</b> to paste your own icon. The dash cam chips add a feature in one tap.</div>
-          <details class="dc-box">
-            <summary>Dash cam quick add</summary>
-            <div class="presets" id="dc-presets"></div>
+          <details class="dc-box" id="quick-box">
+            <summary id="quick-title">Quick add</summary>
+            <div class="presets" id="quick-presets"></div>
           </details>
           <div id="feat-list"></div>
           <button class="add-btn" id="add-feat" type="button">+ Add feature</button>
@@ -724,6 +727,123 @@
         sdcard: { name:'SD card', svg: svgWrap(
           F('M6.8 2.8h6.7l6.7 6.7v10.7a1.8 1.8 0 0 1-1.8 1.8H6.8A1.8 1.8 0 0 1 5 20.2V4.6A1.8 1.8 0 0 1 6.8 2.8z') +
           '<path d="M9.2 3.6v3.8M12.6 3.6v3.8M16 5.2v3.4" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>') },
+        /* ---- speakers ---- */
+        speaker: { name:'Speaker', svg: svgWrap(
+          '<rect x="5" y="2.6" width="14" height="18.8" rx="3" fill="#0b0b0c"/>' +
+          '<circle cx="12" cy="14.4" r="4.6" fill="#fff"/><circle cx="12" cy="14.4" r="2.2" fill="#0b0b0c"/>' +
+          '<circle cx="12" cy="7" r="1.7" fill="#fff"/>') },
+        volume: { name:'Stereo sound', svg: svgWrap(
+          F('M2.6 9.4h3.8L12 4.8v14.4l-5.6-4.6H2.6z') +
+          S('M15.4 9a4.2 4.2 0 0 1 0 6M18.4 6.2a8.2 8.2 0 0 1 0 11.6', 2)) },
+        bass: { name:'Deep bass', svg: svgWrap(
+          '<circle cx="9" cy="12" r="6.6" fill="#0b0b0c"/><circle cx="9" cy="12" r="3.6" fill="#fff"/><circle cx="9" cy="12" r="1.6" fill="#0b0b0c"/>' +
+          S('M18 8.4a6 6 0 0 1 0 7.2M21 5.6a10 10 0 0 1 0 12.8', 2)) },
+        tws: { name:'TWS pairing', svg: svgWrap(
+          '<rect x="2.2" y="5.6" width="8" height="12.8" rx="2.4" fill="#0b0b0c"/><rect x="13.8" y="5.6" width="8" height="12.8" rx="2.4" fill="#0b0b0c"/>' +
+          '<circle cx="6.2" cy="14.4" r="2.2" fill="#fff"/><circle cx="17.8" cy="14.4" r="2.2" fill="#fff"/>' +
+          '<circle cx="6.2" cy="8.6" r="1.1" fill="#fff"/><circle cx="17.8" cy="8.6" r="1.1" fill="#fff"/>' +
+          S('M10.8 12h2.4', 2) + S('M10.8 15.4h2.4', 2)) },
+        partylight: { name:'Party lights', svg: svgWrap(
+          F('M11 2l2.1 6.4L19.6 10.4l-6.5 2L11 18.8 8.9 12.4 2.4 10.4 8.9 8.4z') +
+          F('M19.2 14.8l1 2.4 2.4 1-2.4 1-1 2.4-1-2.4-2.4-1 2.4-1z')) },
+        radio: { name:'FM radio', svg: svgWrap(
+          S('M7.4 8.2L17.6 2.8', 1.9) +
+          '<rect x="2.6" y="8.2" width="18.8" height="12.8" rx="2.6" fill="#0b0b0c"/>' +
+          '<circle cx="8.8" cy="14.6" r="2.9" fill="#fff"/><circle cx="8.8" cy="14.6" r="1" fill="#0b0b0c"/>' +
+          '<path d="M14.4 12.4h4.4M14.4 16.8h4.4" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>') },
+        usb: { name:'USB / Type-C', svg: svgWrap(
+          S('M12 20V5.6M12 15.2l-4.2-3.2V9.6M12 11.4l4.2-2.6V7.4', 1.9) +
+          F('M12 1.6l2.5 3.8H9.5z') +
+          '<circle cx="12" cy="20.6" r="2" fill="#0b0b0c"/><circle cx="7.8" cy="8.4" r="1.7" fill="#0b0b0c"/>' +
+          '<rect x="14.6" y="4.4" width="3.2" height="3.2" fill="#0b0b0c"/>') },
+        aux: { name:'AUX input', svg: svgWrap(
+          S('M1.8 12h4.6', 2.4) +
+          '<rect x="6.6" y="8.8" width="6.4" height="6.4" rx="1.4" fill="#0b0b0c"/>' +
+          '<rect x="13.8" y="9.8" width="1.8" height="4.4" fill="#0b0b0c"/><rect x="16.4" y="9.8" width="1.8" height="4.4" fill="#0b0b0c"/>' +
+          F('M19 9.8l3.4 2.2L19 14.2z')) },
+        /* ---- drones ---- */
+        drone: { name:'Drone', svg: svgWrap(
+          S('M7.6 7.6l8.8 8.8M16.4 7.6l-8.8 8.8', 2.2) +
+          '<circle cx="5" cy="5" r="3.2" fill="none" stroke="#0b0b0c" stroke-width="1.9"/><circle cx="19" cy="5" r="3.2" fill="none" stroke="#0b0b0c" stroke-width="1.9"/>' +
+          '<circle cx="5" cy="19" r="3.2" fill="none" stroke="#0b0b0c" stroke-width="1.9"/><circle cx="19" cy="19" r="3.2" fill="none" stroke="#0b0b0c" stroke-width="1.9"/>' +
+          '<rect x="8.8" y="8.8" width="6.4" height="6.4" rx="1.8" fill="#0b0b0c"/>') },
+        gimbal: { name:'3-axis gimbal', svg: svgWrap(
+          '<circle cx="12" cy="12" r="9.2" fill="none" stroke="#0b0b0c" stroke-width="1.9"/>' +
+          '<ellipse cx="12" cy="12" rx="4.4" ry="9.2" fill="none" stroke="#0b0b0c" stroke-width="1.5"/>' +
+          '<rect x="7.6" y="9.4" width="8.8" height="5.8" rx="1.4" fill="#0b0b0c"/><circle cx="12" cy="12.3" r="2" fill="#fff"/>') },
+        homegps: { name:'Return home', svg: svgWrap(
+          F('M12 2.6l9.4 7.8h-2.8v9.8h-5v-5.8h-3.2v5.8h-5v-9.8H2.6z')) },
+        obstacle: { name:'Obstacle avoidance', svg: svgWrap(
+          '<circle cx="4.8" cy="12" r="2.2" fill="#0b0b0c"/>' +
+          S('M9 8.2a5.2 5.2 0 0 1 0 7.6M12.8 5.2a9.6 9.6 0 0 1 0 13.6', 2) +
+          '<rect x="18.4" y="3" width="3" height="18" rx="1.2" fill="#0b0b0c"/>') },
+        follow: { name:'Follow me', svg: svgWrap(
+          '<circle cx="8.6" cy="6.6" r="2.7" fill="#0b0b0c"/>' +
+          F('M3.4 20.6v-3.6a5.2 5.2 0 0 1 10.4 0v3.6z') +
+          '<circle cx="18" cy="8" r="3.6" fill="none" stroke="#0b0b0c" stroke-width="1.9"/><circle cx="18" cy="8" r="1.1" fill="#0b0b0c"/>') },
+        flighttime: { name:'Flight time', svg: svgWrap(
+          '<rect x="9.2" y="1.8" width="5.6" height="2.4" rx="1" fill="#0b0b0c"/>' +
+          S('M12 4.2v2', 1.9) +
+          '<circle cx="12" cy="13.6" r="7.6" fill="none" stroke="#0b0b0c" stroke-width="2.1"/>' +
+          S('M12 13.6V9.4M12 13.6l3 1.8', 2)) },
+        range: { name:'Control range', svg: svgWrap(
+          S('M12 11.6V21', 2.2) + '<circle cx="12" cy="10" r="1.9" fill="#0b0b0c"/>' +
+          S('M7.6 5.8a6.2 6.2 0 0 0 0 8.4M16.4 5.8a6.2 6.2 0 0 1 0 8.4M4.4 3a10.6 10.6 0 0 0 0 14M19.6 3a10.6 10.6 0 0 1 0 14', 1.9)) },
+        foldable: { name:'Foldable', svg: svgWrap(
+          S('M3.6 3.6l6 6M9.6 3.6v6h-6M20.4 20.4l-6-6M14.4 20.4v-6h6', 2.2)) },
+        altitude: { name:'Altitude hold', svg: svgWrap(
+          S('M12 18V5.4M6.8 10.2L12 5l5.2 5.2M3.6 21h16.8', 2.2)) },
+        remote: { name:'Remote controller', svg: svgWrap(
+          '<rect x="2.2" y="7.4" width="19.6" height="10.6" rx="5" fill="#0b0b0c"/>' +
+          '<circle cx="7.6" cy="12.7" r="2.4" fill="#fff"/><circle cx="16.4" cy="12.7" r="2.4" fill="#fff"/>' +
+          '<rect x="10.8" y="10" width="2.4" height="1.5" rx=".6" fill="#fff"/>' +
+          S('M7 7.4V4.6M17 7.4V4.6', 2)) },
+        propeller: { name:'Brushless motor', svg: svgWrap(
+          '<ellipse cx="12" cy="6.2" rx="2.3" ry="4.4" fill="#0b0b0c"/>' +
+          '<ellipse cx="12" cy="6.2" rx="2.3" ry="4.4" fill="#0b0b0c" transform="rotate(120 12 12)"/>' +
+          '<ellipse cx="12" cy="6.2" rx="2.3" ry="4.4" fill="#0b0b0c" transform="rotate(240 12 12)"/>' +
+          '<circle cx="12" cy="12" r="2.2" fill="#0b0b0c"/><circle cx="12" cy="12" r="1" fill="#fff"/>') },
+        takeoff: { name:'One-key takeoff', svg: svgWrap(
+          F('M21.6 2.4L2.6 9.8l6.4 2.6 2.6 6.4z') + S('M9 12.4l12.6-10', 1.6)) },
+        /* ---- karaoke ---- */
+        karaoke: { name:'Karaoke', svg: svgWrap(
+          '<rect x="2.6" y="3.2" width="8" height="12.4" rx="4" fill="#0b0b0c"/>' +
+          S('M1.4 12.6a6.2 6.2 0 0 0 12.4 0M7.6 19v2.4', 2) +
+          F('M20.4 3.6v9.2a2.6 2.6 0 1 1-1.8-2.4V6.4l-4.2 1.2V3.6z')) },
+        wirelessmic: { name:'Wireless mic', svg: svgWrap(
+          '<circle cx="12" cy="7" r="4.4" fill="#0b0b0c"/>' +
+          F('M9.6 10.8h4.8l-1 10.8h-2.8z') +
+          S('M3.6 3.4a9.4 9.4 0 0 0 0 7.2M20.4 3.4a9.4 9.4 0 0 1 0 7.2', 1.9)) },
+        duet: { name:'Duet (2 mics)', svg: svgWrap(
+          '<circle cx="6.6" cy="6.6" r="3.8" fill="#0b0b0c"/><circle cx="17.4" cy="6.6" r="3.8" fill="#0b0b0c"/>' +
+          S('M8.4 9.8L12 20.4M15.6 9.8L12 20.4', 3)) },
+        echo: { name:'Echo & reverb', svg: svgWrap(
+          '<circle cx="12" cy="12" r="1.9" fill="#0b0b0c"/>' +
+          S('M8.2 8.2a5.4 5.4 0 0 0 0 7.6M15.8 8.2a5.4 5.4 0 0 1 0 7.6M5 5a9.9 9.9 0 0 0 0 14M19 5a9.9 9.9 0 0 1 0 14', 2)) },
+        equalizer: { name:'Bass & treble', svg: svgWrap(
+          S('M6 3.4v17.2M12 3.4v17.2M18 3.4v17.2', 1.8) +
+          '<circle cx="6" cy="14.6" r="2.7" fill="#fff" stroke="#0b0b0c" stroke-width="2"/>' +
+          '<circle cx="12" cy="8.2" r="2.7" fill="#fff" stroke="#0b0b0c" stroke-width="2"/>' +
+          '<circle cx="18" cy="16.4" r="2.7" fill="#fff" stroke="#0b0b0c" stroke-width="2"/>') },
+        voicechange: { name:'Voice changer', svg: svgWrap(
+          '<rect x="2.4" y="9" width="2.6" height="6" rx="1.3" fill="#0b0b0c"/><rect x="6.6" y="5" width="2.6" height="14" rx="1.3" fill="#0b0b0c"/>' +
+          '<rect x="10.8" y="2.2" width="2.6" height="19.6" rx="1.3" fill="#0b0b0c"/><rect x="15" y="6.6" width="2.6" height="10.8" rx="1.3" fill="#0b0b0c"/>' +
+          '<rect x="19.2" y="9.6" width="2.6" height="4.8" rx="1.3" fill="#0b0b0c"/>') },
+        discoball: { name:'LED party lights', svg: svgWrap(
+          S('M12 1.8v4.6', 1.9) +
+          '<circle cx="12" cy="14" r="7.6" fill="#0b0b0c"/>' +
+          '<path d="M4.4 14h15.2M12 6.4v15.2M6.4 9c3.4 1.8 7.8 1.8 11.2 0M6.4 19c3.4-1.8 7.8-1.8 11.2 0" stroke="#fff" stroke-width="1.3" fill="none"/>') },
+        lyrics: { name:'Lyrics display', svg: svgWrap(
+          '<rect x="2.6" y="3.6" width="18.8" height="13.8" rx="2.2" fill="none" stroke="#0b0b0c" stroke-width="2"/>' +
+          S('M6.6 8.6h7.4M6.6 12.6h10.8M9 21h6', 1.9)) },
+        tvout: { name:'HDMI / TV out', svg: svgWrap(
+          '<rect x="2.4" y="4" width="19.2" height="13" rx="2.2" fill="#0b0b0c"/>' +
+          '<path d="M10 7.6l5.2 2.9L10 13.4z" fill="#fff"/>' +
+          '<rect x="8" y="18.6" width="8" height="2.2" rx="1.1" fill="#0b0b0c"/>') },
+        recmic: { name:'Record songs', svg: svgWrap(
+          '<rect x="3.6" y="5.4" width="7" height="11" rx="3.5" fill="#0b0b0c"/>' +
+          S('M2.2 13.4a5.8 5.8 0 0 0 11.6 0M7.1 19.4v2', 2) +
+          '<circle cx="18.2" cy="7" r="3.8" fill="#0b0b0c"/><circle cx="18.2" cy="7" r="1.4" fill="#fff"/>') },
         star: { name:'Feature', svg: svgWrap(
           F('M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z')) }
       };
@@ -776,11 +896,83 @@
         ['flash',     ['flashlight','torch','電筒','手電','手电','led light']],
         ['bell',      ['notification','提醒','通知','alert','message','訊息','消息','remind']]
       ];
+      /* ================= PRODUCT CATEGORIES =================
+         A category decides (1) which icons the dropdown suggests first, (2) which
+         keyword rules run BEFORE the shared RULES above, so the same word can mean
+         different things per product, and (3) the quick-add features. It never
+         edits features that are already typed. "general" has no rules, no quick
+         features and lists every icon, i.e. it behaves exactly as before categories
+         existed (records saved earlier load as "general"). */
+      var CATEGORIES = [
+        { id:'general', name:'General (all icons)', icons:'*', rules:[], quick:[] },
+        { id:'watch', name:'Smart watch',
+          icons:['pulse','o2','heart','health','steps','runner','moon','thermo','battery','wireless','water','bluetooth','phone','card','amoled','screen','case','robot','pin','music','camera','wifi','mic','sun','clock','flash','bell','star'],
+          rules:[],
+          quick:['Heart Rate Monitor','Blood Oxygen SpO2','BP Trend Monitoring','Sleep Monitoring','Step Counter','Bluetooth Call','IP68 Waterproof','AMOLED Screen','NFC Payment','Sport Modes','Built-in AI Q&A','Wireless Charging','3-5 Days Battery','Weather Forecast','Message Notifications','Music Control'] },
+        { id:'dashcam', name:'Dash cam',
+          icons:['dashcam','video','res4k','hd','wideangle','loop','gsensor','parking','nightvision','dualcam','adas','speedalert','hdr','motion','timelapse','lock','sdcard','pin','wifi','mic','battery','screen','camera','star'],
+          rules:[],
+          quick:['4K Ultra HD Video','170° Wide Angle','Loop Recording','G-Sensor Impact Detection','24H Parking Mode','Super Night Vision','Front & Rear Dual Camera','ADAS Lane Assist','Speed Camera Alert','GPS Tracking','Wi-Fi App Control','HDR / WDR','Motion Detection','Time-Lapse Recording','Emergency Lock','MicroSD Card Support','Voice Control','Super Capacitor'] },
+        { id:'speaker', name:'Speaker',
+          icons:['speaker','volume','bass','tws','partylight','radio','usb','aux','sdcard','bluetooth','battery','wireless','water','phone','mic','music','wifi','clock','star'],
+          rules:[
+            ['tws',        ['tws','true wireless stereo','stereo pairing','dual pairing','雙喇叭','双喇叭']],
+            ['bass',       ['bass','subwoofer','woofer','低音','重低音']],
+            ['partylight', ['rgb','led light','party light','light show','lights','燈光','灯光','氛圍燈']],
+            ['radio',      ['fm radio','fm','radio','收音機','收音机']],
+            ['usb',        ['usb','flash drive','u盤','u盘']],
+            ['aux',        ['aux','3.5mm','line in','line-in','音頻輸入','音频输入']],
+            ['battery',    ['playtime','play time','playback time']],
+            ['speaker',    ['speaker','喇叭','音箱','音響','音响']],
+            ['volume',     ['stereo','surround','sound','audio','volume','hifi','hi-fi','loud','立體聲','立体声','環繞','环绕','音質','音质']]
+          ],
+          quick:['Bluetooth 5.3','IPX7 Waterproof','20H Playtime','Deep Bass','TWS Pairing','RGB Party Lights','FM Radio','USB / TF Card Playback','AUX Input','Hands-free Calling','Type-C Fast Charging','360° Stereo Sound','Wireless Mic Input'] },
+        { id:'drone', name:'Drone',
+          icons:['drone','camera','video','res4k','hd','gimbal','pin','homegps','obstacle','follow','flighttime','range','foldable','altitude','remote','propeller','takeoff','battery','wifi','screen','star'],
+          rules:[
+            ['homegps',    ['return home','return-to-home','rth','go home','auto return','一鍵返航','一键返航','返航']],
+            ['obstacle',   ['obstacle','avoidance','collision','避障','避開障礙']],
+            ['follow',     ['follow me','follow-me','follow','active track','tracking','跟隨','跟随']],
+            ['gimbal',     ['gimbal','3-axis','3 axis','eis','stabiliz','雲台','云台','防抖']],
+            ['flighttime', ['flight time','flying time','min flight','endurance','飛行時間','飞行时间']],
+            ['range',      ['range','km','transmission','distance','signal','圖傳','图传','遙控距離','遥控距离']],
+            ['foldable',   ['foldable','folding','fold','摺疊','折叠']],
+            ['altitude',   ['altitude','hover','height hold','定高','懸停','悬停']],
+            ['remote',     ['remote','controller','joystick','transmitter','遙控','遥控']],
+            ['propeller',  ['brushless','motor','propeller','無刷','无刷','馬達','马达']],
+            ['takeoff',    ['takeoff','take-off','take off','landing','one-key','one key','headless','一鍵起飛','一键起飞','降落']],
+            ['video',      ['fpv','first person','real-time video']],
+            ['drone',      ['drone','quadcopter','uav','無人機','无人机']]
+          ],
+          quick:['4K Camera','3-Axis Gimbal','GPS Return Home','Obstacle Avoidance','Follow Me','30 Min Flight Time','5 KM Range','Foldable Design','Altitude Hold','Brushless Motor','One-Key Takeoff / Landing','Wi-Fi FPV','Remote Controller','Dual Battery'] },
+        { id:'karaoke', name:'Karaoke',
+          icons:['karaoke','wirelessmic','duet','mic','echo','equalizer','voicechange','discoball','lyrics','tvout','recmic','music','volume','bluetooth','battery','usb','sdcard','wifi','star'],
+          rules:[
+            ['duet',        ['duet','two mics','2 mics','雙人','对唱','對唱']],
+            ['wirelessmic', ['wireless mic','wireless microphone','dual mic','handheld mic','無線麥克風','无线麦克风','無線咪']],
+            ['equalizer',   ['equalizer','eq','treble','高低音','音調','音调']],
+            ['echo',        ['echo','reverb','delay','混響','混响','回音']],
+            ['voicechange', ['voice changer','voice change','pitch','magic voice','變聲','变声']],
+            ['discoball',   ['disco','party light','led','rgb','lights','燈光','灯光','氛圍']],
+            ['lyrics',      ['lyrics','lyric','subtitle','歌詞','歌词','字幕']],
+            ['tvout',       ['hdmi','tv','av out','video out','screen cast','投屏','電視','电视']],
+            ['recmic',      ['record','recorder','錄音','录音']],
+            ['usb',         ['usb','u盤','u盘']],
+            ['volume',      ['volume','stereo','speaker','sound','audio']],
+            ['karaoke',     ['karaoke','ktv','k歌','sing','singing','卡拉ok','唱歌']]
+          ],
+          quick:['Dual Wireless Mics','Echo & Reverb','Bluetooth Connection','LED Party Lights','Voice Changer','Record Your Songs','HDMI TV Output','Lyrics App Support','Rechargeable Battery','USB / TF Playback','Duet Mode','Bass & Treble Control'] }
+      ];
+      function categoryOf(id){
+        for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].id === id) return CATEGORIES[i];
+        return CATEGORIES[0];
+      }
+
       /* Keyword matching. Non-ASCII keywords (CJK) stay plain substrings. ASCII
          keywords of up to 4 letters must be a whole word (optional plural) and
          longer ones must start a word, so "ai" no longer hits "Daily" or
          "Email", "card" no longer hits "Cardio", "run" no longer hits "Runtime". */
-      var RULE_TESTS = null;
+      var RULE_TESTS = null, CAT_TESTS = Object.create(null);
       function escRe(x){ return x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
       function keywordTest(k){
         if (/[^\x00-\x7f]/.test(k)) return function(t){ return t.indexOf(k) !== -1; };
@@ -789,20 +981,28 @@
         else re = new RegExp('(^|[^a-z0-9])' + escRe(kk));
         return function(t){ return re.test(t); };
       }
-      function autoIcon(text){
-        if (!RULE_TESTS) RULE_TESTS = RULES.map(function(r){ return [r[0], r[1].map(keywordTest)]; });
-        var t = ' ' + String(text || '').toLowerCase() + ' ';
-        for (var i = 0; i < RULE_TESTS.length; i++){
-          var tests = RULE_TESTS[i][1];
-          for (var j = 0; j < tests.length; j++) if (tests[j](t)) return RULE_TESTS[i][0];
+      function compileRules(rules){ return rules.map(function(r){ return [r[0], r[1].map(keywordTest)]; }); }
+      function runRules(compiled, t){
+        for (var i = 0; i < compiled.length; i++){
+          var tests = compiled[i][1];
+          for (var j = 0; j < tests.length; j++) if (tests[j](t)) return compiled[i][0];
         }
-        return 'star';
+        return null;
+      }
+      /* category rules run first, then the shared RULES; `catId` defaults to the current category */
+      function autoIcon(text, catId){
+        if (!RULE_TESTS) RULE_TESTS = compileRules(RULES);
+        var id = catId || (typeof state !== 'undefined' ? state.category : 'general');
+        if (!CAT_TESTS[id]) CAT_TESTS[id] = compileRules(categoryOf(id).rules);
+        var t = ' ' + String(text || '').toLowerCase() + ' ';
+        return runRules(CAT_TESTS[id], t) || runRules(RULE_TESTS, t) || 'star';
       }
 
       /* ================= STATE ================= */
       var DEFAULT_ACCENT = '#ffc900';
       function defaultState(){
         return {
+          category:'watch',
           name:'XO-W12', sub:'Smart Sport Watch', slogan:'Build for smart life', sloganOn:true, sloganStyle:'dynamic',
           appOn:true, appName:'FitPro',
           w:6.5, l:10, unit:'cm', accent:DEFAULT_ACCENT,
@@ -853,6 +1053,8 @@
         function pick(v, list, def){ return list.indexOf(v) !== -1 ? v : def; }
         function posNum(v, def){ var n = parseFloat(v); return isFinite(n) && n > 0 && n <= 1000 ? n : def; }
         var out = {
+          /* records saved before categories existed have none: they load as "general" (all icons, shared rules) = unchanged behaviour */
+          category: CATEGORIES.some(function(c){ return c.id === raw.category; }) ? raw.category : 'general',
           name: str(raw.name, d.name, 80),
           sub: str(raw.sub, d.sub, 80),
           slogan: str(raw.slogan, d.slogan, 120),
@@ -1378,11 +1580,17 @@
       function hasImg(f){ return !!(f.img && String(f.img).trim()); }
       function featSelectValue(f){ return (hasImg(f) || f.custom) ? 'custom' : (f.icon || 'auto'); }
       function iconOptions(f){
-        var cur = featSelectValue(f);
+        var cur = featSelectValue(f), cat = categoryOf(state.category);
+        function opt(k){ return '<option value="' + k + '"' + (cur === k ? ' selected' : '') + '>' + esc(ICONS[k].name) + '</option>'; }
         var out = '<option value="auto"' + (cur === 'auto' ? ' selected' : '') + '>Auto · ' + esc(ICONS[autoIcon(f.text)].name) + '</option>';
-        Object.keys(ICONS).forEach(function(k){
-          out += '<option value="' + k + '"' + (cur === k ? ' selected' : '') + '>' + esc(ICONS[k].name) + '</option>';
-        });
+        if (cat.icons === '*'){
+          Object.keys(ICONS).forEach(function(k){ out += opt(k); });
+        } else {
+          /* this category's icons first (in the category's own order), everything else below */
+          var mine = cat.icons.filter(function(k){ return hasOwn(ICONS, k); });
+          out += '<optgroup label="' + esc(cat.name) + ' icons">' + mine.map(opt).join('') + '</optgroup>';
+          out += '<optgroup label="Other icons">' + Object.keys(ICONS).filter(function(k){ return mine.indexOf(k) === -1; }).map(opt).join('') + '</optgroup>';
+        }
         return out + '<option value="custom"' + (cur === 'custom' ? ' selected' : '') + '>Custom image URL…</option>';
       }
       /* when no built-in icon matches, offer an online icon search
@@ -1537,30 +1745,37 @@
         row.querySelector('input.feat-text').focus();
       });
 
-      /* dash cam quick-add chips — one tap adds the feature (auto icon) */
-      var DC_FEATURES = [
-        '4K Ultra HD Video', '170° Wide Angle', 'Loop Recording',
-        'G-Sensor Impact Detection', '24H Parking Mode', 'Super Night Vision',
-        'Front & Rear Dual Camera', 'ADAS Lane Assist', 'Speed Camera Alert',
-        'GPS Tracking', 'Wi-Fi App Control', 'HDR / WDR',
-        'Motion Detection', 'Time-Lapse Recording', 'Emergency Lock',
-        'MicroSD Card Support', 'Voice Control', 'Super Capacitor'
-      ];
-      var dcBox = document.getElementById('dc-presets');
-      DC_FEATURES.forEach(function(txt){
-        var b = document.createElement('button');
-        b.className = 'chip'; b.type = 'button'; b.textContent = txt;
-        b.addEventListener('click', function(){
-          var exists = state.features.some(function(f){ return f.text.trim().toLowerCase() === txt.toLowerCase(); });
-          if (exists) return;
-          var emptyIdx = state.features.findIndex(function(f){ return f.text.trim() === ''; });
-          if (emptyIdx !== -1) state.features[emptyIdx] = { text: txt, icon: 'auto' };
-          else if (state.features.length < MAX_FEATURES) state.features.push({ text: txt, icon: 'auto' });
-          else return;
-          renderLabel(); renderFeatEditor();
+      /* quick-add chips: one tap adds the feature (auto icon). The list follows the category. */
+      var quickBox = document.getElementById('quick-presets');
+      function renderQuick(){
+        var cat = categoryOf(state.category);
+        document.getElementById('quick-box').style.display = cat.quick.length ? '' : 'none';
+        document.getElementById('quick-title').textContent = cat.name + ' quick add';
+        quickBox.innerHTML = '';
+        cat.quick.forEach(function(txt){
+          var b = document.createElement('button');
+          b.className = 'chip'; b.type = 'button'; b.textContent = txt;
+          b.addEventListener('click', function(){
+            var exists = state.features.some(function(f){ return f.text.trim().toLowerCase() === txt.toLowerCase(); });
+            if (exists) return;
+            var emptyIdx = state.features.findIndex(function(f){ return f.text.trim() === ''; });
+            if (emptyIdx !== -1) state.features[emptyIdx] = { text: txt, icon: 'auto' };
+            else if (state.features.length < MAX_FEATURES) state.features.push({ text: txt, icon: 'auto' });
+            else return;
+            renderLabel(); renderFeatEditor();
+          });
+          quickBox.appendChild(b);
         });
-        dcBox.appendChild(b);
+      }
+      /* the category select: fill it, and on change re-pick Auto icons, the dropdown groups and the chips */
+      var catSel = document.getElementById('in-category');
+      CATEGORIES.forEach(function(c){ var o = document.createElement('option'); o.value = c.id; o.textContent = c.name; catSel.appendChild(o); });
+      catSel.value = state.category;
+      catSel.addEventListener('change', function(){
+        state.category = catSel.value;
+        renderQuick(); renderFeatEditor(); renderLabel();
       });
+      renderQuick();
 
       /* ================= FORM BINDINGS ================= */
       function bind(id, key, after){
@@ -1859,6 +2074,7 @@
       }
       function syncFormFromState(){
         sloganAutoOff = false;                       /* a loaded record brings its own slogan setting */
+        catSel.value = state.category; renderQuick();
         document.getElementById('in-name').value = state.name || '';
         document.getElementById('in-sub').value = state.sub || '';
         document.getElementById('in-slogan').value = state.slogan || '';
