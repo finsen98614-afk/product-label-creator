@@ -15,8 +15,12 @@ Generate XO-W12-style product labels — for smart watches, dash cams and more.
 
 Open `index.html` in a browser — no build step, no server needed.
 
-Live version: https://muse.ai/s/product-label-creator-gi6sxm8jxntzg/oN9eof7D-Lvli_ASVinWA7dj4jtLBElUxu8_xcXN8Gc
+Live version: https://finsen98614-afk.github.io/product-label-creator/
+
+It is published with GitHub Pages from the `main` branch (root folder), so merging to `main` redeploys it automatically (takes a minute or two).
+
+Saved records live in your browser for that address only. If you used the old Muse version, press **Export backup** there and **Import backup** on the new address; old backups are converted automatically.
 
 ## Files
 
-- `index.html` — the whole app in a single self-contained file (exported from Muse)
+- `index.html` — the whole app in a single self-contained file (edit it directly; there is no build step)
