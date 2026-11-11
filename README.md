@@ -6,9 +6,10 @@ Generate XO-W12-style product labels — for smart watches, dash cams and more.
 - Iconic features with auto-matched icons (Bluetooth, IP68, AMOLED, NFC, health monitoring, watch case, wireless charging, dash cam features and more — with online icon search fallback)
 - Slogan in 3 styles (Racer / Minimal / Retro), optional
 - Warranty period (default 1 Year, or 6 Months), App name, price (red, centred, $)
+- English interface; explanations live behind "?" buttons
 - Real, scannable barcode: Code 128 (any text), EAN-13, UPC-A — Auto picks by length, retail types verify or auto-add the check digit, bars are checked against a minimum printable width
 - Live preview, PNG download (fixed 300 DPI, independent of screen size)
-- Saved records (Add / Retrieve / Change / Delete, keyed by product name, stored locally in the browser) with Export / Import backup
+- Saved records (Add / Load / Change / Delete) keyed by the barcode value and stored locally in the browser, with Export / Import backup. Records from the earlier product-name-keyed version are converted automatically
 
 ## Use it
 
