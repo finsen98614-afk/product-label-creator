@@ -573,6 +573,10 @@
     </div>
 
     <script>
+      /* BEGIN CATALOG — icons, keyword rules, product categories and autoIcon().
+         Keep this block free of DOM / document / window access: tools/check-categories.js
+         extracts it and runs it in plain Node to validate the catalog (see README,
+         "Adding a product category"). */
       /* ================= ICON LIBRARY (24×24, black silhouette style) ================= */
       function svgWrap(inner){ return '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">' + inner + '</svg>'; }
       function F(d){ return '<path fill="#0b0b0c" d="' + d + '"/>'; }
@@ -997,6 +1001,8 @@
         var t = ' ' + String(text || '').toLowerCase() + ' ';
         return runRules(CAT_TESTS[id], t) || runRules(RULE_TESTS, t) || 'star';
       }
+
+      /* END CATALOG */
 
       /* ================= STATE ================= */
       var DEFAULT_ACCENT = '#ffc900';
