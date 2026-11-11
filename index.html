@@ -4,21 +4,22 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
+    <meta name="referrer" content="no-referrer" />
     <link rel="icon" href="data:," />
     <title>Product Label Creator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,700;0,900;1,900&family=Barlow+Condensed:ital,wght@1,900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,700;0,900;1,900&family=Barlow+Condensed:ital,wght@1,900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
       :root{
         --bg:#eef0f2; --panel:#ffffff; --ink:#16181d; --ink-2:#4c5563; --line:#dde1e7;
-        --field:#f6f7f9; --brand:#f5b800; --brand-ink:#16181d; --danger:#d43a2f;
+        --field:#f6f7f9; --brand:#f5b800; --brand-ink:#16181d; --danger:#b3261e; --danger-on:#ffffff;
         --radius:14px;
         color-scheme: light dark;
       }
       @media (prefers-color-scheme: dark){
-        :root{ --bg:#101216; --panel:#1a1d23; --ink:#f0f2f5; --ink-2:#a7b0bd; --line:#2c313a; --field:#22262e; }
+        :root{ --bg:#101216; --panel:#1a1d23; --ink:#f0f2f5; --ink-2:#a7b0bd; --line:#2c313a; --field:#22262e; --danger:#ff6b5e; --danger-on:#16181d; }
       }
       *{ box-sizing:border-box; }
       html,body{ margin:0; padding:0; }
@@ -44,11 +45,12 @@
       .block-head .sw{ margin-left:auto; }
       /* "?" help: the explanations live behind this button, one tap to open */
       .help{
-        flex:none; width:19px; height:19px; padding:0; border-radius:50%; cursor:pointer;
+        position:relative; flex:none; width:19px; height:19px; padding:0; border-radius:50%; cursor:pointer;
         font:inherit; font-size:11.5px; font-weight:900; line-height:1; display:grid; place-items:center;
         border:1.5px solid var(--line); background:var(--field); color:var(--ink-2);
       }
       .help:hover, .help:focus-visible, .help[aria-expanded="true"]{ border-color:var(--brand); background:var(--brand); color:var(--brand-ink); outline:none; }
+      .help::after{ content:""; position:absolute; inset:-13px; }   /* 45px touch target */
       .help-pop{
         margin:-4px 0 12px; padding:9px 11px; border-radius:9px; background:var(--field); border:1px solid var(--line);
         font-size:12px; line-height:1.55; color:var(--ink-2);
@@ -122,6 +124,7 @@
         border-radius:999px; background:var(--line); transition:.18s; outline:none; border:none;
       }
       .sw input::after{ content:""; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:.18s; }
+      .sw input:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
       .sw input:checked{ background:var(--brand); }
       .sw input:checked::after{ transform:translateX(20px); }
       .sub-fields{ padding:0 0 4px; }
@@ -142,6 +145,11 @@
       .dim-caption{ font-size:13px; color:var(--ink-2); font-weight:700; }
       .dim-caption b{ color:var(--ink); }
       .dim-caption .cap-warn{ display:block; color:var(--danger); margin-top:2px; }
+      .export-msg{ width:100%; max-width:640px; margin:-8px 0 14px; font-size:12.5px; font-weight:700; color:var(--danger); }
+      .export-msg:empty{ display:none; }
+      .dl-btn[aria-disabled="true"]{ opacity:.55; }
+      .undo-btn{ font:inherit; font-size:12.5px; font-weight:800; color:var(--ink); background:none; border:none; padding:0 0 8px; cursor:pointer; text-decoration:underline; }
+      .undo-btn[hidden]{ display:none; }
       .cap-btn{ font:inherit; font-weight:800; color:inherit; background:none; border:none; padding:0; cursor:pointer; text-decoration:underline; }
       .dl-btn{
         font:inherit; font-size:14px; font-weight:900; cursor:pointer; border:none;
@@ -197,7 +205,7 @@
       }
       .banner-inner span{
         display:block; font-weight:900; font-style:italic; text-transform:uppercase;
-        font-size:1.42em; line-height:1.05; white-space:nowrap;
+        font-size:1.42em; line-height:1.05; white-space:nowrap; color:var(--on-accent, #0b0b0c);
       }
       .grid{ display:grid; grid-template-columns:1fr 1fr; margin-top:.95em; }
       .cell{
@@ -232,7 +240,7 @@
       }
       .app-chip svg{ width:1.55em; height:1.55em; flex:none; display:block; }
       .app-tag{
-        background:var(--accent); color:#0b0b0c; flex:none;
+        background:var(--accent); color:var(--on-accent, #0b0b0c); flex:none;
         font-weight:900; font-style:italic; text-transform:uppercase;
         font-size:.78em; letter-spacing:.1em; line-height:1;
         padding:.3em .6em .26em; border-radius:999em;
@@ -268,7 +276,7 @@
         font-family:"Barlow Condensed","Archivo",sans-serif;
         font-size:calc(var(--unit, 1em) * 3.3); font-weight:900; font-style:italic;
         text-transform:none; letter-spacing:-.025em; word-spacing:.1em; line-height:1.05; text-align:center;
-        white-space:nowrap; color:#0b0b0c; text-shadow:none; overflow:visible;
+        white-space:nowrap; color:var(--on-accent, #0b0b0c); text-shadow:none; overflow:visible;
       }
       /* minimal — LUXE: no fill band at all. White space, a hairline rule
          with an accent diamond, wide-tracked upright type, accent dots */
@@ -317,7 +325,7 @@
       .rec-btn:hover{ border-color:var(--brand); }
       .rec-btn.primary{ background:var(--brand); border-color:var(--brand); color:var(--brand-ink); }
       .rec-btn.danger{ color:var(--danger); border-color:var(--danger); background:transparent; }
-      .rec-btn.danger.armed{ background:var(--danger); color:#fff; }
+      .rec-btn.danger.armed{ background:var(--danger); color:var(--danger-on); }
       .record-msg{ font-size:12.5px; line-height:1.55; min-height:20px; color:var(--ink-2); margin:0 0 8px; }
       .record-msg.ok{ color:#177245; font-weight:700; }
       .record-msg.err{ color:var(--danger); font-weight:700; }
@@ -413,7 +421,7 @@
           <div class="block-head"><h2>Barcode</h2><button type="button" class="help" aria-label="Help: Barcode" aria-expanded="false" aria-controls="h-barcode">?</button></div>
           <div class="help-pop" id="h-barcode" hidden>The barcode value is the <b>record key</b>, so it is needed even when the barcode is not printed. <b>Auto</b> picks EAN-13 for 13 digits, UPC-A for 12 digits and Code 128 for anything else. EAN-13 and UPC-A check the check digit, or add it if you leave it out. Print the PNG at 100% (actual size) on a laser printer, then test-scan it.</div>
           <label class="f"><span>Barcode value (record key)</span>
-            <input type="text" id="in-barcode" value="XO-W12-2026" autocomplete="off" /></label>
+            <input type="text" id="in-barcode" value="XO-W12-2026" maxlength="64" autocomplete="off" /></label>
           <div class="row2">
             <label class="f"><span>Type</span>
               <select id="in-barcode-type">
@@ -436,6 +444,7 @@
             <button type="button" class="rec-btn" id="rec-load">Load selected</button>
           </div>
           <p class="record-msg" id="record-msg" aria-live="polite"></p>
+          <button type="button" class="undo-btn" id="rec-undo" hidden>Undo load — restore my unsaved edits</button>
           <div class="record-actions">
             <button type="button" class="rec-btn" id="rec-export">Export backup</button>
             <button type="button" class="rec-btn" id="rec-import">Import backup</button>
@@ -446,21 +455,21 @@
         <section class="block">
           <div class="block-head"><h2>Basics</h2></div>
           <label class="f"><span>Brand name</span>
-            <input type="text" id="in-name" value="XO-W12" autocomplete="off" /></label>
+            <input type="text" id="in-name" value="XO-W12" maxlength="80" autocomplete="off" /></label>
           <label class="f"><span>Product name</span>
-            <input type="text" id="in-sub" value="Smart Sport Watch" autocomplete="off" /></label>
+            <input type="text" id="in-sub" value="Smart Sport Watch" maxlength="80" autocomplete="off" /></label>
           <div class="switch-row">
             <div class="t">Slogan</div>
             <label class="sw"><input type="checkbox" id="in-slogan-on" checked aria-label="Show slogan" /></label>
           </div>
           <div class="sub-fields" id="slogan-fields">
             <label class="f"><span>Slogan text</span>
-              <input type="text" id="in-slogan" value="Build for smart life" autocomplete="off" /></label>
+              <input type="text" id="in-slogan" value="Build for smart life" maxlength="120" autocomplete="off" /></label>
             <span class="picker-label">Slogan style</span>
             <div class="style-picker" id="slogan-styles">
-              <button type="button" class="style-opt sel" data-style="dynamic"><span class="opt-preview pv-dynamic"><b>Go!</b></span><b>Racer</b><span>BOLD</span></button>
-              <button type="button" class="style-opt" data-style="minimal"><span class="opt-preview pv-minimal"><b>LESS</b></span><b>Minimal</b><span>CLEAN</span></button>
-              <button type="button" class="style-opt" data-style="retro"><span class="opt-preview pv-retro"><b>BADGE</b></span><b>Retro</b><span>BADGE</span></button>
+              <button type="button" class="style-opt sel" data-style="dynamic"><span aria-hidden="true" class="opt-preview pv-dynamic"><b>Go!</b></span><b>Racer</b><span>BOLD</span></button>
+              <button type="button" class="style-opt" data-style="minimal"><span aria-hidden="true" class="opt-preview pv-minimal"><b>LESS</b></span><b>Minimal</b><span>CLEAN</span></button>
+              <button type="button" class="style-opt" data-style="retro"><span aria-hidden="true" class="opt-preview pv-retro"><b>BADGE</b></span><b>Retro</b><span>BADGE</span></button>
             </div>
           </div>
         </section>
@@ -470,7 +479,7 @@
           <div class="help-pop" id="h-app" hidden>Shown under the warranty line and above the slogan, so customers can find the app.</div>
           <div class="sub-fields" id="app-fields">
             <label class="f"><span>App name</span>
-              <input type="text" id="in-app" value="FitPro" placeholder="e.g. FitPro" autocomplete="off" /></label>
+              <input type="text" id="in-app" value="FitPro" placeholder="e.g. FitPro" maxlength="60" autocomplete="off" /></label>
           </div>
         </section>
 
@@ -521,7 +530,7 @@
           <div class="block-head"><h2>Price</h2><button type="button" class="help" aria-label="Help: Price" aria-expanded="false" aria-controls="h-price">?</button><label class="sw"><input type="checkbox" id="in-price-on" aria-label="Show price" /></label></div>
           <div class="help-pop" id="h-price" hidden>Shown in red in the footer. Currency is fixed to $.</div>
           <div class="sub-fields off" id="price-fields">
-            <label class="f"><span>Amount ($)</span><input type="text" id="in-price" value="299" autocomplete="off" /></label>
+            <label class="f"><span>Amount ($)</span><input type="text" id="in-price" value="299" maxlength="20" autocomplete="off" /></label>
           </div>
         </section>
 
@@ -538,17 +547,18 @@
             <button type="button" class="rec-btn" id="rec-change">Change</button>
             <button type="button" class="rec-btn danger" id="rec-delete">Delete</button>
           </div>
-          <p class="record-msg" id="record-msg-bottom" aria-live="polite"></p>
+          <p class="record-msg" id="record-msg-bottom"></p>
         </section>
       </aside>
 
       <!-- ================= PREVIEW ================= -->
       <main class="stage">
         <div class="stage-bar">
-          <div class="dim-caption" id="dim-caption"></div>
+          <div class="dim-caption" id="dim-caption"><span id="dim-text"></span><span id="cap-live" aria-live="polite"></span></div>
           <button class="dl-btn" id="dl" type="button">Download PNG</button>
         </div>
-        <div class="label-shadow"><div class="label" id="label"></div></div>
+        <p class="export-msg" id="export-msg" role="status"></p>
+        <div class="label-shadow"><div class="label" id="label" role="img" aria-label="Label preview"></div></div>
         <div class="result" id="result">
           <h3>Image ready ✓</h3>
           <p>Can&#39;t find the file in Downloads? <b>Long-press the image below</b> and choose Save Image.</p>
@@ -722,9 +732,9 @@
       var RULES = [
         ['pulse',     ['bp','blood pressure','血壓','血压']],
         ['o2',        ['spo2','oxygen','血氧']],
-        ['water',     ['ip68','ip67','ipx','waterproof','water resist','防水','游泳','swim']],
+        ['water',     ['ip68','ip67','ip65','ip69','ipx7','ipx8','ipx','waterproof','water resist','防水','游泳','swim']],
         ['wireless',  ['wireless charging','wireless charger','wireless charge','qi charging','qi charger','magsafe','無線充電','无线充电','無線充','无线充']],
-        ['battery',   ['battery','電池','电池','續航','续航','電量','电量','充電','充电','capacitor','電容','电容','days','day battery']],
+        ['battery',   ['charging','charge','快充','battery','電池','电池','續航','续航','電量','电量','充電','充电','capacitor','電容','电容','days','day battery']],
         ['res4k',     ['4k','uhd','2160p','超高清']],
         ['timelapse', ['time-lapse','time lapse','timelapse','縮時','缩时','延時攝影','延时摄影']],
         ['loop',      ['loop record','loop','循環錄影','循环录影','循環','循环']],
@@ -745,33 +755,46 @@
         ['amoled',    ['amoled','oled']],
         ['case',      ['case','錶殼','錶壳','表殼','表壳','zinc','alloy','合金','stainless','不鏽鋼','不锈钢','titanium','鈦','钛','metal case','金屬殼','金属壳']],
         ['screen',    ['screen','display','螢幕','屏幕','顯示','显示','touchscreen','觸控']],
-        ['card',      ['nfc','card','卡','支付','pay','八達通','octopus','交通卡']],
-        ['runner',    ['sport','run','運動','运动','跑步','fitness','健身','workout','鍛鍊']],
+        ['card',      ['nfc','card','卡','支付','pay','payment','八達通','octopus','交通卡']],
+        ['runner',    ['sport','run','running','jogging','運動','运动','跑步','fitness','健身','workout','鍛鍊']],
         ['robot',     ['ai','artificial','智能','人工','assistant','助手','語音助手']],
-        ['pin',       ['gps','location','定位','導航','导航','tracking','追蹤']],
+        ['pin',       ['gps','location','定位','導航','导航']],
         ['moon',      ['sleep','睡眠','瞓覺']],
         ['music',     ['music','音樂','音乐','song','mp3']],
         ['camera',    ['camera','相機','相机','拍照','photo']],
-        ['phone',     ['call','通話','通话','電話','电话','phone','dial']],
+        ['phone',     ['call','calling','通話','通话','電話','电话','phone','dial']],
         ['bluetooth', ['bluetooth','藍牙','蓝牙','bt ']],
-        ['heart',     ['heart','心率','心跳','ecg','心電']],
+        ['heart',     ['heart','心率','心跳','ecg','心電','cardio']],
         ['health',    ['health','健康','醫療','医疗','體檢','体检']],
         ['steps',     ['step','步數','步数','計步','pedometer','walking','行走']],
+        ['pin',       ['tracking','追蹤']],
         ['wifi',      ['wifi','wi-fi','無線','无线','wlan']],
         ['mic',       ['voice','mic','語音','语音','錄音','录音','microphone']],
         ['sun',       ['weather','天氣','天气','uv','陽光']],
         ['thermo',    ['temperature','temp','溫度','温度','體溫','体温']],
         ['clock',     ['clock','alarm','時鐘','时钟','鬧鐘','闹钟','timer','時間','时间','watch face','錶面']],
-        ['flash',     ['flashlight','torch','電筒','手電','手电','light']],
-        ['bell',      ['notification','提醒','通知','alert','message','訊息','消息']]
+        ['flash',     ['flashlight','torch','電筒','手電','手电','led light']],
+        ['bell',      ['notification','提醒','通知','alert','message','訊息','消息','remind']]
       ];
+      /* Keyword matching. Non-ASCII keywords (CJK) stay plain substrings. ASCII
+         keywords of up to 4 letters must be a whole word (optional plural) and
+         longer ones must start a word, so "ai" no longer hits "Daily" or
+         "Email", "card" no longer hits "Cardio", "run" no longer hits "Runtime". */
+      var RULE_TESTS = null;
+      function escRe(x){ return x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+      function keywordTest(k){
+        if (/[^\x00-\x7f]/.test(k)) return function(t){ return t.indexOf(k) !== -1; };
+        var kk = k.trim(), re;
+        if (kk.length <= 4) re = new RegExp('(^|[^a-z0-9])' + escRe(kk) + '(s|es)?($|[^a-z0-9])');
+        else re = new RegExp('(^|[^a-z0-9])' + escRe(kk));
+        return function(t){ return re.test(t); };
+      }
       function autoIcon(text){
+        if (!RULE_TESTS) RULE_TESTS = RULES.map(function(r){ return [r[0], r[1].map(keywordTest)]; });
         var t = ' ' + String(text || '').toLowerCase() + ' ';
-        for (var i = 0; i < RULES.length; i++){
-          var keys = RULES[i][1];
-          for (var j = 0; j < keys.length; j++){
-            if (t.indexOf(keys[j]) !== -1) return RULES[i][0];
-          }
+        for (var i = 0; i < RULE_TESTS.length; i++){
+          var tests = RULE_TESTS[i][1];
+          for (var j = 0; j < tests.length; j++) if (tests[j](t)) return RULE_TESTS[i][0];
         }
         return 'star';
       }
@@ -807,6 +830,18 @@
          inject markup (accent / icon keys / image URLs end up in innerHTML). */
       function hasOwn(o, k){ return Object.prototype.hasOwnProperty.call(o, k); }
       function safeAccent(c){ return /^#[0-9a-f]{6}$/i.test(String(c || '')) ? String(c).toLowerCase() : DEFAULT_ACCENT; }
+      /* the one place an icon image URL is accepted: http(s) up to 2000
+         characters, or a small image data URL; anything else is refused */
+      function cleanImgUrl(v){
+        if (typeof v !== 'string') return '';
+        var u = v.trim();
+        if (!u) return '';
+        if (/^data:image\/(png|jpe?g|gif|webp|svg\+xml)[;,]/i.test(u)) return u.length <= 100000 ? u : '';
+        if (u.length > 2000) return '';
+        try { var pu = new URL(u); return (pu.protocol === 'https:' || pu.protocol === 'http:') ? u : ''; } catch (e) { return ''; }
+      }
+      var MAX_FEATURES = 40;
+      var normalizeDropped = 0;     /* things the last normalizeState() had to discard (reported on Load / import) */
       function normalizeState(raw){
         var d = defaultState();
         if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return d;
@@ -841,14 +876,16 @@
         var wv = str(raw.warrantyValue, null, 10);
         out.warrantyValue = (wv !== null && (wv.trim() === '' || (isFinite(parseFloat(wv)) && parseFloat(wv) >= 0))) ? wv : d.warrantyValue;
         if (Array.isArray(raw.features)){
-          out.features = raw.features.slice(0, 40).filter(function(f){
+          if (raw.features.length > MAX_FEATURES) normalizeDropped += raw.features.length - MAX_FEATURES;
+          out.features = raw.features.slice(0, MAX_FEATURES).filter(function(f){
             return f && typeof f === 'object' && !Array.isArray(f);
           }).map(function(f){
             var item = {
               text: str(f.text, '', 80),
               icon: (typeof f.icon === 'string' && hasOwn(ICONS, f.icon)) ? f.icon : 'auto'
             };
-            if (typeof f.img === 'string' && /^(https?:\/\/|data:image\/(png|jpe?g|gif|webp|svg\+xml)[;,])/i.test(f.img.trim())) item.img = f.img.trim();
+            var img = cleanImgUrl(f.img);
+            if (img) item.img = img; else if (typeof f.img === 'string' && f.img.trim()) normalizeDropped++;
             if (f.custom === true) item.custom = true;
             return item;
           });
@@ -932,8 +969,8 @@
       function barcodeInfo(type, raw){
         var code = String(raw == null ? '' : raw).trim(), digits = /^\d+$/.test(code);
         if (!code) return { ok:false, error:'Enter a barcode value.' };
-        var t = type;
-        if (t !== 'code128' && t !== 'ean13' && t !== 'upca'){
+        var t = type, viaAuto = (t !== 'code128' && t !== 'ean13' && t !== 'upca');
+        if (viaAuto){
           t = digits && code.length === 13 ? 'ean13' : (digits && code.length === 12 ? 'upca' : 'code128');
         }
         var note = '';
@@ -948,7 +985,8 @@
         }
         var data = code.slice(0, body), check = gs1Check(data);
         if (code.length === body + 1){
-          if (+code[body] !== check) return { ok:false, error:'Wrong check digit: the first ' + body + ' digits ' + data + ' need check digit ' + check + ', not ' + code[body] + '.' };
+          if (+code[body] !== check) return { ok:false, error:'Wrong check digit: the first ' + body + ' digits ' + data + ' need check digit ' + check + ', not ' + code[body] + '.' +
+          (viaAuto && t === 'upca' && code.length === 12 ? ' If this is a 13-digit EAN without its check digit, choose EAN-13 as the type.' : '') };
         } else {
           note = 'check digit ' + check + ' added';
         }
@@ -1013,25 +1051,32 @@
       /* editor feedback under the barcode fields: resolved type, auto check
          digit, errors, and a warning when the bars would print too thin to
          scan reliably (module width is estimated from the preview geometry) */
+      var BAR_MIN_MM = 0.25;     /* narrowest bar that still scans from a 203-600 dpi print */
+      var lastHint = '';
       function updateBarcodeHint(){
         var el = document.getElementById('barcode-hint');
         if (!el) return;
-        if (!state.barcodeOn){ el.textContent = ''; return; }
-        var bc = currentBarcode(), msg, cls = 'record-note';
-        if (!bc.ok){ msg = '⚠ ' + bc.error; cls += ' bc-err'; }
-        else {
-          msg = 'Type: ' + BARCODE_TYPE_NAMES[bc.type] + (bc.note ? ' (' + bc.note + ')' : '');
-          var svg = labelEl.querySelector('.barcode .bars');
-          if (svg){
-            var modules = +svg.getAttribute('data-modules') || 1;
-            var wCm = labelCm().w * svg.getBoundingClientRect().width / (labelEl.getBoundingClientRect().width || 1);
-            var mm = wCm * 10 / modules;
-            msg += ' · narrowest bar ≈ ' + mm.toFixed(2) + ' mm';
-            if (mm < 0.19){ msg += ' ⚠ Too dense — may not scan when printed. Enlarge the label, shorten the value or use EAN-13 / UPC-A.'; cls += ' bc-err'; }
+        var msg = '', bad = false;
+        if (state.barcodeOn){
+          var bc = currentBarcode();
+          if (!bc.ok){ msg = '⚠ ' + bc.error; bad = true; }
+          else {
+            msg = 'Type: ' + BARCODE_TYPE_NAMES[bc.type] + (bc.note ? ' (' + bc.note + ')' : '');
+            var bars = labelEl.querySelector('.barcode .bars');
+            if (bars){
+              var modules = +bars.getAttribute('data-modules') || 1;
+              var wCm = labelCm().w * bars.getBoundingClientRect().width / (labelEl.getBoundingClientRect().width || 1);
+              var mm = wCm * 10 / modules;
+              if (mm < BAR_MIN_MM){ msg += ' · ⚠ Bars too thin to scan reliably (' + mm.toFixed(2) + ' mm). Make the label wider, shorten the value, or use EAN-13 / UPC-A.'; bad = true; }
+              else msg += ' · Barcode size OK';
+            }
           }
         }
+        var key = msg + '|' + bad;
+        if (key === lastHint) return;
+        lastHint = key;
         el.textContent = msg;
-        el.className = cls;
+        el.className = 'record-note' + (bad ? ' bc-err' : '');
       }
       /* built-in icon to show when a custom icon image fails to load
          (blocked by CORS, dead link, …) instead of leaving an empty ring */
@@ -1068,7 +1113,7 @@
               span = ' style="grid-column:1 / -1; justify-content:center"';
             }
             var ringInner = (f.img && String(f.img).trim())
-              ? '<img src="' + esc(f.img) + '" alt="" crossorigin="anonymous" data-icon="' + esc(key) + '" onerror="iconFallback(this)" style="width:2.75em;height:2.75em;object-fit:contain;display:block"/>'
+              ? '<img src="' + esc(f.img) + '" alt="" crossorigin="anonymous" data-icon="' + esc(key) + '" referrerpolicy="no-referrer" style="width:2.75em;height:2.75em;object-fit:contain;display:block"/>'
               : iconHTML(key);
             html += '<div class="' + cls + '"' + span + '><div class="ring">' + ringInner + '</div>' +
                     '<div class="ftext">' + esc(f.text) + '</div></div>';
@@ -1115,10 +1160,11 @@
               '<div class="slogan" data-base="3.3">' + sText + '</div></div>';
           }
         }
-        /* footer: barcode / price */
-        if (state.barcodeOn || state.priceOn){
+        /* footer: barcode / price (a blank price is not printed as a lone "$") */
+        var priceShown = state.priceOn && String(state.price == null ? '' : state.price).trim() !== '';
+        if (state.barcodeOn || priceShown){
           if (!showSlogan) html += '<div class="push"></div>';
-          var fcls = 'foot' + (state.barcodeOn && !state.priceOn ? ' only-code' : '') + (!state.barcodeOn && state.priceOn ? ' only-price' : '');
+          var fcls = 'foot' + (state.barcodeOn && !priceShown ? ' only-code' : '') + (!state.barcodeOn && priceShown ? ' only-price' : '');
           html += '<div class="' + fcls + '">';
           if (state.barcodeOn){
             var bc = currentBarcode();
@@ -1127,20 +1173,48 @@
                      : '<div class="bc-invalid">INVALID BARCODE</div><div class="code">' + esc(String(state.barcode || '').slice(0, 24)) + '</div>') +
               '</div>';
           }
-          if (state.priceOn){
+          if (priceShown){
             html += '<div class="price">' + esc(state.currency) + esc(state.price) + '</div>';
           }
           html += '</div>';
         }
-        if (!showSlogan && !state.barcodeOn && !state.priceOn) html += '<div class="end-pad"></div>';
+        if (!showSlogan && !state.barcodeOn && !priceShown) html += '<div class="end-pad"></div>';
         return html;
+      }
+      /* text colour for fills that use the accent colour: whichever of black or
+         white has the better contrast (a black accent used to give black on black) */
+      function onAccent(hex){
+        var c = safeAccent(hex), v = [1, 3, 5].map(function(i){
+          var x = parseInt(c.substr(i, 2), 16) / 255;
+          return x <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4);
+        });
+        var L = .2126 * v[0] + .7152 * v[1] + .0722 * v[2];
+        return (1.05 / (L + .05)) > ((L + .05) / .053) ? '#ffffff' : '#0b0b0c';
+      }
+      /* custom icon images that fail to load are swapped for the built-in icon;
+         done with listeners (not an inline handler) and after every innerHTML, also
+         catching an image that already failed before the listener was attached */
+      function attachIconFallbacks(root){
+        root.querySelectorAll('img[data-icon]').forEach(function(img){
+          if (img.complete && !img.naturalWidth) iconFallback(img);
+          else img.addEventListener('error', function(){ iconFallback(img); }, { once:true });
+        });
+      }
+      /* chips / swatches / style buttons: expose the selected look as aria-pressed */
+      function syncPressed(){
+        document.querySelectorAll('#presets .chip, #warranty-presets .chip, .style-opt, .swatch, .rec-chip').forEach(function(b){
+          b.setAttribute('aria-pressed', b.classList.contains('sel') ? 'true' : 'false');
+        });
       }
       function renderLabel(){
         labelEl.style.setProperty('--accent', safeAccent(state.accent));
+        labelEl.style.setProperty('--on-accent', onAccent(state.accent));
         labelEl.innerHTML = labelInnerHTML();
+        attachIconFallbacks(labelEl);
         fitLabel();
         renderCaption();
         updateBarcodeHint();
+        syncPressed();
       }
 
       /* size → preview scale.
@@ -1183,24 +1257,26 @@
         var fs = Math.max(pxW / 23, 8);
         for (var iter = 0; iter < 14; iter++){
           el.style.fontSize = fs + 'px';
-          /* shrink-to-fit single-line texts (product name, subtitle) */
-          fitText(el.querySelector('.pname'), 3.1);
-          fitText(el.querySelector('.banner-inner span'), 1.42);
-          /* shrink each feature text so its longest word fits the cell */
-          el.querySelectorAll('.ftext').forEach(function(t){ fitText(t, 1.22); });
-          /* warranty line: shrink if a long period would overflow */
-          fitText(el.querySelector('.warranty .wtext'), 1.15);
-          /* app name: shrink if a long name would overflow the chip */
-          fitText(el.querySelector('.app-name'), 1.18);
-          /* slogan: keep it inside the band however long the text is */
+          /* shrink-to-fit the single-line texts: all base sizes are set first,
+             then every width is read in ONE layout pass, then the shrinks are
+             applied (set-then-read per element used to force ~25-45 layouts) */
+          var targets = [];
+          function add(node, base, unit, min){ if (node) targets.push({ el:node, base:base, unit:!!unit, min:min }); }
+          add(el.querySelector('.pname'), 3.1, false, .55);                   /* product name */
+          add(el.querySelector('.banner-inner span'), 1.42, false, .55);      /* subtitle */
+          el.querySelectorAll('.ftext').forEach(function(t){ add(t, 1.22, false, .55); });   /* longest word must fit its cell */
+          add(el.querySelector('.warranty .wtext'), 1.15, false, .55);
+          add(el.querySelector('.app-name'), 1.18, false, .55);
+          add(el.querySelector('.barcode .code'), .78, false, .5);            /* digits under the bars */
           var slEl = el.querySelector('.slogan');
           if (slEl){
             var racer = !!slEl.closest('.sz-dynamic');
             /* when the Racer art is capped and squashed (very short labels) its text
                shrinks by the same factor so it stays inside the band */
             var sk = racer ? Math.min(1, (pxH * 0.30) / (SLOGAN_ART.h / SLOGAN_ART.w * pxW * 0.974)) : 1;
-            fitText(slEl, (parseFloat(slEl.getAttribute('data-base')) || 2.6) * sk, racer);
+            add(slEl, (parseFloat(slEl.getAttribute('data-base')) || 2.6) * sk, racer, racer ? .7 : .55);
           }
+          fitBatch(targets);
           var nat = el.scrollHeight;
           if (nat <= pxH) break;
           /* the slogan art keeps its proportions, so it does not shrink with the
@@ -1219,21 +1295,38 @@
         var sz = previewSize();
         layoutLabel(labelEl, sz.w, sz.h);
       }
-      /* shrink-to-fit one line of text. `unit` = size in --unit (label width /
-         23) instead of em, for text that must keep its proportion to artwork */
-      function fitText(el, base, unit){
-        if (!el) return;
-        function set(k){ el.style.fontSize = unit ? 'calc(var(--unit) * ' + k + ')' : k + 'em'; }
-        set(base);
-        var cw = el.clientWidth, w = el.scrollWidth;
-        if (cw > 0 && w > cw) set(Math.max(base * (cw / w) * .97, unit ? .7 : .55));
+      /* `unit` text is sized in --unit (label width / 23) instead of em, for text
+         that must keep its proportion to artwork */
+      function setFont(t, k){ t.el.style.fontSize = t.unit ? 'calc(var(--unit) * ' + k + ')' : k + 'em'; }
+      function fitBatch(list){
+        list.forEach(function(t){ setFont(t, t.base); });
+        var m = list.map(function(t){ return [t.el.clientWidth, t.el.scrollWidth]; });
+        list.forEach(function(t, i){
+          var cw = m[i][0], w = m[i][1];
+          if (cw > 0 && w > cw) setFont(t, Math.max(t.base * (cw / w) * .97, t.min));
+        });
       }
       /* Tell the user when the label cannot do justice to its content instead of
          silently clipping or squashing it, and offer the fix when it is the
          slogan. Never changes a setting by itself. */
+      function isOverflowing(){ return labelEl.scrollHeight > labelEl.clientHeight + 1; }
+      function barcodeClipped(){
+        var bars = labelEl.querySelector('.barcode .bars');
+        return !!bars && bars.getBoundingClientRect().bottom > labelEl.getBoundingClientRect().bottom + 1;
+      }
+      /* why the PNG cannot be downloaded right now ('' = it can). Only real
+         overflow blocks: a squashed slogan band is a look, not lost content. */
+      function exportBlockReason(){
+        if (state.barcodeOn && !currentBarcode().ok) return 'The barcode is invalid — fix it (see the Barcode section) before downloading.';
+        if (isOverflowing()){
+          if (state.barcodeOn && barcodeClipped()) return 'The barcode does not fit at this size and would be cut off — use a larger label, or turn the slogan or price off.';
+          return 'The content does not fit at this size and would be cut off — use a larger label, fewer features, or turn the slogan off.';
+        }
+        return '';
+      }
       function captionWarning(){
         var sloganShown = state.sloganOn && String(state.slogan || '').trim() !== '';
-        var over = labelEl.scrollHeight > labelEl.clientHeight + 1;
+        var over = isOverflowing();
         var art = sloganShown ? labelEl.querySelector('.sz-dynamic .art') : null;
         var squashed = !!art && art.getBoundingClientRect().height / (art.getBoundingClientRect().width || 1) < SLOGAN_ART.h / SLOGAN_ART.w * 0.85;
         if (!over && !squashed) return '';
@@ -1242,12 +1335,31 @@
           : 'The slogan band is squashed at this shape';
         return ' <span class="cap-warn">⚠ ' + msg + (sloganShown ? ' — use a taller label or <button type="button" class="cap-btn" data-slogan-off>turn the slogan off</button>' : '') + '</span>';
       }
+      /* write only when the text really changed, so a screen reader is not made
+         to re-announce an identical caption on every keystroke */
+      var lastCap = { text:'', warn:'', aria:'', block:'' };
       function renderCaption(){
         var u = state.unit === 'in' ? 'inch' : 'cm';
-        document.getElementById('dim-caption').innerHTML =
-          'Label size <b>' + esc(state.w) + ' × ' + esc(state.l) + ' ' + u + '</b> (W × L) · ' +
-          state.features.length + (state.features.length === 1 ? ' feature' : ' features') +
-          captionWarning();
+        var cm = labelCm();                       /* the size actually drawn (clamped), not the raw typed value */
+        function show(v){ return String(+(v / (state.unit === 'in' ? 2.54 : 1)).toFixed(2)); }
+        var typedW = toCm(parseFloat(state.w) || 0), typedL = toCm(parseFloat(state.l) || 0);
+        var clamped = typedW < 2 || typedL < 2 || !(parseFloat(state.w) > 0) || !(parseFloat(state.l) > 0);
+        var minVal = state.unit === 'in' ? '0.8' : '2';      /* the 2 cm minimum, in the chosen unit */
+        ['in-w', 'in-l'].forEach(function(id){ var inp = document.getElementById(id); if (inp.min !== minVal) inp.min = minVal; });
+        var n = state.features.length;
+        var text = 'Label size <b>' + show(cm.w) + ' × ' + show(cm.l) + ' ' + u + '</b> (W × L)' +
+          (clamped ? ' — minimum is 2 cm' : '') + ' · ' + n + (n === 1 ? ' feature' : ' features');
+        if (text !== lastCap.text){ document.getElementById('dim-text').innerHTML = text; lastCap.text = text; }
+        var warn = captionWarning();
+        if (warn !== lastCap.warn){ document.getElementById('cap-live').innerHTML = warn; lastCap.warn = warn; }
+        var aria = 'Label preview: ' + [state.name, state.sub].filter(Boolean).join(' — ') + ', ' + show(cm.w) + ' by ' + show(cm.l) + ' ' + u + ', ' + n + (n === 1 ? ' feature' : ' features');
+        if (aria !== lastCap.aria){ labelEl.setAttribute('aria-label', aria); lastCap.aria = aria; }
+        var block = exportBlockReason();
+        if (block !== lastCap.block){
+          document.getElementById('export-msg').textContent = block;
+          document.getElementById('dl').setAttribute('aria-disabled', block ? 'true' : 'false');
+          lastCap.block = block;
+        }
         /* keep the preset chips in sync with the current size */
         if (typeof presetBox !== 'undefined' && presetBox){
           presetBox.querySelectorAll('.chip').forEach(function(chip){
@@ -1297,48 +1409,86 @@
         wrap.querySelector('.img-row').style.display = showImg ? 'flex' : 'none';
         wrap.querySelector('.auto-tag').style.display = (unmatched || showImg) ? 'block' : 'none';
       }
+      function buildFeatRow(f, i){
+        var row = document.createElement('div');
+        row.className = 'feat-item';
+        row.innerHTML =
+          '<div class="feat-row">' +
+            '<div class="num">' + (i + 1) + '</div>' +
+            '<input type="text" class="feat-text" data-i="' + i + '" value="' + esc(f.text) + '" placeholder="e.g. Bluetooth Call" maxlength="80" aria-label="Feature ' + (i + 1) + ' text" autocomplete="off" />' +
+            '<select data-i="' + i + '" aria-label="Icon for feature ' + (i + 1) + '">' + iconOptions(f) + '</select>' +
+            '<button class="icon-btn" type="button" data-del="' + i + '" title="Remove" aria-label="Remove feature ' + (i + 1) + '">✕</button>' +
+          '</div>' +
+          '<div class="auto-tag" style="display:none">' +
+            '<div class="nomatch" style="display:none">No built-in icon matches — <a href="#" target="_blank" rel="noopener noreferrer">search icons online ↗</a> or paste an image URL:</div>' +
+            '<div class="img-row" style="display:none">' +
+              '<input type="text" class="img-url" data-i="' + i + '" value="' + esc(f.img || '') + '" placeholder="Image URL https://… (preview appears when you leave the field)" maxlength="100000" aria-label="Icon image URL for feature ' + (i + 1) + '" autocomplete="off" />' +
+              '<button class="mini-btn" type="button" data-clearimg="' + i + '">Clear</button>' +
+            '</div>' +
+            '<div class="nomatch img-err" style="display:none"></div>' +
+          '</div>';
+        return row;
+      }
+      function updateAddBtn(){
+        var btn = document.getElementById('add-feat'), full = state.features.length >= MAX_FEATURES;
+        btn.disabled = full;
+        btn.textContent = full ? 'Feature limit reached (' + MAX_FEATURES + ')' : '+ Add feature';
+      }
       function renderFeatEditor(){
         featList.innerHTML = '';
         state.features.forEach(function(f, i){
-          var row = document.createElement('div');
-          row.className = 'feat-item';
-          row.innerHTML =
-            '<div class="feat-row">' +
-              '<div class="num">' + (i + 1) + '</div>' +
-              '<input type="text" class="feat-text" data-i="' + i + '" value="' + esc(f.text) + '" placeholder="e.g. Bluetooth Call" autocomplete="off" />' +
-              '<select data-i="' + i + '" aria-label="Icon for feature ' + (i + 1) + '">' + iconOptions(f) + '</select>' +
-              '<button class="icon-btn" type="button" data-del="' + i + '" title="Remove" aria-label="Remove feature ' + (i + 1) + '">✕</button>' +
-            '</div>' +
-            '<div class="auto-tag" style="display:none">' +
-              '<div class="nomatch" style="display:none">No built-in icon matches — <a href="#" target="_blank" rel="noopener">search icons online ↗</a> or paste an image URL:</div>' +
-              '<div class="img-row" style="display:none">' +
-                '<input type="text" class="img-url" data-i="' + i + '" value="' + esc(f.img || '') + '" placeholder="Icon image URL https://… (replaces the built-in icon)" autocomplete="off" />' +
-                '<button class="mini-btn" type="button" data-clearimg="' + i + '">Clear</button>' +
-              '</div>' +
-            '</div>';
+          var row = buildFeatRow(f, i);
           featList.appendChild(row);
           refreshTag(row, i);
         });
+        updateAddBtn();
+      }
+      /* The icon image URL is committed when the user leaves the field (change /
+         Enter / paste), not on every keystroke: typing a URL used to send a
+         request to every partial hostname and path prefix (leaking partial URLs
+         and tokens). Anything that is not an http(s) link, or is too long, is
+         refused with a message and not stored. */
+      function commitImgUrl(row, idx){
+        var f = state.features[idx], inp = row.querySelector('.img-url'), err = row.querySelector('.img-err');
+        if (!f || !inp) return;
+        var raw = inp.value.trim(), ok = cleanImgUrl(raw);
+        if (raw && !ok){
+          err.textContent = 'That link cannot be used: only http(s) image links up to 2000 characters (or a small image data URL) work.';
+          err.style.display = 'block';
+          row.querySelector('.auto-tag').style.display = 'block';
+          return;
+        }
+        err.style.display = 'none';
+        if ((f.img || '') === ok) return;
+        f.img = ok;
+        renderLabel();
+        refreshTag(row, idx);
       }
       /* One set of listeners on the list itself (event delegation) instead of
          re-binding handlers per row on every rebuild. Typing and icon changes
          only touch that row, so the focused input is never replaced. */
       featList.addEventListener('input', function(e){
         var t = e.target, row = t.closest('.feat-item');
-        if (!row) return;
+        if (!row || !t.classList.contains('feat-text')) return;   /* the image URL waits for commitImgUrl */
         var idx = +t.dataset.i;
         if (!state.features[idx]) return;
-        if (t.classList.contains('feat-text')){
-          state.features[idx].text = t.value;
-        } else if (t.classList.contains('img-url')){
-          state.features[idx].img = t.value;
-        } else { return; }
+        state.features[idx].text = t.value;
         renderLabel();
         refreshTag(row, idx);
       });
+      featList.addEventListener('paste', function(e){
+        var t = e.target, row = t.closest && t.closest('.feat-item');
+        if (row && t.classList.contains('img-url')) setTimeout(function(){ commitImgUrl(row, +t.dataset.i); }, 0);
+      });
+      featList.addEventListener('keydown', function(e){
+        var t = e.target, row = t.closest && t.closest('.feat-item');
+        if (e.key === 'Enter' && row && t.classList.contains('img-url')){ e.preventDefault(); commitImgUrl(row, +t.dataset.i); }
+      });
       featList.addEventListener('change', function(e){
         var t = e.target, row = t.closest('.feat-item');
-        if (!row || t.tagName !== 'SELECT') return;
+        if (!row) return;
+        if (t.classList.contains('img-url')){ commitImgUrl(row, +t.dataset.i); return; }
+        if (t.tagName !== 'SELECT') return;
         var idx = +t.dataset.i, f = state.features[idx];
         if (!f) return;
         if (t.value === 'custom'){
@@ -1346,6 +1496,7 @@
         } else {
           f.icon = t.value; f.img = ''; f.custom = false;
           var u = row.querySelector('.img-url'); if (u) u.value = '';
+          row.querySelector('.img-err').style.display = 'none';
         }
         renderLabel();
         refreshTag(row, idx);
@@ -1357,23 +1508,33 @@
         if (!row) return;
         var idx;
         if (btn.dataset.del !== undefined){
-          state.features.splice(+btn.dataset.del, 1);
+          idx = +btn.dataset.del;
+          state.features.splice(idx, 1);
           renderLabel(); renderFeatEditor();
+          /* keep keyboard focus in the list instead of dropping it to <body> */
+          var texts = featList.querySelectorAll('input.feat-text');
+          if (texts.length) texts[Math.min(idx, texts.length - 1)].focus(); else document.getElementById('add-feat').focus();
         } else if (btn.dataset.clearimg !== undefined){
           idx = +btn.dataset.clearimg;
           state.features[idx].img = '';
           state.features[idx].custom = false;
           var u2 = row.querySelector('.img-url');
           if (u2) u2.value = '';
+          row.querySelector('.img-err').style.display = 'none';
           renderLabel();
           refreshTag(row, idx);
         }
       });
       document.getElementById('add-feat').addEventListener('click', function(){
-        state.features.push({ text:'', icon:'auto' });
-        renderLabel(); renderFeatEditor();
-        var inputs = featList.querySelectorAll('input.feat-text');
-        if (inputs.length) inputs[inputs.length - 1].focus();
+        if (state.features.length >= MAX_FEATURES) return;
+        var f = { text:'', icon:'auto' };
+        state.features.push(f);
+        renderLabel();
+        var row = buildFeatRow(f, state.features.length - 1);   /* append one row instead of rebuilding all */
+        featList.appendChild(row);
+        refreshTag(row, state.features.length - 1);
+        updateAddBtn();
+        row.querySelector('input.feat-text').focus();
       });
 
       /* dash cam quick-add chips — one tap adds the feature (auto icon) */
@@ -1394,7 +1555,8 @@
           if (exists) return;
           var emptyIdx = state.features.findIndex(function(f){ return f.text.trim() === ''; });
           if (emptyIdx !== -1) state.features[emptyIdx] = { text: txt, icon: 'auto' };
-          else state.features.push({ text: txt, icon: 'auto' });
+          else if (state.features.length < MAX_FEATURES) state.features.push({ text: txt, icon: 'auto' });
+          else return;
           renderLabel(); renderFeatEditor();
         });
         dcBox.appendChild(b);
@@ -1428,6 +1590,7 @@
           var match = parseFloat(chip.dataset.wv) === parseFloat(state.warrantyValue) && chip.dataset.wu === state.warrantyUnit;
           chip.classList.toggle('sel', !!match);
         });
+        syncPressed();
       }
       bind('in-warranty', 'warrantyValue', syncWarrantyPresets);
       document.getElementById('in-warranty-unit').addEventListener('change', function(e){ state.warrantyUnit = e.target.value; renderLabel(); syncWarrantyPresets(); });
@@ -1519,11 +1682,12 @@
 
       /* accent swatches */
       var ACCENTS = ['#ffc900','#ff7a1a','#e8323f','#1f9d55','#1677ff','#111111'];
+      var ACCENT_NAMES = ['yellow','orange','red','green','blue','black'];
       var swBox = document.getElementById('swatches');
       ACCENTS.forEach(function(c){
         var b = document.createElement('button');
         b.className = 'swatch' + (c === state.accent ? ' sel' : ''); b.type = 'button';
-        b.style.background = c; b.title = c;
+        b.style.background = c; b.title = (ACCENT_NAMES[ACCENTS.indexOf(c)] || c) + ' ' + c; b.setAttribute('aria-label', 'Accent colour ' + (ACCENT_NAMES[ACCENTS.indexOf(c)] || c));
         b.addEventListener('click', function(){
           state.accent = c;
           swBox.querySelectorAll('.swatch').forEach(function(x){ x.classList.remove('sel'); });
@@ -1554,42 +1718,46 @@
       function recordKeyFor(st){
         var info = barcodeInfo(st.barcodeType, st.barcode);
         if (info.ok && info.type !== 'code128') return info.text.replace(/ /g, '');
-        return String(st.barcode == null ? '' : st.barcode).trim();
+        return String(st.barcode == null ? '' : st.barcode).trim().slice(0, 64);   /* same cap as normalizeState, applied before uniqueness */
       }
       /* two records may not share a key: a duplicate is stored as
          "<barcode> [<product>]" so nothing is lost and the user can fix it */
-      function uniqueRecordKey(base, st, taken){
+      function uniqueRecordKey(base, st, taken, counters){
         if (!taken[base]) return base;
-        var alt = base + ' [' + (String(st.sub || '').trim() || String(st.name || '').trim() || 'record') + ']', k = alt, n = 2;
-        while (taken[k]) k = alt + ' #' + n++;
+        var alt = base + ' [' + (String(st.sub || '').trim() || String(st.name || '').trim() || 'record') + ']', k = alt;
+        var n = counters[alt] || 2;                  /* per-base counter: O(1) per record instead of rescanning from #2 */
+        while (taken[k]){ k = alt + ' #' + n; n++; }
+        counters[alt] = n;
         return k;
       }
       /* records saved by the previous version were keyed by product name;
-         re-key them by barcode (the old storage entry is left untouched) */
+         re-key them by barcode (the old storage entry is left untouched).
+         `taken` = keys already in use (the existing store on import), so an
+         existing record is never overwritten by a legacy one. */
       function rekeyLegacy(source, taken){
-        var out = Object.create(null), collided = 0;
+        var out = Object.create(null), collided = 0, counters = Object.create(null), used = taken || out;
         Object.keys(source).sort().forEach(function(oldKey){
           if (!looksLikeRecord(source[oldKey])) return;
           var st = normalizeState(source[oldKey]);
-          var base = recordKeyFor(st) || String(oldKey).trim();
+          var base = recordKeyFor(st) || String(oldKey).trim().slice(0, 64);
           if (!base) return;
-          var key = uniqueRecordKey(base, st, taken || out);
+          var key = uniqueRecordKey(base, st, used, counters);
           if (key !== base) collided++;
           out[key] = st;
           if (taken) taken[key] = st;
         });
         return { map: out, collided: collided };
       }
-      var migrationNote = '';
+      var startupNote = null;       /* { text, kind, persist } shown once the Records UI exists */
+      var rawV2 = null;
       try {
-        var rawV2 = localStorage.getItem(RECORDS_KEY);
+        rawV2 = localStorage.getItem(RECORDS_KEY);
         if (rawV2 !== null){
           var parsedV2 = JSON.parse(rawV2 || 'null');
-          if (parsedV2 && typeof parsedV2 === 'object' && !Array.isArray(parsedV2)){
-            Object.keys(parsedV2).forEach(function(k){
-              if (looksLikeRecord(parsedV2[k])) records[k] = normalizeState(parsedV2[k]);
-            });
-          }
+          if (!parsedV2 || typeof parsedV2 !== 'object' || Array.isArray(parsedV2)) throw new Error('not a record map');
+          Object.keys(parsedV2).forEach(function(k){
+            if (looksLikeRecord(parsedV2[k])) records[k] = normalizeState(parsedV2[k]);
+          });
         } else {
           var rawV1 = localStorage.getItem(LEGACY_RECORDS_KEY);
           var parsedV1 = rawV1 ? JSON.parse(rawV1) : null;
@@ -1597,17 +1765,26 @@
             var mig = rekeyLegacy(parsedV1, null), n = Object.keys(mig.map).length;
             Object.keys(mig.map).forEach(function(k){ records[k] = mig.map[k]; });
             if (n){
-              migrationNote = 'Records are now keyed by barcode value: ' + n + ' existing record' + (n === 1 ? '' : 's') + ' converted.' +
-                (mig.collided ? ' ' + mig.collided + ' shared a barcode value and ' + (mig.collided === 1 ? 'is' : 'are') + ' stored as “barcode [product]” — edit the barcode and press Change to fix.' : '');
+              startupNote = { persist:true, kind:'ok', text:'Records are now keyed by barcode value: ' + n + ' existing record' + (n === 1 ? '' : 's') + ' converted.' +
+                (mig.collided ? ' ' + mig.collided + ' shared a barcode value and ' + (mig.collided === 1 ? 'is' : 'are') + ' stored as “barcode [product]” — edit the barcode and press Change to fix.' : '') };
             }
           }
         }
-      } catch (e) { /* unreadable storage — start empty */ }
+      } catch (e) {
+        /* damaged storage: keep a copy of the raw text before the next save can overwrite it */
+        if (rawV2 !== null){
+          var kept = false;
+          try { if (localStorage.getItem(RECORDS_KEY + '_corrupt') === null) localStorage.setItem(RECORDS_KEY + '_corrupt', rawV2); kept = true; } catch (e2) { /* quota */ }
+          startupNote = { persist:false, kind:'err', text:'Your saved records could not be read (the stored data is damaged), so the list is empty. ' +
+            (kept ? 'A copy of the damaged data was kept in this browser under “' + RECORDS_KEY + '_corrupt”. ' : '') + 'Saving a new record replaces the damaged entry.' };
+          records = Object.create(null);
+        }
+      }
       var recMsgEl = document.getElementById('record-msg');
       var recMsgBottomEl = document.getElementById('record-msg-bottom');
       var recDeleteBtn = document.getElementById('rec-delete');
       var recPickerEl = document.getElementById('record-picker');
-      var deleteArmedKey = '';
+      var deleteArmedKey = '', deleteTimer = 0;
       var selectedKey = '';
       /* returns false when the browser refuses the write (private mode,
          storage full, blocked site data) so the UI never claims a record was
@@ -1659,11 +1836,13 @@
             recPickerEl.appendChild(chip);
           });
         }
+        syncPressed();
       }
       function syncPickerChips(){
         recPickerEl.querySelectorAll('.rec-chip').forEach(function(chip){
           chip.classList.toggle('sel', chip.dataset.key === selectedKey);
         });
+        syncPressed();
       }
       function selectRecord(k){
         if (!records[k]) return;
@@ -1673,6 +1852,7 @@
         recMsg('Selected “' + k + '”. Press Load to bring it back.', 'ok');
       }
       function disarmDelete(){
+        clearTimeout(deleteTimer);
         deleteArmedKey = '';
         recDeleteBtn.classList.remove('armed');
         recDeleteBtn.textContent = 'Delete';
@@ -1728,31 +1908,68 @@
       barcodeInputEl.addEventListener('input', selectByBarcode);
       barcodeInputEl.addEventListener('change', selectByBarcode);
       document.getElementById('in-barcode-type').addEventListener('change', selectByBarcode);
+      /* "unsaved edits" = the form differs from how it was at the last Load, Add,
+         Change or start-up (not from the selected record: selecting a chip does
+         not change the form) */
+      var baselineJson = '', undoState = null, undoBtn = document.getElementById('rec-undo');
+      function stateJson(st){ var d = normalizeDropped; var j = JSON.stringify(normalizeState(st)); normalizeDropped = d; return j; }
+      function markBaseline(){ baselineJson = stateJson(state); }
+      function hideUndo(){ undoState = null; undoBtn.hidden = true; }
+      /* a retail barcode (EAN-13 / UPC-A, chosen or implied by 12-13 digits) must be valid to
+         be a record key, because its key is the check-digit-complete number */
+      function retailKeyProblem(){
+        var t = state.barcodeType, code = String(state.barcode == null ? '' : state.barcode).trim();
+        var retail = t === 'ean13' || t === 'upca' || (t === 'auto' && /^\d{12,13}$/.test(code));
+        if (!retail) return '';
+        var info = currentBarcode();
+        return info.ok ? '' : 'Fix the barcode before saving it as a record key. ' + info.error;
+      }
       document.getElementById('rec-add').addEventListener('click', function(){
         var key = recordKeyFor(state);
         if (!key){ recMsg('Enter a barcode value first — it is the record key.', 'err'); return; }
+        var bad = retailKeyProblem();
+        if (bad){ recMsg(bad, 'err'); return; }
         if (records[key]){ recMsg('A record for barcode “' + key + '” already exists — select it and use Change to overwrite.', 'err'); return; }
         records[key] = snapshotState();
+        hideUndo(); markBaseline();
         refreshRecordList(key); disarmDelete();
         recSaved('Added record “' + key + '”.');
       });
       document.getElementById('rec-load').addEventListener('click', function(){
         var key = selectedKey;
         if (!key || !records[key]){ recMsg('Select a saved record first — tap one in the list, or type its barcode.', 'err'); return; }
+        var dirty = stateJson(state) !== baselineJson;
+        var previous = dirty ? snapshotState() : null;
+        normalizeDropped = 0;
         state = normalizeState(records[key]);
-        syncFormFromState(); refreshRecordList(key); disarmDelete();
-        recMsg('Loaded record “' + key + '”.', 'ok');
+        var dropped = normalizeDropped;
+        syncFormFromState(); refreshRecordList(key); disarmDelete(); markBaseline();
+        hideUndo();
+        if (previous){ undoState = previous; undoBtn.hidden = false; }
+        recMsg('Loaded record “' + key + '”.' + (previous ? ' Your unsaved edits were replaced.' : '') +
+          (dropped ? ' ' + dropped + ' item' + (dropped === 1 ? ' was' : 's were') + ' dropped because it could not be used (more than ' + MAX_FEATURES + ' features, or an invalid image link).' : ''),
+          dropped ? 'err' : 'ok');
+      });
+      undoBtn.addEventListener('click', function(){
+        if (!undoState) return;
+        state = normalizeState(undoState);
+        hideUndo();
+        syncFormFromState();
+        recMsg('Restored your unsaved edits.', 'ok');
       });
       document.getElementById('rec-change').addEventListener('click', function(){
         var oldKey = selectedKey;
         if (!oldKey || !records[oldKey]){ recMsg('Select a saved record first — or use Add for a new barcode.', 'err'); return; }
         var newKey = recordKeyFor(state);
         if (!newKey){ recMsg('Enter a barcode value first — it is the record key.', 'err'); return; }
+        var bad = retailKeyProblem();
+        if (bad){ recMsg(bad, 'err'); return; }
         if (newKey !== oldKey){
           if (records[newKey]){ recMsg('Another record already uses barcode “' + newKey + '”.', 'err'); return; }
           delete records[oldKey];
         }
         records[newKey] = snapshotState();
+        hideUndo(); markBaseline();
         refreshRecordList(newKey); disarmDelete();
         recSaved(newKey === oldKey ? 'Updated record “' + newKey + '”.' : 'Updated record — barcode changed from “' + oldKey + '” to “' + newKey + '”.');
       });
@@ -1763,7 +1980,9 @@
           deleteArmedKey = key;
           recDeleteBtn.classList.add('armed');
           recDeleteBtn.textContent = 'Press again to confirm';
-          recMsg('Delete record “' + key + '”? Press Delete again to confirm.', 'err');
+          recMsg('Delete record “' + key + '”? Press Delete again within 6 seconds to confirm.', 'err');
+          clearTimeout(deleteTimer);
+          deleteTimer = setTimeout(function(){ if (recMsgEl.textContent.indexOf('Delete record') === 0) recMsg(''); disarmDelete(); }, 6000);
           return;
         }
         delete records[key];
@@ -1771,11 +1990,21 @@
         refreshRecordList(''); disarmDelete();
         recSaved('Deleted record “' + key + '”.');
       });
+      /* messages and the Undo offer belong to the action that produced them: the next
+         edit anywhere in the panel clears them (so "Added record …" is never stale) */
+      document.querySelector('.panel').addEventListener('input', function(e){
+        if (e.target.closest && e.target.closest('#rec-undo')) return;
+        if (recMsgEl.textContent) recMsg('');
+        if (!undoBtn.hidden) hideUndo();
+      });
       refreshRecordList('');
-      if (migrationNote){
-        if (persistRecords()) recMsg(migrationNote, 'ok');
-        else recMsg(migrationNote + SAVE_FAIL, 'err');
+      if (startupNote){
+        if (startupNote.persist){
+          if (persistRecords()) recMsg(startupNote.text, startupNote.kind);
+          else recMsg(startupNote.text + SAVE_FAIL, 'err');
+        } else recMsg(startupNote.text, startupNote.kind);
       }
+      markBaseline();
 
       /* ================= BACKUP: EXPORT / IMPORT =================
          Export downloads every saved record as one JSON file the user
@@ -1826,16 +2055,21 @@
               recMsg('Import failed: this is not a valid backup file.', 'err'); return;
             }
             /* version 2+ backups are already keyed by barcode; anything older
-               (or a bare map) was keyed by product name and is re-keyed */
+               (or a bare map) was keyed by product name and is re-keyed — and a
+               re-keyed record never overwrites one that already exists */
             var current = data && typeof data.version === 'number' && data.version >= 2;
-            var mapped = Object.create(null);
+            var mapped = Object.create(null), collided = 0;
+            normalizeDropped = 0;
             if (current){
               Object.keys(incoming).forEach(function(k){
-                var key = String(k || '').trim();
+                var key = String(k || '').trim().slice(0, 64);
                 if (key && looksLikeRecord(incoming[k])) mapped[key] = normalizeState(incoming[k]);
               });
             } else {
-              mapped = rekeyLegacy(incoming, Object.create(null)).map;
+              var taken = Object.create(null);
+              Object.keys(records).forEach(function(k){ taken[k] = records[k]; });
+              var re = rekeyLegacy(incoming, taken);
+              mapped = re.map; collided = re.collided;
             }
             var added = 0, overwritten = 0, skipped = Object.keys(incoming).length - Object.keys(mapped).length;
             Object.keys(mapped).forEach(function(key){
@@ -1847,7 +2081,9 @@
             }
             refreshRecordList(''); disarmDelete();
             recSaved('Imported: ' + added + ' added, ' + overwritten + ' overwritten' +
-              (skipped ? ', ' + skipped + ' invalid skipped' : '') + '.');
+              (skipped ? ', ' + skipped + ' invalid skipped' : '') + '.' +
+              (collided ? ' ' + collided + ' used a barcode that already exists and ' + (collided === 1 ? 'is' : 'are') + ' stored as “barcode [product]”.' : '') +
+              (normalizeDropped ? ' ' + normalizeDropped + ' item' + (normalizeDropped === 1 ? ' was' : 's were') + ' dropped because they could not be used (too many features or an invalid image link).' : ''));
           } catch (e) {
             recMsg('Import failed: not valid backup JSON — choose the file saved by Export backup.', 'err');
           }
@@ -1857,7 +2093,7 @@
       });
 
       /* ================= DOWNLOAD PNG ================= */
-      var lastBlobUrl = null, lastFileName = '', lastInfo = '';
+      var lastBlobUrl = null, lastFileName = '';
       /* Export resolution is fixed at 300 DPI (capped so the longest side
          stays within canvas limits) instead of a hard-coded scale of 3 on
          whatever size the preview happens to be — a phone used to produce a
@@ -1865,6 +2101,31 @@
          element itself is rendered (html2canvas re-draws it at `scale`, no
          upscaling blur), so line breaks match exactly what is on screen. */
       var EXPORT_PX_PER_CM = 300 / 2.54, EXPORT_MAX_SIDE = 6000;
+      var EXPORT_MAX_PIXELS = 16 * 1000 * 1000;        /* iOS Safari fails silently above 16.7 MP per canvas */
+      /* html2canvas is loaded with `defer` and an integrity hash; if that first load was
+         blocked or failed, load it again on demand (same hash) instead of a dead end */
+      var h2cLoading = null;
+      function ensureHtml2canvas(){
+        if (typeof html2canvas !== 'undefined') return Promise.resolve();
+        if (h2cLoading) return h2cLoading;
+        var tag = document.querySelector('script[src*="html2canvas"]');
+        if (!tag) return Promise.reject(new Error('export component missing'));
+        h2cLoading = new Promise(function(resolve, reject){
+          var sc = document.createElement('script');
+          sc.src = tag.getAttribute('src');
+          if (tag.integrity) sc.integrity = tag.integrity;
+          sc.crossOrigin = 'anonymous'; sc.referrerPolicy = 'no-referrer';
+          sc.onload = function(){ if (typeof html2canvas !== 'undefined') resolve(); else { h2cLoading = null; reject(new Error('export component missing')); } };
+          sc.onerror = function(){ h2cLoading = null; reject(new Error('export component blocked')); };
+          document.head.appendChild(sc);
+        });
+        return h2cLoading;
+      }
+      var NAME_RE; try { NAME_RE = new RegExp('[^\\p{L}\\p{N}_-]+', 'gu'); } catch (e) { NAME_RE = /[^\w-]+/g; }
+      function safeFileBase(){
+        var base = String(state.sub || state.name || 'label').trim().replace(NAME_RE, '_').replace(/^_+|_+$/g, '').slice(0, 60);
+        return base || 'label';
+      }
       /* canvas.toBlob() writes a PNG with no resolution chunk, so Word, Preview,
          print dialogs etc. assume 72/96 DPI and print the label several times
          too big — which also stretches the barcode. Insert a pHYs chunk
@@ -1902,7 +2163,7 @@
         var box = labelEl.getBoundingClientRect();
         var previewW = box.width || labelEl.offsetWidth || 1, previewH = box.height || labelEl.offsetHeight || 1;
         /* the preview box is rounded to whole px, so also cap on its real size */
-        var scale = Math.min((cm.w * ppc) / previewW, EXPORT_MAX_SIDE / Math.max(previewW, previewH));
+        var scale = Math.min((cm.w * ppc) / previewW, EXPORT_MAX_SIDE / Math.max(previewW, previewH), Math.sqrt(EXPORT_MAX_PIXELS / (previewW * previewH)));
         var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
         return fontsReady.then(function(){
           return html2canvas(labelEl, {
@@ -1931,40 +2192,49 @@
       }
       var dlResetTimer = 0;
       document.getElementById('dl').addEventListener('click', function(){
-        var btn = this; btn.disabled = true; btn.textContent = 'Generating…';
+        var btn = this;
         function done(msg){
           clearTimeout(dlResetTimer);
           btn.disabled = false; btn.textContent = msg || 'Download PNG';
           if (msg) dlResetTimer = setTimeout(function(){ btn.textContent = 'Download PNG'; }, 3000);
         }
-        if (state.barcodeOn && !currentBarcode().ok){ done('Barcode invalid — fix it first'); return; }
-        if (typeof html2canvas === 'undefined'){ done('Component not loaded — please retry'); return; }
-        renderExportCanvas().then(function(canvas){
-          var dpi = Math.round(canvas.width / (labelCm().w / 2.54));
-          lastInfo = canvas.width + ' × ' + canvas.height + ' px · about ' + dpi + ' DPI';
+        /* refuse to hand over a PNG that is missing the barcode, the price or other content */
+        var reason = exportBlockReason();
+        if (reason){
+          document.getElementById('export-msg').textContent = reason;
+          done('Not downloaded — see the message');
+          return;
+        }
+        btn.disabled = true; btn.textContent = 'Generating…';
+        var fileBase = safeFileBase() + '_label.png';       /* snapshot now: the form may change while it renders */
+        var widthCm = labelCm().w;
+        ensureHtml2canvas().then(renderExportCanvas).then(function(canvas){
+          var dpi = Math.round(canvas.width / (widthCm / 2.54));
+          var info = canvas.width + ' × ' + canvas.height + ' px · about ' + dpi + ' DPI';
           if (canvas.toBlob){
             canvas.toBlob(function(blob){
               if (!blob){ done('Generation failed — please retry'); return; }
-              var ppm = Math.round(canvas.width / (labelCm().w / 100));
-              pngWithDpi(blob, ppm).then(function(b){ finish(b); done('Done ↓ see the image below'); });
+              var ppm = Math.round(canvas.width / (widthCm / 100));
+              pngWithDpi(blob, ppm).then(function(b){ finish(b, fileBase, info); done('Done ↓ see the image below'); });
             }, 'image/png');
           } else {
             done('Done ↓ see the image below');
-            showResult(canvas.toDataURL('image/png'));
+            lastFileName = fileBase; showResult(canvas.toDataURL('image/png'), fileBase, info);
           }
-        }).catch(function(){ done('Generation failed — please retry'); });
-        function finish(blob){
+        }).catch(function(err){
+          done(err && /export component/.test(err.message) ? 'Export component could not load — check your connection and retry' : 'Generation failed — please retry');
+        });
+        function finish(blob, name, info){
           if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
           lastBlobUrl = URL.createObjectURL(blob);
-          lastFileName = (state.sub || state.name || 'label').replace(/[^\w\-]+/g, '_') + '_label.png';
-          showResult(lastBlobUrl);
+          lastFileName = name;
+          showResult(lastBlobUrl, name, info);
           triggerDownload();
         }
-        function showResult(src){
+        function showResult(src, name, info){
           var box = document.getElementById('result');
           document.getElementById('result-img').src = src;
-          var fname = lastFileName || ((state.sub || state.name || 'label').replace(/[^\w\-]+/g, '_') + '_label.png');
-          document.getElementById('result-name').textContent = fname + (lastInfo ? ' (' + lastInfo + ')' : '');
+          document.getElementById('result-name').textContent = name + (info ? ' (' + info + ')' : '');
           box.classList.add('show');
           box.scrollIntoView({ behavior:'smooth', block:'nearest' });
         }
