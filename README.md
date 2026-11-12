@@ -9,7 +9,7 @@ Generate XO-W12-style product labels — for smart watches, dash cams and more.
 - Warranty period (default 1 Year, or 6 Months) and App name, each with its own on/off switch; price (large, red, centred on the label with the barcode centred under it; on a very small label, once the slogan is gone, they share one row instead)
 - English interface; explanations live behind "?" buttons
 - "Keep space for price and barcode" switch (on by default): a strip at the bottom stays free so a price and barcode can be printed or stuck on afterwards. Turn it off to give the space back to the features. The 5 x 5 cm "compact" preset turns it off
-- Real, scannable barcode: Code 128 (any text), EAN-13, UPC-A — Auto picks by length, retail types verify or auto-add the check digit, bars are checked against a minimum printable width
+- Real, scannable barcode: Code 128 (any text), EAN-13, UPC-A — Auto picks by length, retail types verify or auto-add the check digit, bars are checked against a minimum printable width, and their height is a physical size (about 3 mm and up, never shrunk with the text; on a tight label they drop to 2.5 mm before anything else gives way)
 - Live preview, PNG download (fixed 300 DPI, independent of screen size). A label that would be cut off (barcode, price or content that does not fit) is not exported; the reason is shown next to the Download button
 - Saved records (Add / Load / Change / Delete) keyed by the barcode value and stored locally in the browser, with Export / Import backup. Records from the earlier product-name-keyed version are converted automatically
 

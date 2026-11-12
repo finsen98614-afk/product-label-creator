@@ -411,10 +411,10 @@
       .foot.row .barcode .bars{ margin:0; }
       .foot.row .price{ flex:1 1 auto; font-size:3em; }
       .barcode{ text-align:center; flex:0 1 auto; min-width:0; max-width:100%; }
-      .barcode .bars{ position:relative; height:2.3em; max-width:100%; margin:0 auto; }
+      .barcode .bars{ position:relative; height:var(--bar-h, 2.3em); max-width:100%; margin:0 auto; }
       .barcode .bars i{ position:absolute; top:0; bottom:0; background:#0b0b0c; }
       .bc-invalid{
-        height:2.5em; min-width:9em; display:flex; align-items:center; justify-content:center; padding:0 .8em;
+        height:var(--bar-h, 2.5em); min-width:9em; display:flex; align-items:center; justify-content:center; padding:0 .8em;
         border:.12em dashed #d81f26; color:#d81f26; font-weight:900; font-size:.9em; letter-spacing:.05em;
       }
       .barcode .code{ font-size:.78em; font-weight:700; letter-spacing:.32em; margin-top:.18em; font-family:"Archivo",monospace; }
@@ -1466,7 +1466,7 @@
          off, or the Racer band squashed) it is left out of the drawing, and drawn
          again as soon as there is room. state.sloganOn keeps the user's choice, so
          saved records and the switch are not changed by this. */
-      var sloganAuto = false, footRow = false;
+      var sloganAuto = false, footRow = false, barCompact = false;
       function sloganWanted(){ return !!state.sloganOn && String(state.slogan || '').trim() !== ''; }
       function drawLabel(){
         labelEl.innerHTML = labelInnerHTML();
@@ -1476,10 +1476,11 @@
       function renderLabel(){
         labelEl.style.setProperty('--accent', safeAccent(state.accent));
         labelEl.style.setProperty('--on-accent', onAccent(state.accent));
-        sloganAuto = false; footRow = false;
+        sloganAuto = false; footRow = false; barCompact = false;
         drawLabel();
         if (sloganWanted() && (isOverflowing() || sloganSquashed())){ sloganAuto = true; drawLabel(); }
-        /* still too tall: price and barcode share one row instead of being stacked */
+        /* still too tall: shorter bars (never below 2.5 mm), then price and barcode share one row */
+        if (isOverflowing() && state.barcodeOn){ barCompact = true; drawLabel(); }
         if (isOverflowing() && state.priceOn && state.barcodeOn){ footRow = true; drawLabel(); }
         var note = document.getElementById('slogan-auto-note');
         if (note) note.hidden = !sloganAuto;
@@ -1522,6 +1523,12 @@
            makes the bars thinner than the scanner can resolve */
         el.style.setProperty('--unit', (pxW / 23) + 'px');
         el.style.setProperty('--art-max', (pxH * 0.30) + 'px');
+        /* bar height is a physical size, not a font size, so shrinking the text never makes the bars
+           shorter than a scanner can follow: about 3 mm on a small label, growing with the label width.
+           When the label is tight, 'compact' lets them drop to about 2.5 mm (a camera or imager scanner
+           still reads 2 mm; a laser line is easier to aim the taller the bars are) */
+        var pxPerMm = pxW / (labelCm().w * 10);
+        el.style.setProperty('--bar-h', (barCompact ? Math.max(pxW / 23 * .9, 2.5 * pxPerMm) : Math.max(pxW / 23 * 1.15, 3 * pxPerMm)) + 'px');
         /* measure the content at natural height, then lock the box height */
         el.style.height = 'auto';
         el.style.minHeight = '0px';
