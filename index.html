@@ -404,12 +404,9 @@
       /* reserved footer: the strip keeps one fixed height whether or not the price / barcode are filled in,
          so the space is there to print them later (a price sticker, a handwritten price, a barcode label) */
       .foot.reserve{ min-height:7.2em; }
-      /* last resort on a small label (after the slogan has gone): barcode left, price in the rest of the row */
-      .foot.row{ flex-direction:row; flex-wrap:wrap-reverse; align-items:flex-start; justify-content:space-between; gap:.4em 1em; padding:.55em 1.15em .7em; }
-      .foot.row.reserve{ min-height:4.6em; }
-      .foot.row .barcode{ text-align:left; }
-      .foot.row .barcode .bars{ margin:0; }
-      .foot.row .price{ flex:1 1 auto; font-size:3em; }
+      /* only one of the two is switched on: keep room for just that one */
+      .foot.reserve.only-price{ min-height:4.4em; }
+      .foot.reserve.only-code{ min-height:5em; }
       .barcode{ text-align:center; flex:0 1 auto; min-width:0; max-width:100%; }
       .barcode .bars{ position:relative; height:var(--bar-h, 2.3em); max-width:100%; margin:0 auto; }
       .barcode .bars i{ position:absolute; top:0; bottom:0; background:#0b0b0c; }
@@ -1420,7 +1417,7 @@
         var footerShown = state.barcodeOn || priceShown || state.reserveFooter;
         if (footerShown){
           if (!showSlogan) html += '<div class="push"></div>';
-          var fcls = 'foot' + (footRow ? ' row' : '') + (state.reserveFooter ? ' reserve' : '') + (state.barcodeOn && !priceShown ? ' only-code' : '') + (!state.barcodeOn && priceShown ? ' only-price' : '');
+          var fcls = 'foot' + (state.reserveFooter ? ' reserve' : '') + (state.barcodeOn && !priceShown ? ' only-code' : '') + (!state.barcodeOn && priceShown ? ' only-price' : '');
           html += '<div class="' + fcls + '">';
           if (state.barcodeOn){
             var bc = currentBarcode();
@@ -1466,7 +1463,7 @@
          off, or the Racer band squashed) it is left out of the drawing, and drawn
          again as soon as there is room. state.sloganOn keeps the user's choice, so
          saved records and the switch are not changed by this. */
-      var sloganAuto = false, footRow = false, barCompact = false;
+      var sloganAuto = false;
       function sloganWanted(){ return !!state.sloganOn && String(state.slogan || '').trim() !== ''; }
       function drawLabel(){
         labelEl.innerHTML = labelInnerHTML();
@@ -1476,12 +1473,9 @@
       function renderLabel(){
         labelEl.style.setProperty('--accent', safeAccent(state.accent));
         labelEl.style.setProperty('--on-accent', onAccent(state.accent));
-        sloganAuto = false; footRow = false; barCompact = false;
+        sloganAuto = false;
         drawLabel();
         if (sloganWanted() && (isOverflowing() || sloganSquashed())){ sloganAuto = true; drawLabel(); }
-        /* still too tall: shorter bars (never below 2.5 mm), then price and barcode share one row */
-        if (isOverflowing() && state.barcodeOn){ barCompact = true; drawLabel(); }
-        if (isOverflowing() && state.priceOn && state.barcodeOn){ footRow = true; drawLabel(); }
         var note = document.getElementById('slogan-auto-note');
         if (note) note.hidden = !sloganAuto;
         renderCaption();
@@ -1525,10 +1519,9 @@
         el.style.setProperty('--art-max', (pxH * 0.30) + 'px');
         /* bar height is a physical size, not a font size, so shrinking the text never makes the bars
            shorter than a scanner can follow: about 3 mm on a small label, growing with the label width.
-           When the label is tight, 'compact' lets them drop to about 2.5 mm (a camera or imager scanner
-           still reads 2 mm; a laser line is easier to aim the taller the bars are) */
+           They are never squeezed further: if the label is too tight, the user turns the barcode off */
         var pxPerMm = pxW / (labelCm().w * 10);
-        el.style.setProperty('--bar-h', (barCompact ? Math.max(pxW / 23 * .9, 2.5 * pxPerMm) : Math.max(pxW / 23 * 1.15, 3 * pxPerMm)) + 'px');
+        el.style.setProperty('--bar-h', Math.max(pxW / 23 * 1.15, 3 * pxPerMm) + 'px');
         /* measure the content at natural height, then lock the box height */
         el.style.height = 'auto';
         el.style.minHeight = '0px';
@@ -1599,7 +1592,7 @@
       function exportBlockReason(){
         if (state.barcodeOn && !currentBarcode().ok) return 'The barcode is invalid — fix it (see the Barcode section) before downloading.';
         if (isOverflowing()){
-          if (state.barcodeOn && barcodeClipped()) return 'The barcode does not fit at this size and would be cut off — use a larger label, or turn the warranty line or price off.';
+          if (state.barcodeOn && barcodeClipped()) return 'The barcode does not fit at this size and would be cut off — use a larger label, or turn the barcode, the warranty line or the price off.';
           return 'The content does not fit at this size and would be cut off — use a larger label, fewer features, or turn the warranty or App line off.';
         }
         return '';
@@ -1613,8 +1606,9 @@
         if (!isOverflowing()) return note;
         var msg = 'Does not fit';
         var fix = '';
-        if (state.reserveFooter) fix = ' — use a larger label, fewer features, turn the warranty or App line off, or <button type="button" class="cap-btn" data-reserve-off>turn off the space kept for price and barcode</button>';
-        else fix = ' — use a larger size, fewer features, or turn the warranty or App line off';
+        var bcBtn = state.barcodeOn ? '<button type="button" class="cap-btn" data-barcode-off>turn the barcode off</button>, ' : '';
+        if (state.reserveFooter) fix = ' — use a larger label, fewer features, ' + bcBtn + 'turn the warranty or App line off, or <button type="button" class="cap-btn" data-reserve-off>turn off the space kept for price and barcode</button>';
+        else fix = ' — use a larger size, fewer features, ' + bcBtn + 'or turn the warranty or App line off';
         return note + ' <span class="cap-warn">⚠ ' + msg + fix + '</span>';
       }
       /* write only when the text really changed, so a screen reader is not made
@@ -2053,7 +2047,9 @@
       }
       /* "turn the slogan off" / "turn off the footer space" links inside the size warning */
       document.getElementById('dim-caption').addEventListener('click', function(e){
-        if (e.target.closest('[data-reserve-off]')){ setReserve(false); reserveAutoOff = false; renderLabel(); }
+        if (e.target.closest('[data-barcode-off]')){
+          state.barcodeOn = false; document.getElementById('in-barcode-on').checked = false; renderLabel();
+        } else if (e.target.closest('[data-reserve-off]')){ setReserve(false); reserveAutoOff = false; renderLabel(); }
       });
       var presetBox = document.getElementById('presets');
       PRESETS.forEach(function(p){
