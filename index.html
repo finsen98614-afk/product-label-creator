@@ -148,6 +148,16 @@
       .export-msg{ width:100%; max-width:640px; margin:-8px 0 14px; font-size:12.5px; font-weight:700; color:var(--danger); }
       .export-msg:empty{ display:none; }
       .dl-btn[aria-disabled="true"]{ opacity:.55; }
+      .req-box{ margin:12px 0 0; }
+      .req-box summary{ cursor:pointer; font-size:12.5px; font-weight:700; color:var(--ink-2); padding:2px 0 8px; }
+      .req-box summary:hover{ color:var(--ink); }
+      .req-box[hidden]{ display:none; }
+      .req-list{ list-style:none; margin:0 0 10px; padding:0; font-size:12.5px; }
+      .req-list li{ display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid var(--line); }
+      .req-list li span{ flex:1; min-width:0; overflow-wrap:anywhere; }
+      .req-list li b{ color:var(--ink-2); font-weight:800; }
+      .req-text{ width:100%; min-height:90px; font:inherit; font-size:12px; color:var(--ink); background:var(--field); border:1.5px solid var(--line); border-radius:9px; padding:8px; margin:0 0 8px; resize:vertical; }
+      .req-text[hidden]{ display:none; }
       .undo-btn{ font:inherit; font-size:12.5px; font-weight:800; color:var(--ink); background:none; border:none; padding:0 0 8px; cursor:pointer; text-decoration:underline; }
       .undo-btn[hidden]{ display:none; }
       .cap-btn{ font:inherit; font-weight:800; color:inherit; background:none; border:none; padding:0; cursor:pointer; text-decoration:underline; }
@@ -500,13 +510,23 @@
 
         <section class="block">
           <div class="block-head"><h2>Features</h2><button type="button" class="help" aria-label="Help: Features" aria-expanded="false" aria-controls="h-feat">?</button></div>
-          <div class="help-pop" id="h-feat" hidden>Type a feature and an icon is matched automatically; pick another icon from the dropdown. If nothing matches you get a search link, or choose <b>Custom image URL</b> to paste your own icon. The dash cam chips add a feature in one tap.</div>
+          <div class="help-pop" id="h-feat" hidden>Type a feature and an icon is matched automatically; pick another icon from the dropdown. If nothing matches you get a search link, or choose <b>Custom image URL</b> to paste your own icon. The quick-add chips add a feature in one tap. If a feature has no icon, press <b>Request an icon</b> on its row: it is kept in the <b>Icon requests</b> list under the feature list (saved in this browser); press <b>Copy list</b> and send it along so the icons can be added.</div>
           <details class="dc-box" id="quick-box">
             <summary id="quick-title">Quick add</summary>
             <div class="presets" id="quick-presets"></div>
           </details>
           <div id="feat-list"></div>
           <button class="add-btn" id="add-feat" type="button">+ Add feature</button>
+          <details class="req-box" id="req-box" hidden>
+            <summary id="req-title">Icon requests</summary>
+            <ul class="req-list" id="req-list" aria-label="Features that need an icon"></ul>
+            <textarea class="req-text" id="req-text" readonly hidden aria-label="Icon requests as text"></textarea>
+            <div class="record-actions">
+              <button type="button" class="rec-btn" id="req-copy">Copy list</button>
+              <button type="button" class="rec-btn danger" id="req-clear">Clear list</button>
+            </div>
+            <p class="record-msg" id="req-msg" aria-live="polite"></p>
+          </details>
         </section>
 
         <section class="block">
@@ -934,7 +954,7 @@
         { id:'drone', name:'Drone',
           icons:['drone','camera','video','res4k','hd','gimbal','pin','homegps','obstacle','follow','flighttime','range','foldable','altitude','remote','propeller','takeoff','battery','wifi','screen','star'],
           rules:[
-            ['homegps',    ['return home','return-to-home','rth','go home','auto return','一鍵返航','一键返航','返航']],
+            ['homegps',    ['return home','return to home','back to home','return-to-home','rth','go home','auto return','一鍵返航','一键返航','返航']],
             ['obstacle',   ['obstacle','avoidance','collision','避障','避開障礙']],
             ['follow',     ['follow me','follow-me','follow','active track','tracking','跟隨','跟随']],
             ['gimbal',     ['gimbal','3-axis','3 axis','eis','stabiliz','雲台','云台','防抖']],
@@ -1622,7 +1642,108 @@
         if (unmatched) nomatch.querySelector('a').href = iconSearchUrl(f.text);
         wrap.querySelector('.img-row').style.display = showImg ? 'flex' : 'none';
         wrap.querySelector('.auto-tag').style.display = (unmatched || showImg) ? 'block' : 'none';
+        /* an unmatched feature can be put on the icon-request list */
+        var reqRow = wrap.querySelector('.req-row'), rb = reqRow.querySelector('button'), requested = isRequested(f.text);
+        reqRow.style.display = unmatched ? 'block' : 'none';
+        rb.disabled = requested;
+        rb.textContent = requested ? 'Requested ✓ (see Icon requests below)' : 'Request an icon for this';
       }
+      /* ================= ICON REQUESTS =================
+         Features can turn up while a product is being made that have no icon yet.
+         "Request an icon" puts the feature (with its category and product) on a
+         list kept in this browser; "Copy list" turns it into text to send along. */
+      var REQ_KEY = 'plc_icon_requests_v1', MAX_REQ = 200;
+      var iconRequests = [];
+      try {
+        var rawReq = JSON.parse(localStorage.getItem(REQ_KEY) || '[]');
+        if (Array.isArray(rawReq)) iconRequests = rawReq.filter(function(r){
+          return r && typeof r === 'object' && typeof r.text === 'string' && r.text.trim();
+        }).slice(0, MAX_REQ).map(function(r){
+          return { category: CATEGORIES.some(function(c){ return c.id === r.category; }) ? r.category : 'general',
+                   text: r.text.trim().slice(0, 80), product: typeof r.product === 'string' ? r.product.slice(0, 80) : '' };
+        });
+      } catch (e) { /* unreadable list: start empty */ }
+      function reqKey(cat, text){ return cat + '|' + String(text || '').trim().toLowerCase(); }
+      function isRequested(text){
+        var k = reqKey(state.category, text);
+        return iconRequests.some(function(r){ return reqKey(r.category, r.text) === k; });
+      }
+      function saveRequests(){
+        try { localStorage.setItem(REQ_KEY, JSON.stringify(iconRequests)); return true; } catch (e) { return false; }
+      }
+      function reqMsg(text, kind){
+        var el = document.getElementById('req-msg');
+        el.textContent = text || ''; el.className = 'record-msg' + (kind ? ' ' + kind : '');
+      }
+      function refreshAllTags(){
+        document.querySelectorAll('#feat-list .feat-item').forEach(function(row, i){ if (state.features[i]) refreshTag(row, i); });
+      }
+      function requestsAsText(){
+        return 'Icon requests (Product Label Creator)\n' + iconRequests.map(function(r){
+          return '- [' + categoryOf(r.category).name + '] ' + r.text + (r.product ? ' (product: ' + r.product + ')' : '');
+        }).join('\n');
+      }
+      function renderRequests(){
+        var box = document.getElementById('req-box'), list = document.getElementById('req-list');
+        box.hidden = !iconRequests.length;
+        document.getElementById('req-title').textContent = 'Icon requests (' + iconRequests.length + ')';
+        list.innerHTML = '';
+        iconRequests.forEach(function(r, i){
+          var li = document.createElement('li'), span = document.createElement('span'), b = document.createElement('b'), x = document.createElement('button');
+          b.textContent = '[' + categoryOf(r.category).name + '] ';
+          span.appendChild(b); span.appendChild(document.createTextNode(r.text + (r.product ? ' — ' + r.product : '')));
+          x.type = 'button'; x.className = 'icon-btn'; x.textContent = '✕'; x.title = 'Remove'; x.setAttribute('aria-label', 'Remove request: ' + r.text);
+          x.addEventListener('click', function(){
+            iconRequests.splice(i, 1);
+            var saved = saveRequests(); renderRequests(); refreshAllTags();
+            reqMsg(saved ? '' : 'Could not save the list in this browser; copy it now if you need it.', saved ? '' : 'err');
+          });
+          li.appendChild(span); li.appendChild(x); list.appendChild(li);
+        });
+      }
+      function addIconRequest(f){
+        if (!f || !String(f.text || '').trim()) return;
+        var text = f.text.trim().slice(0, 80);
+        if (isRequested(text)) return;
+        if (iconRequests.length >= MAX_REQ){ reqMsg('The list is full (' + MAX_REQ + '). Copy and clear it first.', 'err'); document.getElementById('req-box').hidden = false; return; }
+        iconRequests.push({ category: state.category, text: text, product: String(state.sub || state.name || '').trim().slice(0, 80) });
+        var saved = saveRequests();
+        renderRequests(); refreshAllTags();
+        document.getElementById('req-box').open = true;
+        reqMsg(saved ? 'Added “' + text + '” to the icon requests.' : 'Added, but this browser would not save the list: copy it before closing the page.', saved ? 'ok' : 'err');
+      }
+      /* Copy: the Clipboard API where allowed, otherwise select the text in a box so Ctrl/Cmd+C works */
+      function fallbackCopy(text){
+        var ta = document.getElementById('req-text'), ok = false;
+        ta.hidden = false; ta.value = text; ta.focus(); ta.select();
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        if (ok) ta.hidden = true;
+        return ok;
+      }
+      document.getElementById('req-copy').addEventListener('click', function(){
+        if (!iconRequests.length) return;
+        var text = requestsAsText();
+        var done = function(ok){ reqMsg(ok ? 'Copied ' + iconRequests.length + ' request' + (iconRequests.length === 1 ? '' : 's') + '. Paste it into your message.' : 'Could not copy automatically: the text is selected below, press Ctrl+C (Cmd+C on Mac).', ok ? 'ok' : 'err'); };
+        if (navigator.clipboard && window.isSecureContext){
+          navigator.clipboard.writeText(text).then(function(){ document.getElementById('req-text').hidden = true; done(true); }, function(){ done(fallbackCopy(text)); });
+        } else done(fallbackCopy(text));
+      });
+      var reqClearTimer = 0, reqClearBtn = document.getElementById('req-clear');
+      function disarmReqClear(){ clearTimeout(reqClearTimer); reqClearBtn.classList.remove('armed'); reqClearBtn.textContent = 'Clear list'; }
+      reqClearBtn.addEventListener('click', function(){
+        if (!reqClearBtn.classList.contains('armed')){
+          reqClearBtn.classList.add('armed'); reqClearBtn.textContent = 'Press again to clear';
+          clearTimeout(reqClearTimer); reqClearTimer = setTimeout(disarmReqClear, 5000);
+          return;
+        }
+        disarmReqClear();
+        iconRequests = [];
+        var saved = saveRequests(); renderRequests(); refreshAllTags();
+        document.getElementById('req-text').hidden = true;
+        reqMsg(saved ? '' : 'Cleared here, but this browser would not save the change.', saved ? '' : 'err');
+      });
+      renderRequests();
+
       function buildFeatRow(f, i){
         var row = document.createElement('div');
         row.className = 'feat-item';
@@ -1640,6 +1761,7 @@
               '<button class="mini-btn" type="button" data-clearimg="' + i + '">Clear</button>' +
             '</div>' +
             '<div class="nomatch img-err" style="display:none"></div>' +
+            '<div class="req-row" style="display:none"><button class="mini-btn" type="button" data-request="' + i + '">Request an icon for this</button></div>' +
           '</div>';
         return row;
       }
@@ -1728,6 +1850,8 @@
           /* keep keyboard focus in the list instead of dropping it to <body> */
           var texts = featList.querySelectorAll('input.feat-text');
           if (texts.length) texts[Math.min(idx, texts.length - 1)].focus(); else document.getElementById('add-feat').focus();
+        } else if (btn.dataset.request !== undefined){
+          addIconRequest(state.features[+btn.dataset.request]);
         } else if (btn.dataset.clearimg !== undefined){
           idx = +btn.dataset.clearimg;
           state.features[idx].img = '';

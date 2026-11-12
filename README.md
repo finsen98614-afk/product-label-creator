@@ -47,6 +47,12 @@ catalog block of `index.html` (between the `BEGIN CATALOG` and `END CATALOG` com
 4. **Look at it.** Open the page, pick the category and add its quick-add features; check each icon reads well.
 5. **Open a pull request.** The *Check icon catalog* workflow runs the same script on every pull request and on `main`.
 
+Category lists are starting points, not complete catalogs: features and icons that are only discovered while making a
+real product are added one product at a time. When a feature has no icon, press **Request an icon for this** on its row;
+it goes on the **Icon requests** list under the feature list (kept in your browser), and **Copy list** turns it into text
+to send along. Each request is then answered with an icon and/or a keyword rule plus a quick-add entry, and the check
+above guards the change.
+
 Records saved without a category load as **General** (all icons, shared rules), so adding categories never changes
 existing labels.
 
