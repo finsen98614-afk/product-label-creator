@@ -145,6 +145,8 @@
       .dim-caption{ font-size:13px; color:var(--ink-2); font-weight:700; }
       .dim-caption b{ color:var(--ink); }
       .dim-caption .cap-warn{ display:block; color:var(--danger); margin-top:2px; }
+      .dim-caption .cap-note{ display:block; color:var(--ink-2); margin-top:2px; }
+      .auto-note{ margin:4px 0 8px; font-size:12px; color:var(--ink-2); }
       .export-msg{ width:100%; max-width:640px; margin:-8px 0 14px; font-size:12.5px; font-weight:700; color:var(--danger); }
       .export-msg:empty{ display:none; }
       .dl-btn[aria-disabled="true"]{ opacity:.55; }
@@ -484,6 +486,7 @@
             <label class="sw"><input type="checkbox" id="in-slogan-on" checked aria-label="Show slogan" /></label>
           </div>
           <div class="sub-fields" id="slogan-fields">
+            <p class="auto-note" id="slogan-auto-note" role="status" hidden>Hidden automatically: there is not enough room at this size. It comes back when the label has room again.</p>
             <label class="f"><span>Slogan text</span>
               <input type="text" id="in-slogan" value="Build for smart life" maxlength="120" autocomplete="off" /></label>
             <span class="picker-label">Slogan style</span>
@@ -1383,7 +1386,7 @@
                   '<span class="app-name">' + esc(appText) + '</span></div></div>';
         }
         /* slogan band (optional) */
-        var showSlogan = state.sloganOn && String(state.slogan || '').trim() !== '';
+        var showSlogan = sloganWanted() && !sloganAuto;
         if (showSlogan){
           var st = state.sloganStyle || 'dynamic';
           var sText = esc(state.slogan);
@@ -1454,12 +1457,25 @@
           b.setAttribute('aria-pressed', b.classList.contains('sel') ? 'true' : 'false');
         });
       }
-      function renderLabel(){
-        labelEl.style.setProperty('--accent', safeAccent(state.accent));
-        labelEl.style.setProperty('--on-accent', onAccent(state.accent));
+      /* The slogan is the most optional part: when it does not fit (content cut
+         off, or the Racer band squashed) it is left out of the drawing, and drawn
+         again as soon as there is room. state.sloganOn keeps the user's choice, so
+         saved records and the switch are not changed by this. */
+      var sloganAuto = false;
+      function sloganWanted(){ return !!state.sloganOn && String(state.slogan || '').trim() !== ''; }
+      function drawLabel(){
         labelEl.innerHTML = labelInnerHTML();
         attachIconFallbacks(labelEl);
         fitLabel();
+      }
+      function renderLabel(){
+        labelEl.style.setProperty('--accent', safeAccent(state.accent));
+        labelEl.style.setProperty('--on-accent', onAccent(state.accent));
+        sloganAuto = false;
+        drawLabel();
+        if (sloganWanted() && (isOverflowing() || sloganSquashed())){ sloganAuto = true; drawLabel(); }
+        var note = document.getElementById('slogan-auto-note');
+        if (note) note.hidden = !sloganAuto;
         renderCaption();
         updateBarcodeHint();
         syncPressed();
@@ -1569,25 +1585,23 @@
       function exportBlockReason(){
         if (state.barcodeOn && !currentBarcode().ok) return 'The barcode is invalid — fix it (see the Barcode section) before downloading.';
         if (isOverflowing()){
-          if (state.barcodeOn && barcodeClipped()) return 'The barcode does not fit at this size and would be cut off — use a larger label, or turn the slogan or price off.';
-          return 'The content does not fit at this size and would be cut off — use a larger label, fewer features, or turn the slogan off.';
+          if (state.barcodeOn && barcodeClipped()) return 'The barcode does not fit at this size and would be cut off — use a larger label, or turn the warranty line or price off.';
+          return 'The content does not fit at this size and would be cut off — use a larger label, fewer features, or turn the warranty or App line off.';
         }
         return '';
       }
+      function sloganSquashed(){
+        var art = labelEl.querySelector('.sz-dynamic .art');
+        return !!art && art.getBoundingClientRect().height / (art.getBoundingClientRect().width || 1) < SLOGAN_ART.h / SLOGAN_ART.w * 0.85;
+      }
       function captionWarning(){
-        var sloganShown = state.sloganOn && String(state.slogan || '').trim() !== '';
-        var over = isOverflowing();
-        var art = sloganShown ? labelEl.querySelector('.sz-dynamic .art') : null;
-        var squashed = !!art && art.getBoundingClientRect().height / (art.getBoundingClientRect().width || 1) < SLOGAN_ART.h / SLOGAN_ART.w * 0.85;
-        if (!over && !squashed) return '';
-        var msg = over
-          ? (sloganShown ? 'Does not fit with the slogan' : 'Does not fit')
-          : 'The slogan band is squashed at this shape';
+        var note = sloganAuto ? ' <span class="cap-note">Slogan hidden automatically — not enough room at this size</span>' : '';
+        if (!isOverflowing()) return note;
+        var msg = 'Does not fit';
         var fix = '';
-        if (sloganShown) fix = ' — use a taller label or <button type="button" class="cap-btn" data-slogan-off>turn the slogan off</button>';
-        else if (over && state.reserveFooter) fix = ' — use a larger label, fewer features, or <button type="button" class="cap-btn" data-reserve-off>turn off the space kept for price and barcode</button>';
-        else if (over) fix = ' — use a larger size or fewer features';
-        return ' <span class="cap-warn">⚠ ' + msg + fix + '</span>';
+        if (state.reserveFooter) fix = ' — use a larger label, fewer features, turn the warranty or App line off, or <button type="button" class="cap-btn" data-reserve-off>turn off the space kept for price and barcode</button>';
+        else fix = ' — use a larger size, fewer features, or turn the warranty or App line off';
+        return note + ' <span class="cap-warn">⚠ ' + msg + fix + '</span>';
       }
       /* write only when the text really changed, so a screen reader is not made
          to re-announce an identical caption on every keystroke */
@@ -1989,7 +2003,6 @@
       /* currency fixed to "$" — no selector */
       document.getElementById('in-slogan-on').addEventListener('change', function(e){
         state.sloganOn = e.target.checked;
-        sloganAutoOff = false;                       /* the user decided; stop auto-restoring */
         document.getElementById('slogan-fields').classList.toggle('off', !e.target.checked);
         renderLabel();
       });
@@ -2015,31 +2028,24 @@
       });
 
       /* size presets */
-      /* [width, length, label, options?] — options { slogan:false, reserve:false } mark a size too small
-         for the slogan band and the kept price / barcode strip: choosing it switches those off, and
-         choosing a normal size afterwards switches them back on, unless the user has touched the
-         switch in between (or loaded a record) */
-      var PRESETS = [ [6.5,10,'6.5 × 10'], [6,9,'6 × 9'], [8,12,'8 × 12'], [10,16,'10 × 16'], [12,18,'12 × 18'], [5,5,'5 × 5', { slogan:false, reserve:false, tag:'compact' }] ];
-      var sloganAutoOff = false, reserveAutoOff = false;
-      function setSloganOn(on){
-        state.sloganOn = on;
-        document.getElementById('in-slogan-on').checked = on;
-        document.getElementById('slogan-fields').classList.toggle('off', !on);
-      }
+      /* [width, length, label, options?] — options { reserve:false } mark a size too small for the kept
+         price / barcode strip: choosing it switches the strip off, and choosing a normal size afterwards
+         switches it back on, unless the user has touched the switch in between (or loaded a record) */
+      var PRESETS = [ [6.5,10,'6.5 × 10'], [6,9,'6 × 9'], [8,12,'8 × 12'], [10,16,'10 × 16'], [12,18,'12 × 18'], [5,5,'5 × 5', { reserve:false, tag:'compact' }] ];
+      var reserveAutoOff = false;
       function setReserve(on){
         state.reserveFooter = on;
         document.getElementById('in-reserve').checked = on;
       }
       /* "turn the slogan off" / "turn off the footer space" links inside the size warning */
       document.getElementById('dim-caption').addEventListener('click', function(e){
-        if (e.target.closest('[data-slogan-off]')){ setSloganOn(false); sloganAutoOff = false; renderLabel(); }
-        else if (e.target.closest('[data-reserve-off]')){ setReserve(false); reserveAutoOff = false; renderLabel(); }
+        if (e.target.closest('[data-reserve-off]')){ setReserve(false); reserveAutoOff = false; renderLabel(); }
       });
       var presetBox = document.getElementById('presets');
       PRESETS.forEach(function(p){
         var b = document.createElement('button');
         b.className = 'chip'; b.type = 'button'; b.textContent = p[2] + ' cm' + (p[3] ? ' · ' + p[3].tag : '');
-        if (p[3]) b.title = 'Too small for the slogan band and the space kept for price and barcode: both are switched off';
+        if (p[3]) b.title = 'Too small for the space kept for price and barcode: it is switched off (the slogan hides itself when there is no room)';
         b.dataset.w = p[0]; b.dataset.l = p[1];
         b.addEventListener('click', function(){
           state.w = p[0]; state.l = p[1]; state.unit = 'cm';
@@ -2047,8 +2053,6 @@
           document.getElementById('in-l').value = p[1];
           document.getElementById('in-unit').value = 'cm';
           var o = p[3];
-          if (o && o.slogan === false){ if (state.sloganOn){ setSloganOn(false); sloganAutoOff = true; } }
-          else if (sloganAutoOff){ setSloganOn(true); sloganAutoOff = false; }
           if (o && o.reserve === false){ if (state.reserveFooter){ setReserve(false); reserveAutoOff = true; } }
           else if (reserveAutoOff){ setReserve(true); reserveAutoOff = false; }
           renderLabel();
@@ -2234,7 +2238,7 @@
         recDeleteBtn.textContent = 'Delete';
       }
       function syncFormFromState(){
-        sloganAutoOff = false; reserveAutoOff = false;   /* a loaded record brings its own slogan / footer settings */
+        reserveAutoOff = false;   /* a loaded record brings its own slogan / footer settings */
         catSel.value = state.category; renderQuick();
         document.getElementById('in-name').value = state.name || '';
         document.getElementById('in-sub').value = state.sub || '';

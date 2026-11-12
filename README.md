@@ -5,10 +5,10 @@ Generate XO-W12-style product labels — for smart watches, dash cams and more.
 - Brand name + product name, label size (default 6.5 x 10 cm). Bold, high-contrast look: company yellow (#fdd904), large condensed feature text, ring icons, thick rounded border
 - Product categories (General, Smart watch, Dash cam, Speaker, Drone, Karaoke): the category decides which icons the dropdown suggests first, how Auto picks an icon from the words you type, and which quick-add features are offered. Changing it never edits features you already typed
 - Iconic features with auto-matched icons (Bluetooth, IP68, AMOLED, NFC, health monitoring, watch case, wireless charging, dash cam features and more — with online icon search fallback)
-- Slogan in 3 styles (Racer / Minimal / Retro), optional
-- Warranty period (default 1 Year, or 6 Months), App name, price (red, centred, $)
+- Slogan in 3 styles (Racer / Minimal / Retro), optional. It is the first thing to give way: when the label has no room for it (or the Racer band would be squashed) it hides itself and comes back when there is room again. The switch keeps your choice, and saved records keep it too
+- Warranty period (default 1 Year, or 6 Months) and App name, each with its own on/off switch; price (red, centred, $)
 - English interface; explanations live behind "?" buttons
-- "Keep space for price and barcode" switch (on by default): a strip at the bottom stays free so a price and barcode can be printed or stuck on afterwards. Turn it off to give the space back to the features. The 5 x 5 cm "compact" preset turns it off together with the slogan
+- "Keep space for price and barcode" switch (on by default): a strip at the bottom stays free so a price and barcode can be printed or stuck on afterwards. Turn it off to give the space back to the features. The 5 x 5 cm "compact" preset turns it off
 - Real, scannable barcode: Code 128 (any text), EAN-13, UPC-A — Auto picks by length, retail types verify or auto-add the check digit, bars are checked against a minimum printable width
 - Live preview, PNG download (fixed 300 DPI, independent of screen size). A label that would be cut off (barcode, price or content that does not fit) is not exported; the reason is shown next to the Download button
 - Saved records (Add / Load / Change / Delete) keyed by the barcode value and stored locally in the browser, with Export / Import backup. Records from the earlier product-name-keyed version are converted automatically
