@@ -9,7 +9,7 @@
     <title>Product Label Creator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,700;0,900;1,900&family=Barlow+Condensed:ital,wght@1,900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,700;0,900;1,900&family=Barlow+Condensed:ital,wght@0,700;0,800;1,900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
       :root{
@@ -192,47 +192,48 @@
 
       /* ---------- THE LABEL (sizes in em; JS sets base font-size) ---------- */
       .label{
-        --accent:#ffc900;
+        --accent:#fdd904;
         background:#ffffff; color:#0b0b0c;
-        border:.30em solid var(--accent); border-radius:1.5em;
+        border:calc(var(--unit, 1em) * .42) solid var(--accent); border-radius:calc(var(--unit, 1em) * 1.7);
         font-family:"Archivo","Noto Sans TC",sans-serif;
         padding:1.05em 1.15em 0; overflow:hidden; position:relative;
         display:flex; flex-direction:column;
       }
       .name-row{ display:flex; align-items:center; justify-content:center; gap:.55em; }
-      .slashes{ display:flex; gap:.16em; flex:none; }
-      .slashes i{ display:block; width:.34em; height:1.35em; background:var(--accent); transform:skewX(-18deg); }
+      .slashes{ display:flex; gap:.22em; flex:none; }
+      .slashes i{ display:block; width:.5em; height:2.1em; background:var(--accent); transform:skewX(-18deg); }
       .pname{
         font-weight:900; font-style:italic; text-transform:uppercase;
-        font-size:3.1em; line-height:.98; letter-spacing:-.015em; text-align:center;
+        font-size:5.2em; line-height:.98; letter-spacing:-.015em; text-align:center;
         white-space:nowrap; min-width:0; overflow:hidden;
       }
       .banner{ display:flex; align-items:center; gap:.55em; margin-top:.55em; }
       .banner .dash{ flex:1; height:.17em; background:#0b0b0c; min-width:.5em; }
       .banner-inner{
         background:var(--accent); transform:skewX(-14deg);
-        padding:.30em 1.15em; flex:none; max-width:88%;
+        padding:.34em 1.3em; flex:none; max-width:92%;
       }
       .banner-inner span{
         display:block; font-weight:900; font-style:italic; text-transform:uppercase;
-        font-size:1.42em; line-height:1.05; white-space:nowrap; color:var(--on-accent, #0b0b0c);
+        font-size:2.25em; line-height:1.05; white-space:nowrap; color:var(--on-accent, #0b0b0c);
       }
       .grid{ display:grid; grid-template-columns:1fr 1fr; margin-top:.95em; }
       .cell{
         display:flex; align-items:center; gap:.62em;
-        padding:.78em .3em .78em .45em; border-top:.085em solid var(--accent); min-width:0;
+        padding:.6em .3em .6em .45em; border-top:.085em solid var(--accent); min-width:0;
       }
       .cell.no-top{ border-top:none; }
       .cell.div{ border-left:.085em solid var(--accent); padding-left:.75em; }
       .cell.span2{ grid-column:span 2; justify-content:center; }
       .ring{
-        flex:none; width:4.35em; height:4.35em; border-radius:50%;
-        border:.21em solid var(--accent); display:grid; place-items:center; background:#fff;
+        flex:none; width:5.7em; height:5.7em; border-radius:50%;
+        border:.3em solid var(--accent); display:grid; place-items:center; background:#fff;
       }
-      .ring svg{ width:2.75em; height:2.75em; display:block; }
+      .ring svg{ width:4.8em; height:4.8em; display:block; }
       .ftext{
-        font-weight:900; text-transform:uppercase; font-size:1.22em; line-height:1.04;
-        letter-spacing:-.005em; flex:1; min-width:0;
+        font-family:"Barlow Condensed","Archivo",sans-serif;
+        font-weight:800; text-transform:uppercase; font-size:1.95em; line-height:.98;
+        letter-spacing:.01em; flex:1; min-width:0;
       }
       .warranty{ display:flex; align-items:center; gap:.6em; margin-top:.85em; padding:0 .15em; }
       .warranty .wdash{ flex:1; height:.14em; background:var(--accent); min-width:.5em; }
@@ -371,8 +372,8 @@
         display:flex; align-items:center; justify-content:center;
         font-family:"Archivo",sans-serif;
       }
-      .pv-dynamic{ background:#ffc900; }
-      .pv-dynamic{ background:linear-gradient(#ffc900 0 72%, #16181d 72% 100%); }
+      .pv-dynamic{ background:#fdd904; }
+      .pv-dynamic{ background:linear-gradient(#fdd904 0 72%, #16181d 72% 100%); }
       .pv-dynamic b{
         font-size:14px; font-weight:900; font-style:italic; color:#16181d;
         transform:rotate(-5deg); letter-spacing:-.02em; margin-top:-4px;
@@ -385,7 +386,7 @@
       .pv-retro{ background:#16181d; }
       .pv-retro b{
         font-size:10px; font-weight:900; font-style:normal; color:#fff;
-        border:1.5px solid #ffc900; padding:2.5px 8px; letter-spacing:.12em;
+        border:1.5px solid #fdd904; padding:2.5px 8px; letter-spacing:.12em;
       }
       /* previews keep their own colours even when the option is selected */
       .style-opt.sel .pv-dynamic b{ color:#16181d; }
@@ -399,6 +400,9 @@
            above the barcode when both do not fit */
         display:flex; flex-wrap:wrap-reverse; align-items:flex-start; justify-content:space-between; gap:.4em 1em;
       }
+      /* reserved footer: the strip keeps one fixed height whether or not the price / barcode are filled in,
+         so the space is there to print them later (a price sticker, a handwritten price, a barcode label) */
+      .foot.reserve{ min-height:4.6em; }
       .barcode{ text-align:left; flex:0 1 auto; min-width:0; max-width:100%; }
       .barcode .bars{ position:relative; height:2.5em; max-width:100%; }
       .barcode .bars i{ position:absolute; top:0; bottom:0; background:#0b0b0c; }
@@ -429,7 +433,7 @@
 
         <section class="block">
           <div class="block-head"><h2>Barcode</h2><button type="button" class="help" aria-label="Help: Barcode" aria-expanded="false" aria-controls="h-barcode">?</button></div>
-          <div class="help-pop" id="h-barcode" hidden>The barcode value is the <b>record key</b>, so it is needed even when the barcode is not printed. <b>Auto</b> picks EAN-13 for 13 digits, UPC-A for 12 digits and Code 128 for anything else. EAN-13 and UPC-A check the check digit, or add it if you leave it out. Print the PNG at 100% (actual size) on a laser printer, then test-scan it.</div>
+          <div class="help-pop" id="h-barcode" hidden>The barcode value is the <b>record key</b>, so it is needed even when the barcode is not printed. <b>Keep space for price and barcode</b> leaves a blank strip at the bottom of the label (on by default) so a price or barcode can be added later; turn it off to use that room for the content. <b>Auto</b> picks EAN-13 for 13 digits, UPC-A for 12 digits and Code 128 for anything else. EAN-13 and UPC-A check the check digit, or add it if you leave it out. Print the PNG at 100% (actual size) on a laser printer, then test-scan it.</div>
           <label class="f"><span>Barcode value (record key)</span>
             <input type="text" id="in-barcode" value="XO-W12-2026" maxlength="64" autocomplete="off" /></label>
           <div class="row2">
@@ -444,6 +448,10 @@
               <label class="sw" style="margin-top:3px"><input type="checkbox" id="in-barcode-on" aria-label="Print barcode on label" /></label></div>
           </div>
           <p class="record-note" id="barcode-hint" aria-live="polite"></p>
+          <div class="switch-row">
+            <div class="t">Keep space for price and barcode</div>
+            <label class="sw"><input type="checkbox" id="in-reserve" checked aria-label="Keep space at the bottom for the price and barcode" /></label>
+          </div>
         </section>
 
         <section class="block">
@@ -498,7 +506,7 @@
 
         <section class="block">
           <div class="block-head"><h2>Size</h2><button type="button" class="help" aria-label="Help: Size" aria-expanded="false" aria-controls="h-size">?</button></div>
-          <div class="help-pop" id="h-size" hidden>The preview is drawn to scale. The PNG is exported at 300 DPI and carries its real size, so print it at 100%. Sizes marked <b>no slogan</b> are too small for the slogan band, so choosing one switches the slogan off (you can switch it back on).</div>
+          <div class="help-pop" id="h-size" hidden>The preview is drawn to scale. The PNG is exported at 300 DPI and carries its real size, so print it at 100%. Sizes marked <b>compact</b> are too small for the slogan band and the strip kept for price and barcode, so choosing one switches both off (you can switch them back on).</div>
           <div class="presets" id="presets"></div>
           <div class="row3">
             <label class="f"><span>Width</span><input type="number" id="in-w" value="6.5" min="2" step="0.5" /></label>
@@ -618,9 +626,9 @@
           S('M3.5 19.6c1.8-1.3 3.6-1.3 5.4 0s3.6 1.3 5.4 0 3.6-1.3 5.4 0', 1.9) +
           S('M3.5 22.4c1.8-1.3 3.6-1.3 5.4 0s3.6 1.3 5.4 0 3.6-1.3 5.4 0', 1.9)) },
         battery: { name:'Battery', svg: svgWrap(
-          '<rect x="2.6" y="7.6" width="17" height="9.6" rx="1.8" fill="#0b0b0c"/>' +
-          '<rect x="20.6" y="10.6" width="2.2" height="3.6" rx="1" fill="#0b0b0c"/>' +
-          '<path fill="#fff" d="M12.6 8.9l-3.6 4.9h2.4l-1.1 3.4 4-5.2h-2.5l.8-3.1z"/>') },
+          '<rect x="9.4" y="1.6" width="5.2" height="3" rx="1.1" fill="#0b0b0c"/>' +
+          '<rect x="6" y="4" width="12" height="18.4" rx="2.8" fill="#0b0b0c"/>' +
+          '<path fill="#fff" d="M13.4 7.2l-4.2 7h3.1l-1.1 5.6 4.5-7.6h-3.2z"/>') },
         wireless: { name:'Wireless charging', svg: svgWrap(
           S('M4.8 5.6a11 11 0 0 1 14.4 0M7.4 8.9a7.2 7.2 0 0 1 9.2 0', 2) +
           F('M13.1 9.3l-4.3 6h2.7l-1.2 4.3 4.5-6.2h-2.8l1.1-4.1z') +
@@ -638,10 +646,15 @@
           '<rect x="2.8" y="4.4" width="18.4" height="12.4" rx="1.8" fill="#0b0b0c"/>' +
           '<rect x="10" y="18.6" width="4" height="2" fill="#0b0b0c"/><rect x="7.6" y="20.4" width="8.8" height="1.6" rx=".8" fill="#0b0b0c"/>') },
         amoled: { name:'AMOLED screen', svg: svgWrap(
-          '<rect x="2.6" y="4.4" width="18.8" height="13.6" rx="2.4" fill="#0b0b0c"/>' +
-          '<circle cx="7.9" cy="8.9" r="1.55" fill="#ff453a"/><circle cx="12" cy="8.9" r="1.55" fill="#32d74b"/><circle cx="16.1" cy="8.9" r="1.55" fill="#0a84ff"/>' +
-          '<circle cx="7.9" cy="13.5" r="1.55" fill="#ffd60a"/><circle cx="12" cy="13.5" r="1.55" fill="#bf5af2"/><circle cx="16.1" cy="13.5" r="1.55" fill="#64d2ff"/>' +
-          '<rect x="10.7" y="19" width="2.6" height="1.7" fill="#0b0b0c"/><rect x="8" y="20.7" width="8" height="1.5" rx=".75" fill="#0b0b0c"/>') },
+          '<circle cx="12" cy="12" r="11.6" fill="#0b0b0c"/>' +
+          '<path d="M11.74 2.10A9.9 9.9 0 0 1 20.70 7.28" fill="none" stroke="#ff3b30" stroke-width="3.6"/>' +
+          '<path d="M20.44 6.83A9.9 9.9 0 0 1 20.44 17.17" fill="none" stroke="#ff9500" stroke-width="3.6"/>' +
+          '<path d="M20.70 16.72A9.9 9.9 0 0 1 11.74 21.90" fill="none" stroke="#ffd60a" stroke-width="3.6"/>' +
+          '<path d="M12.26 21.90A9.9 9.9 0 0 1 3.30 16.72" fill="none" stroke="#30d158" stroke-width="3.6"/>' +
+          '<path d="M3.56 17.17A9.9 9.9 0 0 1 3.56 6.83" fill="none" stroke="#0a84ff" stroke-width="3.6"/>' +
+          '<path d="M3.30 7.28A9.9 9.9 0 0 1 12.26 2.10" fill="none" stroke="#bf5af2" stroke-width="3.6"/>' +
+          '<circle cx="12" cy="12" r="8" fill="#0b0b0c"/>' +
+          '<text x="12" y="13.4" text-anchor="middle" font-family="Archivo,Arial,sans-serif" font-weight="900" font-size="3.3" textLength="13" lengthAdjust="spacingAndGlyphs" fill="#fff">AMOLED</text>') },
         'case': { name:'Case material', svg: svgWrap(
           '<path fill="#0b0b0c" d="M9.3 1.5h5.4l-.6 2.1H9.9l-.6-2.1zM9.9 20.4h4.2l.6 2.1H9.3l.6-2.1z"/>' +
           '<rect x="4.9" y="3.3" width="14.2" height="17.4" rx="4.9" fill="#0b0b0c"/>' +
@@ -653,11 +666,15 @@
           '<circle cx="15.6" cy="4.4" r="2.1" fill="#0b0b0c"/>' +
           S('M13.4 8.2l-3.2 2.4-3 .8M10.2 10.6l.6 3.4-2.7 3.4M10.8 14l3.4 1.6 1.2 3.8M13.4 8.2l2.8 2 2.6.4M4 13.4H1.8M5 16.8H2.6', 2.2)) },
         robot: { name:'AI assistant', svg: svgWrap(
-          S('M12 5.4V2.8', 2.1) + '<circle cx="12" cy="2.4" r="1.3" fill="#0b0b0c"/>' +
-          '<rect x="4" y="5.6" width="16" height="12" rx="3.4" fill="#0b0b0c"/>' +
-          '<circle cx="9.2" cy="11.2" r="1.5" fill="#fff"/><circle cx="14.8" cy="11.2" r="1.5" fill="#fff"/>' +
-          '<path d="M9.4 14.6a3.4 3.4 0 0 0 5.2 0" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>' +
-          '<rect x="6.4" y="18.6" width="11.2" height="2.6" rx="1.3" fill="#0b0b0c"/>') },
+          S('M11.2 4.4V2.2', 1.9) + '<circle cx="11.2" cy="1.9" r="1.3" fill="#0b0b0c"/>' +
+          '<rect x="3.6" y="4.2" width="15.2" height="12" rx="5.2" fill="#0b0b0c"/>' +
+          '<circle cx="3.4" cy="10.6" r="2" fill="#0b0b0c"/><circle cx="19" cy="10.6" r="2" fill="#0b0b0c"/>' +
+          '<rect x="6" y="7" width="10.4" height="6.8" rx="3.2" fill="#fff"/>' +
+          '<circle cx="9.4" cy="10" r="1" fill="#0b0b0c"/><circle cx="13" cy="10" r="1" fill="#0b0b0c"/>' +
+          '<path d="M9.6 12a2.1 2.1 0 0 0 3 0" fill="none" stroke="#0b0b0c" stroke-width="1.1" stroke-linecap="round"/>' +
+          '<path d="M3.4 22.6v-1.6a4.6 4.6 0 0 1 4.6-4.6h6.4a4.6 4.6 0 0 1 4.6 4.6v1.6z" fill="#0b0b0c"/>' +
+          '<circle cx="19.4" cy="18.8" r="3.9" fill="#fff"/><circle cx="19.4" cy="18.8" r="3.2" fill="#0b0b0c"/>' +
+          '<circle cx="17.9" cy="18.8" r=".6" fill="#fff"/><circle cx="19.4" cy="18.8" r=".6" fill="#fff"/><circle cx="20.9" cy="18.8" r=".6" fill="#fff"/>') },
         pin: { name:'GPS location', svg: svgWrap(
           F('M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z')) },
         moon: { name:'Sleep', svg: svgWrap(
@@ -1025,10 +1042,10 @@
       /* END CATALOG */
 
       /* ================= STATE ================= */
-      var DEFAULT_ACCENT = '#ffc900';
+      var DEFAULT_ACCENT = '#fdd904';
       function defaultState(){
         return {
-          category:'watch',
+          category:'watch', reserveFooter:true,
           name:'XO-W12', sub:'Smart Sport Watch', slogan:'Build for smart life', sloganOn:true, sloganStyle:'dynamic',
           appOn:true, appName:'FitPro',
           w:6.5, l:10, unit:'cm', accent:DEFAULT_ACCENT,
@@ -1080,6 +1097,8 @@
         function posNum(v, def){ var n = parseFloat(v); return isFinite(n) && n > 0 && n <= 1000 ? n : def; }
         var out = {
           /* records saved before categories existed have none: they load as "general" (all icons, shared rules) = unchanged behaviour */
+          /* a label saved before this option existed keeps its old look (footer only when barcode/price are on) */
+          reserveFooter: bool(raw.reserveFooter, false),
           category: CATEGORIES.some(function(c){ return c.id === raw.category; }) ? raw.category : 'general',
           name: str(raw.name, d.name, 80),
           sub: str(raw.sub, d.sub, 80),
@@ -1341,7 +1360,7 @@
               span = ' style="grid-column:1 / -1; justify-content:center"';
             }
             var ringInner = (f.img && String(f.img).trim())
-              ? '<img src="' + esc(f.img) + '" alt="" crossorigin="anonymous" data-icon="' + esc(key) + '" referrerpolicy="no-referrer" style="width:2.75em;height:2.75em;object-fit:contain;display:block"/>'
+              ? '<img src="' + esc(f.img) + '" alt="" crossorigin="anonymous" data-icon="' + esc(key) + '" referrerpolicy="no-referrer" style="width:4.8em;height:4.8em;object-fit:contain;display:block"/>'
               : iconHTML(key);
             html += '<div class="' + cls + '"' + span + '><div class="ring">' + ringInner + '</div>' +
                     '<div class="ftext">' + esc(f.text) + '</div></div>';
@@ -1390,9 +1409,10 @@
         }
         /* footer: barcode / price (a blank price is not printed as a lone "$") */
         var priceShown = state.priceOn && String(state.price == null ? '' : state.price).trim() !== '';
-        if (state.barcodeOn || priceShown){
+        var footerShown = state.barcodeOn || priceShown || state.reserveFooter;
+        if (footerShown){
           if (!showSlogan) html += '<div class="push"></div>';
-          var fcls = 'foot' + (state.barcodeOn && !priceShown ? ' only-code' : '') + (!state.barcodeOn && priceShown ? ' only-price' : '');
+          var fcls = 'foot' + (state.reserveFooter ? ' reserve' : '') + (state.barcodeOn && !priceShown ? ' only-code' : '') + (!state.barcodeOn && priceShown ? ' only-price' : '');
           html += '<div class="' + fcls + '">';
           if (state.barcodeOn){
             var bc = currentBarcode();
@@ -1406,7 +1426,7 @@
           }
           html += '</div>';
         }
-        if (!showSlogan && !state.barcodeOn && !priceShown) html += '<div class="end-pad"></div>';
+        if (!showSlogan && !footerShown) html += '<div class="end-pad"></div>';
         return html;
       }
       /* text colour for fills that use the accent colour: whichever of black or
@@ -1490,9 +1510,9 @@
              applied (set-then-read per element used to force ~25-45 layouts) */
           var targets = [];
           function add(node, base, unit, min){ if (node) targets.push({ el:node, base:base, unit:!!unit, min:min }); }
-          add(el.querySelector('.pname'), 3.1, false, .55);                   /* product name */
-          add(el.querySelector('.banner-inner span'), 1.42, false, .55);      /* subtitle */
-          el.querySelectorAll('.ftext').forEach(function(t){ add(t, 1.22, false, .55); });   /* longest word must fit its cell */
+          add(el.querySelector('.pname'), 5.2, false, .55);                   /* product name */
+          add(el.querySelector('.banner-inner span'), 2.25, false, .55);      /* subtitle */
+          el.querySelectorAll('.ftext').forEach(function(t){ add(t, 1.95, false, .55); });   /* longest word must fit its cell */
           add(el.querySelector('.warranty .wtext'), 1.15, false, .55);
           add(el.querySelector('.app-name'), 1.18, false, .55);
           add(el.querySelector('.barcode .code'), .78, false, .5);            /* digits under the bars */
@@ -1506,13 +1526,15 @@
           }
           fitBatch(targets);
           var nat = el.scrollHeight;
-          if (nat <= pxH) break;
+          /* the room for content is the box minus its borders (pxH is the border-box height) */
+          var avail = pxH - (el.offsetHeight - el.clientHeight);
+          if (nat <= avail) break;
           /* the slogan art keeps its proportions, so it does not shrink with the
              font: scale only the part that does */
           var artEl = el.querySelector('.sz-dynamic .art'), fixedH = artEl ? artEl.offsetHeight : 0;
-          var next = (fixedH && fixedH < pxH && nat > fixedH)
-            ? fs * ((pxH - fixedH) / (nat - fixedH)) * .97
-            : fs * (pxH / nat) * .97;
+          var next = (fixedH && fixedH < avail && nat > fixedH)
+            ? fs * ((avail - fixedH) / (nat - fixedH)) * .97
+            : fs * (avail / nat) * .97;
           if (next < 5){ fs = 5; el.style.fontSize = fs + 'px'; break; }
           fs = next;
         }
@@ -1559,9 +1581,13 @@
         var squashed = !!art && art.getBoundingClientRect().height / (art.getBoundingClientRect().width || 1) < SLOGAN_ART.h / SLOGAN_ART.w * 0.85;
         if (!over && !squashed) return '';
         var msg = over
-          ? (sloganShown ? 'Does not fit with the slogan' : 'Does not fit — use a larger size or fewer features')
+          ? (sloganShown ? 'Does not fit with the slogan' : 'Does not fit')
           : 'The slogan band is squashed at this shape';
-        return ' <span class="cap-warn">⚠ ' + msg + (sloganShown ? ' — use a taller label or <button type="button" class="cap-btn" data-slogan-off>turn the slogan off</button>' : '') + '</span>';
+        var fix = '';
+        if (sloganShown) fix = ' — use a taller label or <button type="button" class="cap-btn" data-slogan-off>turn the slogan off</button>';
+        else if (over && state.reserveFooter) fix = ' — use a larger label, fewer features, or <button type="button" class="cap-btn" data-reserve-off>turn off the space kept for price and barcode</button>';
+        else if (over) fix = ' — use a larger size or fewer features';
+        return ' <span class="cap-warn">⚠ ' + msg + fix + '</span>';
       }
       /* write only when the text really changed, so a screen reader is not made
          to re-announce an identical caption on every keystroke */
@@ -1977,6 +2003,7 @@
       document.getElementById('in-barcode-type').addEventListener('change', function(e){
         state.barcodeType = e.target.value; renderLabel();
       });
+      document.getElementById('in-reserve').addEventListener('change', function(e){ state.reserveFooter = e.target.checked; reserveAutoOff = false; renderLabel(); });
       document.getElementById('in-barcode-on').addEventListener('change', function(e){
         state.barcodeOn = e.target.checked;
         renderLabel();
@@ -1988,46 +2015,50 @@
       });
 
       /* size presets */
-      /* [width, length, label, slogan?] — a size marked `false` is too small for
-         the slogan band to look right, so choosing it switches the slogan off
-         (and choosing a normal size afterwards switches it back on, unless the
-         user has touched the slogan switch in between) */
-      var PRESETS = [ [6.5,10,'6.5 × 10'], [6,9,'6 × 9'], [8,12,'8 × 12'], [10,16,'10 × 16'], [12,18,'12 × 18'], [5,5,'5 × 5',false] ];
-      var sloganAutoOff = false;
+      /* [width, length, label, options?] — options { slogan:false, reserve:false } mark a size too small
+         for the slogan band and the kept price / barcode strip: choosing it switches those off, and
+         choosing a normal size afterwards switches them back on, unless the user has touched the
+         switch in between (or loaded a record) */
+      var PRESETS = [ [6.5,10,'6.5 × 10'], [6,9,'6 × 9'], [8,12,'8 × 12'], [10,16,'10 × 16'], [12,18,'12 × 18'], [5,5,'5 × 5', { slogan:false, reserve:false, tag:'compact' }] ];
+      var sloganAutoOff = false, reserveAutoOff = false;
       function setSloganOn(on){
         state.sloganOn = on;
         document.getElementById('in-slogan-on').checked = on;
         document.getElementById('slogan-fields').classList.toggle('off', !on);
       }
-      /* "turn the slogan off" link inside the size warning */
+      function setReserve(on){
+        state.reserveFooter = on;
+        document.getElementById('in-reserve').checked = on;
+      }
+      /* "turn the slogan off" / "turn off the footer space" links inside the size warning */
       document.getElementById('dim-caption').addEventListener('click', function(e){
-        if (!e.target.closest('[data-slogan-off]')) return;
-        setSloganOn(false); sloganAutoOff = false;
-        renderLabel();
+        if (e.target.closest('[data-slogan-off]')){ setSloganOn(false); sloganAutoOff = false; renderLabel(); }
+        else if (e.target.closest('[data-reserve-off]')){ setReserve(false); reserveAutoOff = false; renderLabel(); }
       });
       var presetBox = document.getElementById('presets');
       PRESETS.forEach(function(p){
         var b = document.createElement('button');
-        b.className = 'chip'; b.type = 'button'; b.textContent = p[2] + ' cm' + (p[3] === false ? ' · no slogan' : '');
+        b.className = 'chip'; b.type = 'button'; b.textContent = p[2] + ' cm' + (p[3] ? ' · ' + p[3].tag : '');
+        if (p[3]) b.title = 'Too small for the slogan band and the space kept for price and barcode: both are switched off';
         b.dataset.w = p[0]; b.dataset.l = p[1];
         b.addEventListener('click', function(){
           state.w = p[0]; state.l = p[1]; state.unit = 'cm';
           document.getElementById('in-w').value = p[0];
           document.getElementById('in-l').value = p[1];
           document.getElementById('in-unit').value = 'cm';
-          if (p[3] === false){
-            if (state.sloganOn){ setSloganOn(false); sloganAutoOff = true; }
-          } else if (sloganAutoOff){
-            setSloganOn(true); sloganAutoOff = false;
-          }
+          var o = p[3];
+          if (o && o.slogan === false){ if (state.sloganOn){ setSloganOn(false); sloganAutoOff = true; } }
+          else if (sloganAutoOff){ setSloganOn(true); sloganAutoOff = false; }
+          if (o && o.reserve === false){ if (state.reserveFooter){ setReserve(false); reserveAutoOff = true; } }
+          else if (reserveAutoOff){ setReserve(true); reserveAutoOff = false; }
           renderLabel();
         });
         presetBox.appendChild(b);
       });
 
       /* accent swatches */
-      var ACCENTS = ['#ffc900','#ff7a1a','#e8323f','#1f9d55','#1677ff','#111111'];
-      var ACCENT_NAMES = ['yellow','orange','red','green','blue','black'];
+      var ACCENTS = ['#fdd904','#ffb800','#ff7a1a','#e8323f','#1f9d55','#1677ff','#111111'];
+      var ACCENT_NAMES = ['company yellow','amber','orange','red','green','blue','black'];
       var swBox = document.getElementById('swatches');
       ACCENTS.forEach(function(c){
         var b = document.createElement('button');
@@ -2203,7 +2234,7 @@
         recDeleteBtn.textContent = 'Delete';
       }
       function syncFormFromState(){
-        sloganAutoOff = false;                       /* a loaded record brings its own slogan setting */
+        sloganAutoOff = false; reserveAutoOff = false;   /* a loaded record brings its own slogan / footer settings */
         catSel.value = state.category; renderQuick();
         document.getElementById('in-name').value = state.name || '';
         document.getElementById('in-sub').value = state.sub || '';
@@ -2227,13 +2258,14 @@
         document.getElementById('in-barcode').value = state.barcode || '';
         document.getElementById('in-barcode-type').value = state.barcodeType || 'auto';
         document.getElementById('in-barcode-on').checked = !!state.barcodeOn;
+        document.getElementById('in-reserve').checked = !!state.reserveFooter;
         document.getElementById('in-price').value = state.price || '';
         document.getElementById('in-price-on').checked = !!state.priceOn;
         document.getElementById('price-fields').classList.toggle('off', !state.priceOn);
         swBox.querySelectorAll('.swatch').forEach(function(x){
           x.classList.toggle('sel', x.style.background && rgbToHex(x.style.background) === String(state.accent).toLowerCase());
         });
-        colorIn.value = /^#[0-9a-f]{6}$/i.test(state.accent) ? state.accent : '#ffc900';
+        colorIn.value = /^#[0-9a-f]{6}$/i.test(state.accent) ? state.accent : '#fdd904';
         renderFeatEditor();
         renderLabel();
       }
