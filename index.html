@@ -395,18 +395,23 @@
       .style-opt.sel .pv-minimal b{ color:#16181d; }
       .style-opt.sel .pv-retro b{ color:#fff; }
       .foot{
-        margin:0 -1.15em; padding:.55em 1.15em .7em; background:#fff;
+        margin:0 -1.15em; padding:.45em 1.15em .55em; background:#fff;
         border-top:.14em solid #0b0b0c;
-        /* barcode keeps its natural width (squeezing bars makes them unscannable);
-           the price takes the remaining space, and wraps onto its own line
-           above the barcode when both do not fit */
-        display:flex; flex-wrap:wrap-reverse; align-items:flex-start; justify-content:space-between; gap:.4em 1em;
+        /* price on top, centred on the label, barcode centred under it (column-reverse:
+           the barcode comes first in the markup). Side by side pushed the price to the right edge. */
+        display:flex; flex-direction:column-reverse; align-items:center; justify-content:center; gap:.25em;
       }
       /* reserved footer: the strip keeps one fixed height whether or not the price / barcode are filled in,
          so the space is there to print them later (a price sticker, a handwritten price, a barcode label) */
-      .foot.reserve{ min-height:4.6em; }
-      .barcode{ text-align:left; flex:0 1 auto; min-width:0; max-width:100%; }
-      .barcode .bars{ position:relative; height:2.5em; max-width:100%; }
+      .foot.reserve{ min-height:7.2em; }
+      /* last resort on a small label (after the slogan has gone): barcode left, price in the rest of the row */
+      .foot.row{ flex-direction:row; flex-wrap:wrap-reverse; align-items:flex-start; justify-content:space-between; gap:.4em 1em; padding:.55em 1.15em .7em; }
+      .foot.row.reserve{ min-height:4.6em; }
+      .foot.row .barcode{ text-align:left; }
+      .foot.row .barcode .bars{ margin:0; }
+      .foot.row .price{ flex:1 1 auto; font-size:3em; }
+      .barcode{ text-align:center; flex:0 1 auto; min-width:0; max-width:100%; }
+      .barcode .bars{ position:relative; height:2.3em; max-width:100%; margin:0 auto; }
       .barcode .bars i{ position:absolute; top:0; bottom:0; background:#0b0b0c; }
       .bc-invalid{
         height:2.5em; min-width:9em; display:flex; align-items:center; justify-content:center; padding:0 .8em;
@@ -415,8 +420,8 @@
       .barcode .code{ font-size:.78em; font-weight:700; letter-spacing:.32em; margin-top:.18em; font-family:"Archivo",monospace; }
       /* price sits in the centre of the footer and is printed in red */
       .price{
-        flex:1 1 auto; text-align:center;
-        font-weight:900; font-style:italic; font-size:3em; line-height:1; white-space:nowrap;
+        flex:0 0 auto; text-align:center;
+        font-weight:900; font-style:italic; font-size:3.2em; line-height:1; white-space:nowrap;
         color:#d81f26;
       }
 
@@ -1415,7 +1420,7 @@
         var footerShown = state.barcodeOn || priceShown || state.reserveFooter;
         if (footerShown){
           if (!showSlogan) html += '<div class="push"></div>';
-          var fcls = 'foot' + (state.reserveFooter ? ' reserve' : '') + (state.barcodeOn && !priceShown ? ' only-code' : '') + (!state.barcodeOn && priceShown ? ' only-price' : '');
+          var fcls = 'foot' + (footRow ? ' row' : '') + (state.reserveFooter ? ' reserve' : '') + (state.barcodeOn && !priceShown ? ' only-code' : '') + (!state.barcodeOn && priceShown ? ' only-price' : '');
           html += '<div class="' + fcls + '">';
           if (state.barcodeOn){
             var bc = currentBarcode();
@@ -1461,7 +1466,7 @@
          off, or the Racer band squashed) it is left out of the drawing, and drawn
          again as soon as there is room. state.sloganOn keeps the user's choice, so
          saved records and the switch are not changed by this. */
-      var sloganAuto = false;
+      var sloganAuto = false, footRow = false;
       function sloganWanted(){ return !!state.sloganOn && String(state.slogan || '').trim() !== ''; }
       function drawLabel(){
         labelEl.innerHTML = labelInnerHTML();
@@ -1471,9 +1476,11 @@
       function renderLabel(){
         labelEl.style.setProperty('--accent', safeAccent(state.accent));
         labelEl.style.setProperty('--on-accent', onAccent(state.accent));
-        sloganAuto = false;
+        sloganAuto = false; footRow = false;
         drawLabel();
         if (sloganWanted() && (isOverflowing() || sloganSquashed())){ sloganAuto = true; drawLabel(); }
+        /* still too tall: price and barcode share one row instead of being stacked */
+        if (isOverflowing() && state.priceOn && state.barcodeOn){ footRow = true; drawLabel(); }
         var note = document.getElementById('slogan-auto-note');
         if (note) note.hidden = !sloganAuto;
         renderCaption();
