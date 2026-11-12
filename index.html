@@ -9,7 +9,7 @@
     <title>Product Label Creator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,700;0,900;1,900&family=Barlow+Condensed:ital,wght@1,900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,700;0,900;1,900&family=Barlow+Condensed:ital,wght@0,700;0,800;1,900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
       :root{
@@ -145,9 +145,21 @@
       .dim-caption{ font-size:13px; color:var(--ink-2); font-weight:700; }
       .dim-caption b{ color:var(--ink); }
       .dim-caption .cap-warn{ display:block; color:var(--danger); margin-top:2px; }
+      .dim-caption .cap-note{ display:block; color:var(--ink-2); margin-top:2px; }
+      .auto-note{ margin:4px 0 8px; font-size:12px; color:var(--ink-2); }
       .export-msg{ width:100%; max-width:640px; margin:-8px 0 14px; font-size:12.5px; font-weight:700; color:var(--danger); }
       .export-msg:empty{ display:none; }
       .dl-btn[aria-disabled="true"]{ opacity:.55; }
+      .req-box{ margin:12px 0 0; }
+      .req-box summary{ cursor:pointer; font-size:12.5px; font-weight:700; color:var(--ink-2); padding:2px 0 8px; }
+      .req-box summary:hover{ color:var(--ink); }
+      .req-box[hidden]{ display:none; }
+      .req-list{ list-style:none; margin:0 0 10px; padding:0; font-size:12.5px; }
+      .req-list li{ display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid var(--line); }
+      .req-list li span{ flex:1; min-width:0; overflow-wrap:anywhere; }
+      .req-list li b{ color:var(--ink-2); font-weight:800; }
+      .req-text{ width:100%; min-height:90px; font:inherit; font-size:12px; color:var(--ink); background:var(--field); border:1.5px solid var(--line); border-radius:9px; padding:8px; margin:0 0 8px; resize:vertical; }
+      .req-text[hidden]{ display:none; }
       .undo-btn{ font:inherit; font-size:12.5px; font-weight:800; color:var(--ink); background:none; border:none; padding:0 0 8px; cursor:pointer; text-decoration:underline; }
       .undo-btn[hidden]{ display:none; }
       .cap-btn{ font:inherit; font-weight:800; color:inherit; background:none; border:none; padding:0; cursor:pointer; text-decoration:underline; }
@@ -182,47 +194,48 @@
 
       /* ---------- THE LABEL (sizes in em; JS sets base font-size) ---------- */
       .label{
-        --accent:#ffc900;
+        --accent:#fdd904;
         background:#ffffff; color:#0b0b0c;
-        border:.30em solid var(--accent); border-radius:1.5em;
+        border:calc(var(--unit, 1em) * .42) solid var(--accent); border-radius:calc(var(--unit, 1em) * 1.7);
         font-family:"Archivo","Noto Sans TC",sans-serif;
         padding:1.05em 1.15em 0; overflow:hidden; position:relative;
         display:flex; flex-direction:column;
       }
       .name-row{ display:flex; align-items:center; justify-content:center; gap:.55em; }
-      .slashes{ display:flex; gap:.16em; flex:none; }
-      .slashes i{ display:block; width:.34em; height:1.35em; background:var(--accent); transform:skewX(-18deg); }
+      .slashes{ display:flex; gap:.22em; flex:none; }
+      .slashes i{ display:block; width:.5em; height:2.1em; background:var(--accent); transform:skewX(-18deg); }
       .pname{
         font-weight:900; font-style:italic; text-transform:uppercase;
-        font-size:3.1em; line-height:.98; letter-spacing:-.015em; text-align:center;
+        font-size:5.2em; line-height:.98; letter-spacing:-.015em; text-align:center;
         white-space:nowrap; min-width:0; overflow:hidden;
       }
       .banner{ display:flex; align-items:center; gap:.55em; margin-top:.55em; }
       .banner .dash{ flex:1; height:.17em; background:#0b0b0c; min-width:.5em; }
       .banner-inner{
         background:var(--accent); transform:skewX(-14deg);
-        padding:.30em 1.15em; flex:none; max-width:88%;
+        padding:.34em 1.3em; flex:none; max-width:92%;
       }
       .banner-inner span{
         display:block; font-weight:900; font-style:italic; text-transform:uppercase;
-        font-size:1.42em; line-height:1.05; white-space:nowrap; color:var(--on-accent, #0b0b0c);
+        font-size:2.25em; line-height:1.05; white-space:nowrap; color:var(--on-accent, #0b0b0c);
       }
       .grid{ display:grid; grid-template-columns:1fr 1fr; margin-top:.95em; }
       .cell{
         display:flex; align-items:center; gap:.62em;
-        padding:.78em .3em .78em .45em; border-top:.085em solid var(--accent); min-width:0;
+        padding:.6em .3em .6em .45em; border-top:.085em solid var(--accent); min-width:0;
       }
       .cell.no-top{ border-top:none; }
       .cell.div{ border-left:.085em solid var(--accent); padding-left:.75em; }
       .cell.span2{ grid-column:span 2; justify-content:center; }
       .ring{
-        flex:none; width:4.35em; height:4.35em; border-radius:50%;
-        border:.21em solid var(--accent); display:grid; place-items:center; background:#fff;
+        flex:none; width:5.7em; height:5.7em; border-radius:50%;
+        border:.3em solid var(--accent); display:grid; place-items:center; background:#fff;
       }
-      .ring svg{ width:2.75em; height:2.75em; display:block; }
+      .ring svg{ width:4.8em; height:4.8em; display:block; }
       .ftext{
-        font-weight:900; text-transform:uppercase; font-size:1.22em; line-height:1.04;
-        letter-spacing:-.005em; flex:1; min-width:0;
+        font-family:"Barlow Condensed","Archivo",sans-serif;
+        font-weight:800; text-transform:uppercase; font-size:1.95em; line-height:.98;
+        letter-spacing:.01em; flex:1; min-width:0;
       }
       .warranty{ display:flex; align-items:center; gap:.6em; margin-top:.85em; padding:0 .15em; }
       .warranty .wdash{ flex:1; height:.14em; background:var(--accent); min-width:.5em; }
@@ -361,8 +374,8 @@
         display:flex; align-items:center; justify-content:center;
         font-family:"Archivo",sans-serif;
       }
-      .pv-dynamic{ background:#ffc900; }
-      .pv-dynamic{ background:linear-gradient(#ffc900 0 72%, #16181d 72% 100%); }
+      .pv-dynamic{ background:#fdd904; }
+      .pv-dynamic{ background:linear-gradient(#fdd904 0 72%, #16181d 72% 100%); }
       .pv-dynamic b{
         font-size:14px; font-weight:900; font-style:italic; color:#16181d;
         transform:rotate(-5deg); letter-spacing:-.02em; margin-top:-4px;
@@ -375,32 +388,37 @@
       .pv-retro{ background:#16181d; }
       .pv-retro b{
         font-size:10px; font-weight:900; font-style:normal; color:#fff;
-        border:1.5px solid #ffc900; padding:2.5px 8px; letter-spacing:.12em;
+        border:1.5px solid #fdd904; padding:2.5px 8px; letter-spacing:.12em;
       }
       /* previews keep their own colours even when the option is selected */
       .style-opt.sel .pv-dynamic b{ color:#16181d; }
       .style-opt.sel .pv-minimal b{ color:#16181d; }
       .style-opt.sel .pv-retro b{ color:#fff; }
       .foot{
-        margin:0 -1.15em; padding:.55em 1.15em .7em; background:#fff;
+        margin:0 -1.15em; padding:.45em 1.15em .55em; background:#fff;
         border-top:.14em solid #0b0b0c;
-        /* barcode keeps its natural width (squeezing bars makes them unscannable);
-           the price takes the remaining space, and wraps onto its own line
-           above the barcode when both do not fit */
-        display:flex; flex-wrap:wrap-reverse; align-items:flex-start; justify-content:space-between; gap:.4em 1em;
+        /* price on top, centred on the label, barcode centred under it (column-reverse:
+           the barcode comes first in the markup). Side by side pushed the price to the right edge. */
+        display:flex; flex-direction:column-reverse; align-items:center; justify-content:center; gap:.25em;
       }
-      .barcode{ text-align:left; flex:0 1 auto; min-width:0; max-width:100%; }
-      .barcode .bars{ position:relative; height:2.5em; max-width:100%; }
+      /* reserved footer: the strip keeps one fixed height whether or not the price / barcode are filled in,
+         so the space is there to print them later (a price sticker, a handwritten price, a barcode label) */
+      .foot.reserve{ min-height:7.2em; }
+      /* only one of the two is switched on: keep room for just that one */
+      .foot.reserve.only-price{ min-height:4.4em; }
+      .foot.reserve.only-code{ min-height:5em; }
+      .barcode{ text-align:center; flex:0 1 auto; min-width:0; max-width:100%; }
+      .barcode .bars{ position:relative; height:var(--bar-h, 2.3em); max-width:100%; margin:0 auto; }
       .barcode .bars i{ position:absolute; top:0; bottom:0; background:#0b0b0c; }
       .bc-invalid{
-        height:2.5em; min-width:9em; display:flex; align-items:center; justify-content:center; padding:0 .8em;
+        height:var(--bar-h, 2.5em); min-width:9em; display:flex; align-items:center; justify-content:center; padding:0 .8em;
         border:.12em dashed #d81f26; color:#d81f26; font-weight:900; font-size:.9em; letter-spacing:.05em;
       }
       .barcode .code{ font-size:.78em; font-weight:700; letter-spacing:.32em; margin-top:.18em; font-family:"Archivo",monospace; }
       /* price sits in the centre of the footer and is printed in red */
       .price{
-        flex:1 1 auto; text-align:center;
-        font-weight:900; font-style:italic; font-size:3em; line-height:1; white-space:nowrap;
+        flex:0 0 auto; text-align:center;
+        font-weight:900; font-style:italic; font-size:3.2em; line-height:1; white-space:nowrap;
         color:#d81f26;
       }
 
@@ -419,7 +437,7 @@
 
         <section class="block">
           <div class="block-head"><h2>Barcode</h2><button type="button" class="help" aria-label="Help: Barcode" aria-expanded="false" aria-controls="h-barcode">?</button></div>
-          <div class="help-pop" id="h-barcode" hidden>The barcode value is the <b>record key</b>, so it is needed even when the barcode is not printed. <b>Auto</b> picks EAN-13 for 13 digits, UPC-A for 12 digits and Code 128 for anything else. EAN-13 and UPC-A check the check digit, or add it if you leave it out. Print the PNG at 100% (actual size) on a laser printer, then test-scan it.</div>
+          <div class="help-pop" id="h-barcode" hidden>The barcode value is the <b>record key</b>, so it is needed even when the barcode is not printed. <b>Keep space for price and barcode</b> leaves a blank strip at the bottom of the label (on by default) so a price or barcode can be added later; turn it off to use that room for the content. <b>Auto</b> picks EAN-13 for 13 digits, UPC-A for 12 digits and Code 128 for anything else. EAN-13 and UPC-A check the check digit, or add it if you leave it out. Print the PNG at 100% (actual size) on a laser printer, then test-scan it.</div>
           <label class="f"><span>Barcode value (record key)</span>
             <input type="text" id="in-barcode" value="XO-W12-2026" maxlength="64" autocomplete="off" /></label>
           <div class="row2">
@@ -434,6 +452,10 @@
               <label class="sw" style="margin-top:3px"><input type="checkbox" id="in-barcode-on" aria-label="Print barcode on label" /></label></div>
           </div>
           <p class="record-note" id="barcode-hint" aria-live="polite"></p>
+          <div class="switch-row">
+            <div class="t">Keep space for price and barcode</div>
+            <label class="sw"><input type="checkbox" id="in-reserve" checked aria-label="Keep space at the bottom for the price and barcode" /></label>
+          </div>
         </section>
 
         <section class="block">
@@ -453,7 +475,10 @@
         </section>
 
         <section class="block">
-          <div class="block-head"><h2>Basics</h2></div>
+          <div class="block-head"><h2>Basics</h2><button type="button" class="help" aria-label="Help: Basics" aria-expanded="false" aria-controls="h-basics">?</button></div>
+          <div class="help-pop" id="h-basics" hidden>The <b>product category</b> decides which icons are suggested first, how Auto picks an icon from the words you type (the same word can mean different things per product), and which quick-add features you see. Changing it never edits features you already typed; Auto icons are re-picked, icons you chose by hand stay. <b>General</b> lists every icon.</div>
+          <label class="f"><span>Product category</span>
+            <select id="in-category"></select></label>
           <label class="f"><span>Brand name</span>
             <input type="text" id="in-name" value="XO-W12" maxlength="80" autocomplete="off" /></label>
           <label class="f"><span>Product name</span>
@@ -463,6 +488,7 @@
             <label class="sw"><input type="checkbox" id="in-slogan-on" checked aria-label="Show slogan" /></label>
           </div>
           <div class="sub-fields" id="slogan-fields">
+            <p class="auto-note" id="slogan-auto-note" role="status" hidden>Hidden automatically: there is not enough room at this size. It comes back when the label has room again.</p>
             <label class="f"><span>Slogan text</span>
               <input type="text" id="in-slogan" value="Build for smart life" maxlength="120" autocomplete="off" /></label>
             <span class="picker-label">Slogan style</span>
@@ -485,7 +511,7 @@
 
         <section class="block">
           <div class="block-head"><h2>Size</h2><button type="button" class="help" aria-label="Help: Size" aria-expanded="false" aria-controls="h-size">?</button></div>
-          <div class="help-pop" id="h-size" hidden>The preview is drawn to scale. The PNG is exported at 300 DPI and carries its real size, so print it at 100%. Sizes marked <b>no slogan</b> are too small for the slogan band, so choosing one switches the slogan off (you can switch it back on).</div>
+          <div class="help-pop" id="h-size" hidden>The preview is drawn to scale. The PNG is exported at 300 DPI and carries its real size, so print it at 100%. Sizes marked <b>compact</b> are too small for the slogan band and the strip kept for price and barcode, so choosing one switches both off (you can switch them back on).</div>
           <div class="presets" id="presets"></div>
           <div class="row3">
             <label class="f"><span>Width</span><input type="number" id="in-w" value="6.5" min="2" step="0.5" /></label>
@@ -497,13 +523,23 @@
 
         <section class="block">
           <div class="block-head"><h2>Features</h2><button type="button" class="help" aria-label="Help: Features" aria-expanded="false" aria-controls="h-feat">?</button></div>
-          <div class="help-pop" id="h-feat" hidden>Type a feature and an icon is matched automatically; pick another icon from the dropdown. If nothing matches you get a search link, or choose <b>Custom image URL</b> to paste your own icon. The dash cam chips add a feature in one tap.</div>
-          <details class="dc-box">
-            <summary>Dash cam quick add</summary>
-            <div class="presets" id="dc-presets"></div>
+          <div class="help-pop" id="h-feat" hidden>Type a feature and an icon is matched automatically; pick another icon from the dropdown. If nothing matches you get a search link, or choose <b>Custom image URL</b> to paste your own icon. The quick-add chips add a feature in one tap. If a feature has no icon, press <b>Request an icon</b> on its row: it is kept in the <b>Icon requests</b> list under the feature list (saved in this browser); press <b>Copy list</b> and send it along so the icons can be added.</div>
+          <details class="dc-box" id="quick-box">
+            <summary id="quick-title">Quick add</summary>
+            <div class="presets" id="quick-presets"></div>
           </details>
           <div id="feat-list"></div>
           <button class="add-btn" id="add-feat" type="button">+ Add feature</button>
+          <details class="req-box" id="req-box" hidden>
+            <summary id="req-title">Icon requests</summary>
+            <ul class="req-list" id="req-list" aria-label="Features that need an icon"></ul>
+            <textarea class="req-text" id="req-text" readonly hidden aria-label="Icon requests as text"></textarea>
+            <div class="record-actions">
+              <button type="button" class="rec-btn" id="req-copy">Copy list</button>
+              <button type="button" class="rec-btn danger" id="req-clear">Clear list</button>
+            </div>
+            <p class="record-msg" id="req-msg" aria-live="polite"></p>
+          </details>
         </section>
 
         <section class="block">
@@ -570,6 +606,10 @@
     </div>
 
     <script>
+      /* BEGIN CATALOG — icons, keyword rules, product categories and autoIcon().
+         Keep this block free of DOM / document / window access: tools/check-categories.js
+         extracts it and runs it in plain Node to validate the catalog (see README,
+         "Adding a product category"). */
       /* ================= ICON LIBRARY (24×24, black silhouette style) ================= */
       function svgWrap(inner){ return '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">' + inner + '</svg>'; }
       function F(d){ return '<path fill="#0b0b0c" d="' + d + '"/>'; }
@@ -591,9 +631,9 @@
           S('M3.5 19.6c1.8-1.3 3.6-1.3 5.4 0s3.6 1.3 5.4 0 3.6-1.3 5.4 0', 1.9) +
           S('M3.5 22.4c1.8-1.3 3.6-1.3 5.4 0s3.6 1.3 5.4 0 3.6-1.3 5.4 0', 1.9)) },
         battery: { name:'Battery', svg: svgWrap(
-          '<rect x="2.6" y="7.6" width="17" height="9.6" rx="1.8" fill="#0b0b0c"/>' +
-          '<rect x="20.6" y="10.6" width="2.2" height="3.6" rx="1" fill="#0b0b0c"/>' +
-          '<path fill="#fff" d="M12.6 8.9l-3.6 4.9h2.4l-1.1 3.4 4-5.2h-2.5l.8-3.1z"/>') },
+          '<rect x="9.4" y="1.6" width="5.2" height="3" rx="1.1" fill="#0b0b0c"/>' +
+          '<rect x="6" y="4" width="12" height="18.4" rx="2.8" fill="#0b0b0c"/>' +
+          '<path fill="#fff" d="M13.4 7.2l-4.2 7h3.1l-1.1 5.6 4.5-7.6h-3.2z"/>') },
         wireless: { name:'Wireless charging', svg: svgWrap(
           S('M4.8 5.6a11 11 0 0 1 14.4 0M7.4 8.9a7.2 7.2 0 0 1 9.2 0', 2) +
           F('M13.1 9.3l-4.3 6h2.7l-1.2 4.3 4.5-6.2h-2.8l1.1-4.1z') +
@@ -611,10 +651,15 @@
           '<rect x="2.8" y="4.4" width="18.4" height="12.4" rx="1.8" fill="#0b0b0c"/>' +
           '<rect x="10" y="18.6" width="4" height="2" fill="#0b0b0c"/><rect x="7.6" y="20.4" width="8.8" height="1.6" rx=".8" fill="#0b0b0c"/>') },
         amoled: { name:'AMOLED screen', svg: svgWrap(
-          '<rect x="2.6" y="4.4" width="18.8" height="13.6" rx="2.4" fill="#0b0b0c"/>' +
-          '<circle cx="7.9" cy="8.9" r="1.55" fill="#ff453a"/><circle cx="12" cy="8.9" r="1.55" fill="#32d74b"/><circle cx="16.1" cy="8.9" r="1.55" fill="#0a84ff"/>' +
-          '<circle cx="7.9" cy="13.5" r="1.55" fill="#ffd60a"/><circle cx="12" cy="13.5" r="1.55" fill="#bf5af2"/><circle cx="16.1" cy="13.5" r="1.55" fill="#64d2ff"/>' +
-          '<rect x="10.7" y="19" width="2.6" height="1.7" fill="#0b0b0c"/><rect x="8" y="20.7" width="8" height="1.5" rx=".75" fill="#0b0b0c"/>') },
+          '<circle cx="12" cy="12" r="11.6" fill="#0b0b0c"/>' +
+          '<path d="M11.74 2.10A9.9 9.9 0 0 1 20.70 7.28" fill="none" stroke="#ff3b30" stroke-width="3.6"/>' +
+          '<path d="M20.44 6.83A9.9 9.9 0 0 1 20.44 17.17" fill="none" stroke="#ff9500" stroke-width="3.6"/>' +
+          '<path d="M20.70 16.72A9.9 9.9 0 0 1 11.74 21.90" fill="none" stroke="#ffd60a" stroke-width="3.6"/>' +
+          '<path d="M12.26 21.90A9.9 9.9 0 0 1 3.30 16.72" fill="none" stroke="#30d158" stroke-width="3.6"/>' +
+          '<path d="M3.56 17.17A9.9 9.9 0 0 1 3.56 6.83" fill="none" stroke="#0a84ff" stroke-width="3.6"/>' +
+          '<path d="M3.30 7.28A9.9 9.9 0 0 1 12.26 2.10" fill="none" stroke="#bf5af2" stroke-width="3.6"/>' +
+          '<circle cx="12" cy="12" r="8" fill="#0b0b0c"/>' +
+          '<text x="12" y="13.4" text-anchor="middle" font-family="Archivo,Arial,sans-serif" font-weight="900" font-size="3.3" textLength="13" lengthAdjust="spacingAndGlyphs" fill="#fff">AMOLED</text>') },
         'case': { name:'Case material', svg: svgWrap(
           '<path fill="#0b0b0c" d="M9.3 1.5h5.4l-.6 2.1H9.9l-.6-2.1zM9.9 20.4h4.2l.6 2.1H9.3l.6-2.1z"/>' +
           '<rect x="4.9" y="3.3" width="14.2" height="17.4" rx="4.9" fill="#0b0b0c"/>' +
@@ -626,11 +671,15 @@
           '<circle cx="15.6" cy="4.4" r="2.1" fill="#0b0b0c"/>' +
           S('M13.4 8.2l-3.2 2.4-3 .8M10.2 10.6l.6 3.4-2.7 3.4M10.8 14l3.4 1.6 1.2 3.8M13.4 8.2l2.8 2 2.6.4M4 13.4H1.8M5 16.8H2.6', 2.2)) },
         robot: { name:'AI assistant', svg: svgWrap(
-          S('M12 5.4V2.8', 2.1) + '<circle cx="12" cy="2.4" r="1.3" fill="#0b0b0c"/>' +
-          '<rect x="4" y="5.6" width="16" height="12" rx="3.4" fill="#0b0b0c"/>' +
-          '<circle cx="9.2" cy="11.2" r="1.5" fill="#fff"/><circle cx="14.8" cy="11.2" r="1.5" fill="#fff"/>' +
-          '<path d="M9.4 14.6a3.4 3.4 0 0 0 5.2 0" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>' +
-          '<rect x="6.4" y="18.6" width="11.2" height="2.6" rx="1.3" fill="#0b0b0c"/>') },
+          S('M11.2 4.4V2.2', 1.9) + '<circle cx="11.2" cy="1.9" r="1.3" fill="#0b0b0c"/>' +
+          '<rect x="3.6" y="4.2" width="15.2" height="12" rx="5.2" fill="#0b0b0c"/>' +
+          '<circle cx="3.4" cy="10.6" r="2" fill="#0b0b0c"/><circle cx="19" cy="10.6" r="2" fill="#0b0b0c"/>' +
+          '<rect x="6" y="7" width="10.4" height="6.8" rx="3.2" fill="#fff"/>' +
+          '<circle cx="9.4" cy="10" r="1" fill="#0b0b0c"/><circle cx="13" cy="10" r="1" fill="#0b0b0c"/>' +
+          '<path d="M9.6 12a2.1 2.1 0 0 0 3 0" fill="none" stroke="#0b0b0c" stroke-width="1.1" stroke-linecap="round"/>' +
+          '<path d="M3.4 22.6v-1.6a4.6 4.6 0 0 1 4.6-4.6h6.4a4.6 4.6 0 0 1 4.6 4.6v1.6z" fill="#0b0b0c"/>' +
+          '<circle cx="19.4" cy="18.8" r="3.9" fill="#fff"/><circle cx="19.4" cy="18.8" r="3.2" fill="#0b0b0c"/>' +
+          '<circle cx="17.9" cy="18.8" r=".6" fill="#fff"/><circle cx="19.4" cy="18.8" r=".6" fill="#fff"/><circle cx="20.9" cy="18.8" r=".6" fill="#fff"/>') },
         pin: { name:'GPS location', svg: svgWrap(
           F('M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z')) },
         moon: { name:'Sleep', svg: svgWrap(
@@ -724,6 +773,123 @@
         sdcard: { name:'SD card', svg: svgWrap(
           F('M6.8 2.8h6.7l6.7 6.7v10.7a1.8 1.8 0 0 1-1.8 1.8H6.8A1.8 1.8 0 0 1 5 20.2V4.6A1.8 1.8 0 0 1 6.8 2.8z') +
           '<path d="M9.2 3.6v3.8M12.6 3.6v3.8M16 5.2v3.4" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>') },
+        /* ---- speakers ---- */
+        speaker: { name:'Speaker', svg: svgWrap(
+          '<rect x="5" y="2.6" width="14" height="18.8" rx="3" fill="#0b0b0c"/>' +
+          '<circle cx="12" cy="14.4" r="4.6" fill="#fff"/><circle cx="12" cy="14.4" r="2.2" fill="#0b0b0c"/>' +
+          '<circle cx="12" cy="7" r="1.7" fill="#fff"/>') },
+        volume: { name:'Stereo sound', svg: svgWrap(
+          F('M2.6 9.4h3.8L12 4.8v14.4l-5.6-4.6H2.6z') +
+          S('M15.4 9a4.2 4.2 0 0 1 0 6M18.4 6.2a8.2 8.2 0 0 1 0 11.6', 2)) },
+        bass: { name:'Deep bass', svg: svgWrap(
+          '<circle cx="9" cy="12" r="6.6" fill="#0b0b0c"/><circle cx="9" cy="12" r="3.6" fill="#fff"/><circle cx="9" cy="12" r="1.6" fill="#0b0b0c"/>' +
+          S('M18 8.4a6 6 0 0 1 0 7.2M21 5.6a10 10 0 0 1 0 12.8', 2)) },
+        tws: { name:'TWS pairing', svg: svgWrap(
+          '<rect x="2.2" y="5.6" width="8" height="12.8" rx="2.4" fill="#0b0b0c"/><rect x="13.8" y="5.6" width="8" height="12.8" rx="2.4" fill="#0b0b0c"/>' +
+          '<circle cx="6.2" cy="14.4" r="2.2" fill="#fff"/><circle cx="17.8" cy="14.4" r="2.2" fill="#fff"/>' +
+          '<circle cx="6.2" cy="8.6" r="1.1" fill="#fff"/><circle cx="17.8" cy="8.6" r="1.1" fill="#fff"/>' +
+          S('M10.8 12h2.4', 2) + S('M10.8 15.4h2.4', 2)) },
+        partylight: { name:'Party lights', svg: svgWrap(
+          F('M11 2l2.1 6.4L19.6 10.4l-6.5 2L11 18.8 8.9 12.4 2.4 10.4 8.9 8.4z') +
+          F('M19.2 14.8l1 2.4 2.4 1-2.4 1-1 2.4-1-2.4-2.4-1 2.4-1z')) },
+        radio: { name:'FM radio', svg: svgWrap(
+          S('M7.4 8.2L17.6 2.8', 1.9) +
+          '<rect x="2.6" y="8.2" width="18.8" height="12.8" rx="2.6" fill="#0b0b0c"/>' +
+          '<circle cx="8.8" cy="14.6" r="2.9" fill="#fff"/><circle cx="8.8" cy="14.6" r="1" fill="#0b0b0c"/>' +
+          '<path d="M14.4 12.4h4.4M14.4 16.8h4.4" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>') },
+        usb: { name:'USB / Type-C', svg: svgWrap(
+          S('M12 20V5.6M12 15.2l-4.2-3.2V9.6M12 11.4l4.2-2.6V7.4', 1.9) +
+          F('M12 1.6l2.5 3.8H9.5z') +
+          '<circle cx="12" cy="20.6" r="2" fill="#0b0b0c"/><circle cx="7.8" cy="8.4" r="1.7" fill="#0b0b0c"/>' +
+          '<rect x="14.6" y="4.4" width="3.2" height="3.2" fill="#0b0b0c"/>') },
+        aux: { name:'AUX input', svg: svgWrap(
+          S('M1.8 12h4.6', 2.4) +
+          '<rect x="6.6" y="8.8" width="6.4" height="6.4" rx="1.4" fill="#0b0b0c"/>' +
+          '<rect x="13.8" y="9.8" width="1.8" height="4.4" fill="#0b0b0c"/><rect x="16.4" y="9.8" width="1.8" height="4.4" fill="#0b0b0c"/>' +
+          F('M19 9.8l3.4 2.2L19 14.2z')) },
+        /* ---- drones ---- */
+        drone: { name:'Drone', svg: svgWrap(
+          S('M7.6 7.6l8.8 8.8M16.4 7.6l-8.8 8.8', 2.2) +
+          '<circle cx="5" cy="5" r="3.2" fill="none" stroke="#0b0b0c" stroke-width="1.9"/><circle cx="19" cy="5" r="3.2" fill="none" stroke="#0b0b0c" stroke-width="1.9"/>' +
+          '<circle cx="5" cy="19" r="3.2" fill="none" stroke="#0b0b0c" stroke-width="1.9"/><circle cx="19" cy="19" r="3.2" fill="none" stroke="#0b0b0c" stroke-width="1.9"/>' +
+          '<rect x="8.8" y="8.8" width="6.4" height="6.4" rx="1.8" fill="#0b0b0c"/>') },
+        gimbal: { name:'3-axis gimbal', svg: svgWrap(
+          '<circle cx="12" cy="12" r="9.2" fill="none" stroke="#0b0b0c" stroke-width="1.9"/>' +
+          '<ellipse cx="12" cy="12" rx="4.4" ry="9.2" fill="none" stroke="#0b0b0c" stroke-width="1.5"/>' +
+          '<rect x="7.6" y="9.4" width="8.8" height="5.8" rx="1.4" fill="#0b0b0c"/><circle cx="12" cy="12.3" r="2" fill="#fff"/>') },
+        homegps: { name:'Return home', svg: svgWrap(
+          F('M12 2.6l9.4 7.8h-2.8v9.8h-5v-5.8h-3.2v5.8h-5v-9.8H2.6z')) },
+        obstacle: { name:'Obstacle avoidance', svg: svgWrap(
+          '<circle cx="4.8" cy="12" r="2.2" fill="#0b0b0c"/>' +
+          S('M9 8.2a5.2 5.2 0 0 1 0 7.6M12.8 5.2a9.6 9.6 0 0 1 0 13.6', 2) +
+          '<rect x="18.4" y="3" width="3" height="18" rx="1.2" fill="#0b0b0c"/>') },
+        follow: { name:'Follow me', svg: svgWrap(
+          '<circle cx="8.6" cy="6.6" r="2.7" fill="#0b0b0c"/>' +
+          F('M3.4 20.6v-3.6a5.2 5.2 0 0 1 10.4 0v3.6z') +
+          '<circle cx="18" cy="8" r="3.6" fill="none" stroke="#0b0b0c" stroke-width="1.9"/><circle cx="18" cy="8" r="1.1" fill="#0b0b0c"/>') },
+        flighttime: { name:'Flight time', svg: svgWrap(
+          '<rect x="9.2" y="1.8" width="5.6" height="2.4" rx="1" fill="#0b0b0c"/>' +
+          S('M12 4.2v2', 1.9) +
+          '<circle cx="12" cy="13.6" r="7.6" fill="none" stroke="#0b0b0c" stroke-width="2.1"/>' +
+          S('M12 13.6V9.4M12 13.6l3 1.8', 2)) },
+        range: { name:'Control range', svg: svgWrap(
+          S('M12 11.6V21', 2.2) + '<circle cx="12" cy="10" r="1.9" fill="#0b0b0c"/>' +
+          S('M7.6 5.8a6.2 6.2 0 0 0 0 8.4M16.4 5.8a6.2 6.2 0 0 1 0 8.4M4.4 3a10.6 10.6 0 0 0 0 14M19.6 3a10.6 10.6 0 0 1 0 14', 1.9)) },
+        foldable: { name:'Foldable', svg: svgWrap(
+          S('M3.6 3.6l6 6M9.6 3.6v6h-6M20.4 20.4l-6-6M14.4 20.4v-6h6', 2.2)) },
+        altitude: { name:'Altitude hold', svg: svgWrap(
+          S('M12 18V5.4M6.8 10.2L12 5l5.2 5.2M3.6 21h16.8', 2.2)) },
+        remote: { name:'Remote controller', svg: svgWrap(
+          '<rect x="2.2" y="7.4" width="19.6" height="10.6" rx="5" fill="#0b0b0c"/>' +
+          '<circle cx="7.6" cy="12.7" r="2.4" fill="#fff"/><circle cx="16.4" cy="12.7" r="2.4" fill="#fff"/>' +
+          '<rect x="10.8" y="10" width="2.4" height="1.5" rx=".6" fill="#fff"/>' +
+          S('M7 7.4V4.6M17 7.4V4.6', 2)) },
+        propeller: { name:'Brushless motor', svg: svgWrap(
+          '<ellipse cx="12" cy="6.2" rx="2.3" ry="4.4" fill="#0b0b0c"/>' +
+          '<ellipse cx="12" cy="6.2" rx="2.3" ry="4.4" fill="#0b0b0c" transform="rotate(120 12 12)"/>' +
+          '<ellipse cx="12" cy="6.2" rx="2.3" ry="4.4" fill="#0b0b0c" transform="rotate(240 12 12)"/>' +
+          '<circle cx="12" cy="12" r="2.2" fill="#0b0b0c"/><circle cx="12" cy="12" r="1" fill="#fff"/>') },
+        takeoff: { name:'One-key takeoff', svg: svgWrap(
+          F('M21.6 2.4L2.6 9.8l6.4 2.6 2.6 6.4z') + S('M9 12.4l12.6-10', 1.6)) },
+        /* ---- karaoke ---- */
+        karaoke: { name:'Karaoke', svg: svgWrap(
+          '<rect x="2.6" y="3.2" width="8" height="12.4" rx="4" fill="#0b0b0c"/>' +
+          S('M1.4 12.6a6.2 6.2 0 0 0 12.4 0M7.6 19v2.4', 2) +
+          F('M20.4 3.6v9.2a2.6 2.6 0 1 1-1.8-2.4V6.4l-4.2 1.2V3.6z')) },
+        wirelessmic: { name:'Wireless mic', svg: svgWrap(
+          '<circle cx="12" cy="7" r="4.4" fill="#0b0b0c"/>' +
+          F('M9.6 10.8h4.8l-1 10.8h-2.8z') +
+          S('M3.6 3.4a9.4 9.4 0 0 0 0 7.2M20.4 3.4a9.4 9.4 0 0 1 0 7.2', 1.9)) },
+        duet: { name:'Duet (2 mics)', svg: svgWrap(
+          '<circle cx="6.6" cy="6.6" r="3.8" fill="#0b0b0c"/><circle cx="17.4" cy="6.6" r="3.8" fill="#0b0b0c"/>' +
+          S('M8.4 9.8L12 20.4M15.6 9.8L12 20.4', 3)) },
+        echo: { name:'Echo & reverb', svg: svgWrap(
+          '<circle cx="12" cy="12" r="1.9" fill="#0b0b0c"/>' +
+          S('M8.2 8.2a5.4 5.4 0 0 0 0 7.6M15.8 8.2a5.4 5.4 0 0 1 0 7.6M5 5a9.9 9.9 0 0 0 0 14M19 5a9.9 9.9 0 0 1 0 14', 2)) },
+        equalizer: { name:'Bass & treble', svg: svgWrap(
+          S('M6 3.4v17.2M12 3.4v17.2M18 3.4v17.2', 1.8) +
+          '<circle cx="6" cy="14.6" r="2.7" fill="#fff" stroke="#0b0b0c" stroke-width="2"/>' +
+          '<circle cx="12" cy="8.2" r="2.7" fill="#fff" stroke="#0b0b0c" stroke-width="2"/>' +
+          '<circle cx="18" cy="16.4" r="2.7" fill="#fff" stroke="#0b0b0c" stroke-width="2"/>') },
+        voicechange: { name:'Voice changer', svg: svgWrap(
+          '<rect x="2.4" y="9" width="2.6" height="6" rx="1.3" fill="#0b0b0c"/><rect x="6.6" y="5" width="2.6" height="14" rx="1.3" fill="#0b0b0c"/>' +
+          '<rect x="10.8" y="2.2" width="2.6" height="19.6" rx="1.3" fill="#0b0b0c"/><rect x="15" y="6.6" width="2.6" height="10.8" rx="1.3" fill="#0b0b0c"/>' +
+          '<rect x="19.2" y="9.6" width="2.6" height="4.8" rx="1.3" fill="#0b0b0c"/>') },
+        discoball: { name:'LED party lights', svg: svgWrap(
+          S('M12 1.8v4.6', 1.9) +
+          '<circle cx="12" cy="14" r="7.6" fill="#0b0b0c"/>' +
+          '<path d="M4.4 14h15.2M12 6.4v15.2M6.4 9c3.4 1.8 7.8 1.8 11.2 0M6.4 19c3.4-1.8 7.8-1.8 11.2 0" stroke="#fff" stroke-width="1.3" fill="none"/>') },
+        lyrics: { name:'Lyrics display', svg: svgWrap(
+          '<rect x="2.6" y="3.6" width="18.8" height="13.8" rx="2.2" fill="none" stroke="#0b0b0c" stroke-width="2"/>' +
+          S('M6.6 8.6h7.4M6.6 12.6h10.8M9 21h6', 1.9)) },
+        tvout: { name:'HDMI / TV out', svg: svgWrap(
+          '<rect x="2.4" y="4" width="19.2" height="13" rx="2.2" fill="#0b0b0c"/>' +
+          '<path d="M10 7.6l5.2 2.9L10 13.4z" fill="#fff"/>' +
+          '<rect x="8" y="18.6" width="8" height="2.2" rx="1.1" fill="#0b0b0c"/>') },
+        recmic: { name:'Record songs', svg: svgWrap(
+          '<rect x="3.6" y="5.4" width="7" height="11" rx="3.5" fill="#0b0b0c"/>' +
+          S('M2.2 13.4a5.8 5.8 0 0 0 11.6 0M7.1 19.4v2', 2) +
+          '<circle cx="18.2" cy="7" r="3.8" fill="#0b0b0c"/><circle cx="18.2" cy="7" r="1.4" fill="#fff"/>') },
         star: { name:'Feature', svg: svgWrap(
           F('M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z')) }
       };
@@ -776,11 +942,83 @@
         ['flash',     ['flashlight','torch','電筒','手電','手电','led light']],
         ['bell',      ['notification','提醒','通知','alert','message','訊息','消息','remind']]
       ];
+      /* ================= PRODUCT CATEGORIES =================
+         A category decides (1) which icons the dropdown suggests first, (2) which
+         keyword rules run BEFORE the shared RULES above, so the same word can mean
+         different things per product, and (3) the quick-add features. It never
+         edits features that are already typed. "general" has no rules, no quick
+         features and lists every icon, i.e. it behaves exactly as before categories
+         existed (records saved earlier load as "general"). */
+      var CATEGORIES = [
+        { id:'general', name:'General (all icons)', icons:'*', rules:[], quick:[] },
+        { id:'watch', name:'Smart watch',
+          icons:['pulse','o2','heart','health','steps','runner','moon','thermo','battery','wireless','water','bluetooth','phone','card','amoled','screen','case','robot','pin','music','camera','wifi','mic','sun','clock','flash','bell','star'],
+          rules:[],
+          quick:['Heart Rate Monitor','Blood Oxygen SpO2','BP Trend Monitoring','Sleep Monitoring','Step Counter','Bluetooth Call','IP68 Waterproof','AMOLED Screen','NFC Payment','Sport Modes','Built-in AI Q&A','Wireless Charging','3-5 Days Battery','Weather Forecast','Message Notifications','Music Control'] },
+        { id:'dashcam', name:'Dash cam',
+          icons:['dashcam','video','res4k','hd','wideangle','loop','gsensor','parking','nightvision','dualcam','adas','speedalert','hdr','motion','timelapse','lock','sdcard','pin','wifi','mic','battery','screen','camera','star'],
+          rules:[],
+          quick:['4K Ultra HD Video','170° Wide Angle','Loop Recording','G-Sensor Impact Detection','24H Parking Mode','Super Night Vision','Front & Rear Dual Camera','ADAS Lane Assist','Speed Camera Alert','GPS Tracking','Wi-Fi App Control','HDR / WDR','Motion Detection','Time-Lapse Recording','Emergency Lock','MicroSD Card Support','Voice Control','Super Capacitor'] },
+        { id:'speaker', name:'Speaker',
+          icons:['speaker','volume','bass','tws','partylight','radio','usb','aux','sdcard','bluetooth','battery','wireless','water','phone','mic','music','wifi','clock','star'],
+          rules:[
+            ['tws',        ['tws','true wireless stereo','stereo pairing','dual pairing','雙喇叭','双喇叭']],
+            ['bass',       ['bass','subwoofer','woofer','低音','重低音']],
+            ['partylight', ['rgb','led light','party light','light show','lights','燈光','灯光','氛圍燈']],
+            ['radio',      ['fm radio','fm','radio','收音機','收音机']],
+            ['usb',        ['usb','flash drive','u盤','u盘']],
+            ['aux',        ['aux','3.5mm','line in','line-in','音頻輸入','音频输入']],
+            ['battery',    ['playtime','play time','playback time']],
+            ['speaker',    ['speaker','喇叭','音箱','音響','音响']],
+            ['volume',     ['stereo','surround','sound','audio','volume','hifi','hi-fi','loud','立體聲','立体声','環繞','环绕','音質','音质']]
+          ],
+          quick:['Bluetooth 5.3','IPX7 Waterproof','20H Playtime','Deep Bass','TWS Pairing','RGB Party Lights','FM Radio','USB / TF Card Playback','AUX Input','Hands-free Calling','Type-C Fast Charging','360° Stereo Sound','Wireless Mic Input'] },
+        { id:'drone', name:'Drone',
+          icons:['drone','camera','video','res4k','hd','gimbal','pin','homegps','obstacle','follow','flighttime','range','foldable','altitude','remote','propeller','takeoff','battery','wifi','screen','star'],
+          rules:[
+            ['homegps',    ['return home','return to home','back to home','return-to-home','rth','go home','auto return','一鍵返航','一键返航','返航']],
+            ['obstacle',   ['obstacle','avoidance','collision','避障','避開障礙']],
+            ['follow',     ['follow me','follow-me','follow','active track','tracking','跟隨','跟随']],
+            ['gimbal',     ['gimbal','3-axis','3 axis','eis','stabiliz','雲台','云台','防抖']],
+            ['flighttime', ['flight time','flying time','min flight','endurance','飛行時間','飞行时间']],
+            ['range',      ['range','km','transmission','distance','signal','圖傳','图传','遙控距離','遥控距离']],
+            ['foldable',   ['foldable','folding','fold','摺疊','折叠']],
+            ['altitude',   ['altitude','hover','height hold','定高','懸停','悬停']],
+            ['remote',     ['remote','controller','joystick','transmitter','遙控','遥控']],
+            ['propeller',  ['brushless','motor','propeller','無刷','无刷','馬達','马达']],
+            ['takeoff',    ['takeoff','take-off','take off','landing','one-key','one key','headless','一鍵起飛','一键起飞','降落']],
+            ['video',      ['fpv','first person','real-time video']],
+            ['drone',      ['drone','quadcopter','uav','無人機','无人机']]
+          ],
+          quick:['4K Camera','3-Axis Gimbal','GPS Return Home','Obstacle Avoidance','Follow Me','30 Min Flight Time','5 KM Range','Foldable Design','Altitude Hold','Brushless Motor','One-Key Takeoff / Landing','Wi-Fi FPV','Remote Controller','Dual Battery'] },
+        { id:'karaoke', name:'Karaoke',
+          icons:['karaoke','wirelessmic','duet','mic','echo','equalizer','voicechange','discoball','lyrics','tvout','recmic','music','volume','bluetooth','battery','usb','sdcard','wifi','star'],
+          rules:[
+            ['duet',        ['duet','two mics','2 mics','雙人','对唱','對唱']],
+            ['wirelessmic', ['wireless mic','wireless microphone','dual mic','handheld mic','無線麥克風','无线麦克风','無線咪']],
+            ['equalizer',   ['equalizer','eq','treble','高低音','音調','音调']],
+            ['echo',        ['echo','reverb','delay','混響','混响','回音']],
+            ['voicechange', ['voice changer','voice change','pitch','magic voice','變聲','变声']],
+            ['discoball',   ['disco','party light','led','rgb','lights','燈光','灯光','氛圍']],
+            ['lyrics',      ['lyrics','lyric','subtitle','歌詞','歌词','字幕']],
+            ['tvout',       ['hdmi','tv','av out','video out','screen cast','投屏','電視','电视']],
+            ['recmic',      ['record','recorder','錄音','录音']],
+            ['usb',         ['usb','u盤','u盘']],
+            ['volume',      ['volume','stereo','speaker','sound','audio']],
+            ['karaoke',     ['karaoke','ktv','k歌','sing','singing','卡拉ok','唱歌']]
+          ],
+          quick:['Dual Wireless Mics','Echo & Reverb','Bluetooth Connection','LED Party Lights','Voice Changer','Record Your Songs','HDMI TV Output','Lyrics App Support','Rechargeable Battery','USB / TF Playback','Duet Mode','Bass & Treble Control'] }
+      ];
+      function categoryOf(id){
+        for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].id === id) return CATEGORIES[i];
+        return CATEGORIES[0];
+      }
+
       /* Keyword matching. Non-ASCII keywords (CJK) stay plain substrings. ASCII
          keywords of up to 4 letters must be a whole word (optional plural) and
          longer ones must start a word, so "ai" no longer hits "Daily" or
          "Email", "card" no longer hits "Cardio", "run" no longer hits "Runtime". */
-      var RULE_TESTS = null;
+      var RULE_TESTS = null, CAT_TESTS = Object.create(null);
       function escRe(x){ return x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
       function keywordTest(k){
         if (/[^\x00-\x7f]/.test(k)) return function(t){ return t.indexOf(k) !== -1; };
@@ -789,20 +1027,30 @@
         else re = new RegExp('(^|[^a-z0-9])' + escRe(kk));
         return function(t){ return re.test(t); };
       }
-      function autoIcon(text){
-        if (!RULE_TESTS) RULE_TESTS = RULES.map(function(r){ return [r[0], r[1].map(keywordTest)]; });
-        var t = ' ' + String(text || '').toLowerCase() + ' ';
-        for (var i = 0; i < RULE_TESTS.length; i++){
-          var tests = RULE_TESTS[i][1];
-          for (var j = 0; j < tests.length; j++) if (tests[j](t)) return RULE_TESTS[i][0];
+      function compileRules(rules){ return rules.map(function(r){ return [r[0], r[1].map(keywordTest)]; }); }
+      function runRules(compiled, t){
+        for (var i = 0; i < compiled.length; i++){
+          var tests = compiled[i][1];
+          for (var j = 0; j < tests.length; j++) if (tests[j](t)) return compiled[i][0];
         }
-        return 'star';
+        return null;
+      }
+      /* category rules run first, then the shared RULES; `catId` defaults to the current category */
+      function autoIcon(text, catId){
+        if (!RULE_TESTS) RULE_TESTS = compileRules(RULES);
+        var id = catId || (typeof state !== 'undefined' ? state.category : 'general');
+        if (!CAT_TESTS[id]) CAT_TESTS[id] = compileRules(categoryOf(id).rules);
+        var t = ' ' + String(text || '').toLowerCase() + ' ';
+        return runRules(CAT_TESTS[id], t) || runRules(RULE_TESTS, t) || 'star';
       }
 
+      /* END CATALOG */
+
       /* ================= STATE ================= */
-      var DEFAULT_ACCENT = '#ffc900';
+      var DEFAULT_ACCENT = '#fdd904';
       function defaultState(){
         return {
+          category:'watch', reserveFooter:true,
           name:'XO-W12', sub:'Smart Sport Watch', slogan:'Build for smart life', sloganOn:true, sloganStyle:'dynamic',
           appOn:true, appName:'FitPro',
           w:6.5, l:10, unit:'cm', accent:DEFAULT_ACCENT,
@@ -853,6 +1101,10 @@
         function pick(v, list, def){ return list.indexOf(v) !== -1 ? v : def; }
         function posNum(v, def){ var n = parseFloat(v); return isFinite(n) && n > 0 && n <= 1000 ? n : def; }
         var out = {
+          /* records saved before categories existed have none: they load as "general" (all icons, shared rules) = unchanged behaviour */
+          /* a label saved before this option existed keeps its old look (footer only when barcode/price are on) */
+          reserveFooter: bool(raw.reserveFooter, false),
+          category: CATEGORIES.some(function(c){ return c.id === raw.category; }) ? raw.category : 'general',
           name: str(raw.name, d.name, 80),
           sub: str(raw.sub, d.sub, 80),
           slogan: str(raw.slogan, d.slogan, 120),
@@ -1113,7 +1365,7 @@
               span = ' style="grid-column:1 / -1; justify-content:center"';
             }
             var ringInner = (f.img && String(f.img).trim())
-              ? '<img src="' + esc(f.img) + '" alt="" crossorigin="anonymous" data-icon="' + esc(key) + '" referrerpolicy="no-referrer" style="width:2.75em;height:2.75em;object-fit:contain;display:block"/>'
+              ? '<img src="' + esc(f.img) + '" alt="" crossorigin="anonymous" data-icon="' + esc(key) + '" referrerpolicy="no-referrer" style="width:4.8em;height:4.8em;object-fit:contain;display:block"/>'
               : iconHTML(key);
             html += '<div class="' + cls + '"' + span + '><div class="ring">' + ringInner + '</div>' +
                     '<div class="ftext">' + esc(f.text) + '</div></div>';
@@ -1136,7 +1388,7 @@
                   '<span class="app-name">' + esc(appText) + '</span></div></div>';
         }
         /* slogan band (optional) */
-        var showSlogan = state.sloganOn && String(state.slogan || '').trim() !== '';
+        var showSlogan = sloganWanted() && !sloganAuto;
         if (showSlogan){
           var st = state.sloganStyle || 'dynamic';
           var sText = esc(state.slogan);
@@ -1162,9 +1414,10 @@
         }
         /* footer: barcode / price (a blank price is not printed as a lone "$") */
         var priceShown = state.priceOn && String(state.price == null ? '' : state.price).trim() !== '';
-        if (state.barcodeOn || priceShown){
+        var footerShown = state.barcodeOn || priceShown || state.reserveFooter;
+        if (footerShown){
           if (!showSlogan) html += '<div class="push"></div>';
-          var fcls = 'foot' + (state.barcodeOn && !priceShown ? ' only-code' : '') + (!state.barcodeOn && priceShown ? ' only-price' : '');
+          var fcls = 'foot' + (state.reserveFooter ? ' reserve' : '') + (state.barcodeOn && !priceShown ? ' only-code' : '') + (!state.barcodeOn && priceShown ? ' only-price' : '');
           html += '<div class="' + fcls + '">';
           if (state.barcodeOn){
             var bc = currentBarcode();
@@ -1178,7 +1431,7 @@
           }
           html += '</div>';
         }
-        if (!showSlogan && !state.barcodeOn && !priceShown) html += '<div class="end-pad"></div>';
+        if (!showSlogan && !footerShown) html += '<div class="end-pad"></div>';
         return html;
       }
       /* text colour for fills that use the accent colour: whichever of black or
@@ -1206,12 +1459,25 @@
           b.setAttribute('aria-pressed', b.classList.contains('sel') ? 'true' : 'false');
         });
       }
-      function renderLabel(){
-        labelEl.style.setProperty('--accent', safeAccent(state.accent));
-        labelEl.style.setProperty('--on-accent', onAccent(state.accent));
+      /* The slogan is the most optional part: when it does not fit (content cut
+         off, or the Racer band squashed) it is left out of the drawing, and drawn
+         again as soon as there is room. state.sloganOn keeps the user's choice, so
+         saved records and the switch are not changed by this. */
+      var sloganAuto = false;
+      function sloganWanted(){ return !!state.sloganOn && String(state.slogan || '').trim() !== ''; }
+      function drawLabel(){
         labelEl.innerHTML = labelInnerHTML();
         attachIconFallbacks(labelEl);
         fitLabel();
+      }
+      function renderLabel(){
+        labelEl.style.setProperty('--accent', safeAccent(state.accent));
+        labelEl.style.setProperty('--on-accent', onAccent(state.accent));
+        sloganAuto = false;
+        drawLabel();
+        if (sloganWanted() && (isOverflowing() || sloganSquashed())){ sloganAuto = true; drawLabel(); }
+        var note = document.getElementById('slogan-auto-note');
+        if (note) note.hidden = !sloganAuto;
         renderCaption();
         updateBarcodeHint();
         syncPressed();
@@ -1251,6 +1517,11 @@
            makes the bars thinner than the scanner can resolve */
         el.style.setProperty('--unit', (pxW / 23) + 'px');
         el.style.setProperty('--art-max', (pxH * 0.30) + 'px');
+        /* bar height is a physical size, not a font size, so shrinking the text never makes the bars
+           shorter than a scanner can follow: about 3 mm on a small label, growing with the label width.
+           They are never squeezed further: if the label is too tight, the user turns the barcode off */
+        var pxPerMm = pxW / (labelCm().w * 10);
+        el.style.setProperty('--bar-h', Math.max(pxW / 23 * 1.15, 3 * pxPerMm) + 'px');
         /* measure the content at natural height, then lock the box height */
         el.style.height = 'auto';
         el.style.minHeight = '0px';
@@ -1262,9 +1533,9 @@
              applied (set-then-read per element used to force ~25-45 layouts) */
           var targets = [];
           function add(node, base, unit, min){ if (node) targets.push({ el:node, base:base, unit:!!unit, min:min }); }
-          add(el.querySelector('.pname'), 3.1, false, .55);                   /* product name */
-          add(el.querySelector('.banner-inner span'), 1.42, false, .55);      /* subtitle */
-          el.querySelectorAll('.ftext').forEach(function(t){ add(t, 1.22, false, .55); });   /* longest word must fit its cell */
+          add(el.querySelector('.pname'), 5.2, false, .55);                   /* product name */
+          add(el.querySelector('.banner-inner span'), 2.25, false, .55);      /* subtitle */
+          el.querySelectorAll('.ftext').forEach(function(t){ add(t, 1.95, false, .55); });   /* longest word must fit its cell */
           add(el.querySelector('.warranty .wtext'), 1.15, false, .55);
           add(el.querySelector('.app-name'), 1.18, false, .55);
           add(el.querySelector('.barcode .code'), .78, false, .5);            /* digits under the bars */
@@ -1278,13 +1549,15 @@
           }
           fitBatch(targets);
           var nat = el.scrollHeight;
-          if (nat <= pxH) break;
+          /* the room for content is the box minus its borders (pxH is the border-box height) */
+          var avail = pxH - (el.offsetHeight - el.clientHeight);
+          if (nat <= avail) break;
           /* the slogan art keeps its proportions, so it does not shrink with the
              font: scale only the part that does */
           var artEl = el.querySelector('.sz-dynamic .art'), fixedH = artEl ? artEl.offsetHeight : 0;
-          var next = (fixedH && fixedH < pxH && nat > fixedH)
-            ? fs * ((pxH - fixedH) / (nat - fixedH)) * .97
-            : fs * (pxH / nat) * .97;
+          var next = (fixedH && fixedH < avail && nat > fixedH)
+            ? fs * ((avail - fixedH) / (nat - fixedH)) * .97
+            : fs * (avail / nat) * .97;
           if (next < 5){ fs = 5; el.style.fontSize = fs + 'px'; break; }
           fs = next;
         }
@@ -1319,21 +1592,24 @@
       function exportBlockReason(){
         if (state.barcodeOn && !currentBarcode().ok) return 'The barcode is invalid — fix it (see the Barcode section) before downloading.';
         if (isOverflowing()){
-          if (state.barcodeOn && barcodeClipped()) return 'The barcode does not fit at this size and would be cut off — use a larger label, or turn the slogan or price off.';
-          return 'The content does not fit at this size and would be cut off — use a larger label, fewer features, or turn the slogan off.';
+          if (state.barcodeOn && barcodeClipped()) return 'The barcode does not fit at this size and would be cut off — use a larger label, or turn the barcode, the warranty line or the price off.';
+          return 'The content does not fit at this size and would be cut off — use a larger label, fewer features, or turn the warranty or App line off.';
         }
         return '';
       }
+      function sloganSquashed(){
+        var art = labelEl.querySelector('.sz-dynamic .art');
+        return !!art && art.getBoundingClientRect().height / (art.getBoundingClientRect().width || 1) < SLOGAN_ART.h / SLOGAN_ART.w * 0.85;
+      }
       function captionWarning(){
-        var sloganShown = state.sloganOn && String(state.slogan || '').trim() !== '';
-        var over = isOverflowing();
-        var art = sloganShown ? labelEl.querySelector('.sz-dynamic .art') : null;
-        var squashed = !!art && art.getBoundingClientRect().height / (art.getBoundingClientRect().width || 1) < SLOGAN_ART.h / SLOGAN_ART.w * 0.85;
-        if (!over && !squashed) return '';
-        var msg = over
-          ? (sloganShown ? 'Does not fit with the slogan' : 'Does not fit — use a larger size or fewer features')
-          : 'The slogan band is squashed at this shape';
-        return ' <span class="cap-warn">⚠ ' + msg + (sloganShown ? ' — use a taller label or <button type="button" class="cap-btn" data-slogan-off>turn the slogan off</button>' : '') + '</span>';
+        var note = sloganAuto ? ' <span class="cap-note">Slogan hidden automatically — not enough room at this size</span>' : '';
+        if (!isOverflowing()) return note;
+        var msg = 'Does not fit';
+        var fix = '';
+        var bcBtn = state.barcodeOn ? '<button type="button" class="cap-btn" data-barcode-off>turn the barcode off</button>, ' : '';
+        if (state.reserveFooter) fix = ' — use a larger label, fewer features, ' + bcBtn + 'turn the warranty or App line off, or <button type="button" class="cap-btn" data-reserve-off>turn off the space kept for price and barcode</button>';
+        else fix = ' — use a larger size, fewer features, ' + bcBtn + 'or turn the warranty or App line off';
+        return note + ' <span class="cap-warn">⚠ ' + msg + fix + '</span>';
       }
       /* write only when the text really changed, so a screen reader is not made
          to re-announce an identical caption on every keystroke */
@@ -1378,11 +1654,17 @@
       function hasImg(f){ return !!(f.img && String(f.img).trim()); }
       function featSelectValue(f){ return (hasImg(f) || f.custom) ? 'custom' : (f.icon || 'auto'); }
       function iconOptions(f){
-        var cur = featSelectValue(f);
+        var cur = featSelectValue(f), cat = categoryOf(state.category);
+        function opt(k){ return '<option value="' + k + '"' + (cur === k ? ' selected' : '') + '>' + esc(ICONS[k].name) + '</option>'; }
         var out = '<option value="auto"' + (cur === 'auto' ? ' selected' : '') + '>Auto · ' + esc(ICONS[autoIcon(f.text)].name) + '</option>';
-        Object.keys(ICONS).forEach(function(k){
-          out += '<option value="' + k + '"' + (cur === k ? ' selected' : '') + '>' + esc(ICONS[k].name) + '</option>';
-        });
+        if (cat.icons === '*'){
+          Object.keys(ICONS).forEach(function(k){ out += opt(k); });
+        } else {
+          /* this category's icons first (in the category's own order), everything else below */
+          var mine = cat.icons.filter(function(k){ return hasOwn(ICONS, k); });
+          out += '<optgroup label="' + esc(cat.name) + ' icons">' + mine.map(opt).join('') + '</optgroup>';
+          out += '<optgroup label="Other icons">' + Object.keys(ICONS).filter(function(k){ return mine.indexOf(k) === -1; }).map(opt).join('') + '</optgroup>';
+        }
         return out + '<option value="custom"' + (cur === 'custom' ? ' selected' : '') + '>Custom image URL…</option>';
       }
       /* when no built-in icon matches, offer an online icon search
@@ -1408,7 +1690,108 @@
         if (unmatched) nomatch.querySelector('a').href = iconSearchUrl(f.text);
         wrap.querySelector('.img-row').style.display = showImg ? 'flex' : 'none';
         wrap.querySelector('.auto-tag').style.display = (unmatched || showImg) ? 'block' : 'none';
+        /* an unmatched feature can be put on the icon-request list */
+        var reqRow = wrap.querySelector('.req-row'), rb = reqRow.querySelector('button'), requested = isRequested(f.text);
+        reqRow.style.display = unmatched ? 'block' : 'none';
+        rb.disabled = requested;
+        rb.textContent = requested ? 'Requested ✓ (see Icon requests below)' : 'Request an icon for this';
       }
+      /* ================= ICON REQUESTS =================
+         Features can turn up while a product is being made that have no icon yet.
+         "Request an icon" puts the feature (with its category and product) on a
+         list kept in this browser; "Copy list" turns it into text to send along. */
+      var REQ_KEY = 'plc_icon_requests_v1', MAX_REQ = 200;
+      var iconRequests = [];
+      try {
+        var rawReq = JSON.parse(localStorage.getItem(REQ_KEY) || '[]');
+        if (Array.isArray(rawReq)) iconRequests = rawReq.filter(function(r){
+          return r && typeof r === 'object' && typeof r.text === 'string' && r.text.trim();
+        }).slice(0, MAX_REQ).map(function(r){
+          return { category: CATEGORIES.some(function(c){ return c.id === r.category; }) ? r.category : 'general',
+                   text: r.text.trim().slice(0, 80), product: typeof r.product === 'string' ? r.product.slice(0, 80) : '' };
+        });
+      } catch (e) { /* unreadable list: start empty */ }
+      function reqKey(cat, text){ return cat + '|' + String(text || '').trim().toLowerCase(); }
+      function isRequested(text){
+        var k = reqKey(state.category, text);
+        return iconRequests.some(function(r){ return reqKey(r.category, r.text) === k; });
+      }
+      function saveRequests(){
+        try { localStorage.setItem(REQ_KEY, JSON.stringify(iconRequests)); return true; } catch (e) { return false; }
+      }
+      function reqMsg(text, kind){
+        var el = document.getElementById('req-msg');
+        el.textContent = text || ''; el.className = 'record-msg' + (kind ? ' ' + kind : '');
+      }
+      function refreshAllTags(){
+        document.querySelectorAll('#feat-list .feat-item').forEach(function(row, i){ if (state.features[i]) refreshTag(row, i); });
+      }
+      function requestsAsText(){
+        return 'Icon requests (Product Label Creator)\n' + iconRequests.map(function(r){
+          return '- [' + categoryOf(r.category).name + '] ' + r.text + (r.product ? ' (product: ' + r.product + ')' : '');
+        }).join('\n');
+      }
+      function renderRequests(){
+        var box = document.getElementById('req-box'), list = document.getElementById('req-list');
+        box.hidden = !iconRequests.length;
+        document.getElementById('req-title').textContent = 'Icon requests (' + iconRequests.length + ')';
+        list.innerHTML = '';
+        iconRequests.forEach(function(r, i){
+          var li = document.createElement('li'), span = document.createElement('span'), b = document.createElement('b'), x = document.createElement('button');
+          b.textContent = '[' + categoryOf(r.category).name + '] ';
+          span.appendChild(b); span.appendChild(document.createTextNode(r.text + (r.product ? ' — ' + r.product : '')));
+          x.type = 'button'; x.className = 'icon-btn'; x.textContent = '✕'; x.title = 'Remove'; x.setAttribute('aria-label', 'Remove request: ' + r.text);
+          x.addEventListener('click', function(){
+            iconRequests.splice(i, 1);
+            var saved = saveRequests(); renderRequests(); refreshAllTags();
+            reqMsg(saved ? '' : 'Could not save the list in this browser; copy it now if you need it.', saved ? '' : 'err');
+          });
+          li.appendChild(span); li.appendChild(x); list.appendChild(li);
+        });
+      }
+      function addIconRequest(f){
+        if (!f || !String(f.text || '').trim()) return;
+        var text = f.text.trim().slice(0, 80);
+        if (isRequested(text)) return;
+        if (iconRequests.length >= MAX_REQ){ reqMsg('The list is full (' + MAX_REQ + '). Copy and clear it first.', 'err'); document.getElementById('req-box').hidden = false; return; }
+        iconRequests.push({ category: state.category, text: text, product: String(state.sub || state.name || '').trim().slice(0, 80) });
+        var saved = saveRequests();
+        renderRequests(); refreshAllTags();
+        document.getElementById('req-box').open = true;
+        reqMsg(saved ? 'Added “' + text + '” to the icon requests.' : 'Added, but this browser would not save the list: copy it before closing the page.', saved ? 'ok' : 'err');
+      }
+      /* Copy: the Clipboard API where allowed, otherwise select the text in a box so Ctrl/Cmd+C works */
+      function fallbackCopy(text){
+        var ta = document.getElementById('req-text'), ok = false;
+        ta.hidden = false; ta.value = text; ta.focus(); ta.select();
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        if (ok) ta.hidden = true;
+        return ok;
+      }
+      document.getElementById('req-copy').addEventListener('click', function(){
+        if (!iconRequests.length) return;
+        var text = requestsAsText();
+        var done = function(ok){ reqMsg(ok ? 'Copied ' + iconRequests.length + ' request' + (iconRequests.length === 1 ? '' : 's') + '. Paste it into your message.' : 'Could not copy automatically: the text is selected below, press Ctrl+C (Cmd+C on Mac).', ok ? 'ok' : 'err'); };
+        if (navigator.clipboard && window.isSecureContext){
+          navigator.clipboard.writeText(text).then(function(){ document.getElementById('req-text').hidden = true; done(true); }, function(){ done(fallbackCopy(text)); });
+        } else done(fallbackCopy(text));
+      });
+      var reqClearTimer = 0, reqClearBtn = document.getElementById('req-clear');
+      function disarmReqClear(){ clearTimeout(reqClearTimer); reqClearBtn.classList.remove('armed'); reqClearBtn.textContent = 'Clear list'; }
+      reqClearBtn.addEventListener('click', function(){
+        if (!reqClearBtn.classList.contains('armed')){
+          reqClearBtn.classList.add('armed'); reqClearBtn.textContent = 'Press again to clear';
+          clearTimeout(reqClearTimer); reqClearTimer = setTimeout(disarmReqClear, 5000);
+          return;
+        }
+        disarmReqClear();
+        iconRequests = [];
+        var saved = saveRequests(); renderRequests(); refreshAllTags();
+        document.getElementById('req-text').hidden = true;
+        reqMsg(saved ? '' : 'Cleared here, but this browser would not save the change.', saved ? '' : 'err');
+      });
+      renderRequests();
+
       function buildFeatRow(f, i){
         var row = document.createElement('div');
         row.className = 'feat-item';
@@ -1426,6 +1809,7 @@
               '<button class="mini-btn" type="button" data-clearimg="' + i + '">Clear</button>' +
             '</div>' +
             '<div class="nomatch img-err" style="display:none"></div>' +
+            '<div class="req-row" style="display:none"><button class="mini-btn" type="button" data-request="' + i + '">Request an icon for this</button></div>' +
           '</div>';
         return row;
       }
@@ -1514,6 +1898,8 @@
           /* keep keyboard focus in the list instead of dropping it to <body> */
           var texts = featList.querySelectorAll('input.feat-text');
           if (texts.length) texts[Math.min(idx, texts.length - 1)].focus(); else document.getElementById('add-feat').focus();
+        } else if (btn.dataset.request !== undefined){
+          addIconRequest(state.features[+btn.dataset.request]);
         } else if (btn.dataset.clearimg !== undefined){
           idx = +btn.dataset.clearimg;
           state.features[idx].img = '';
@@ -1537,30 +1923,37 @@
         row.querySelector('input.feat-text').focus();
       });
 
-      /* dash cam quick-add chips — one tap adds the feature (auto icon) */
-      var DC_FEATURES = [
-        '4K Ultra HD Video', '170° Wide Angle', 'Loop Recording',
-        'G-Sensor Impact Detection', '24H Parking Mode', 'Super Night Vision',
-        'Front & Rear Dual Camera', 'ADAS Lane Assist', 'Speed Camera Alert',
-        'GPS Tracking', 'Wi-Fi App Control', 'HDR / WDR',
-        'Motion Detection', 'Time-Lapse Recording', 'Emergency Lock',
-        'MicroSD Card Support', 'Voice Control', 'Super Capacitor'
-      ];
-      var dcBox = document.getElementById('dc-presets');
-      DC_FEATURES.forEach(function(txt){
-        var b = document.createElement('button');
-        b.className = 'chip'; b.type = 'button'; b.textContent = txt;
-        b.addEventListener('click', function(){
-          var exists = state.features.some(function(f){ return f.text.trim().toLowerCase() === txt.toLowerCase(); });
-          if (exists) return;
-          var emptyIdx = state.features.findIndex(function(f){ return f.text.trim() === ''; });
-          if (emptyIdx !== -1) state.features[emptyIdx] = { text: txt, icon: 'auto' };
-          else if (state.features.length < MAX_FEATURES) state.features.push({ text: txt, icon: 'auto' });
-          else return;
-          renderLabel(); renderFeatEditor();
+      /* quick-add chips: one tap adds the feature (auto icon). The list follows the category. */
+      var quickBox = document.getElementById('quick-presets');
+      function renderQuick(){
+        var cat = categoryOf(state.category);
+        document.getElementById('quick-box').style.display = cat.quick.length ? '' : 'none';
+        document.getElementById('quick-title').textContent = cat.name + ' quick add';
+        quickBox.innerHTML = '';
+        cat.quick.forEach(function(txt){
+          var b = document.createElement('button');
+          b.className = 'chip'; b.type = 'button'; b.textContent = txt;
+          b.addEventListener('click', function(){
+            var exists = state.features.some(function(f){ return f.text.trim().toLowerCase() === txt.toLowerCase(); });
+            if (exists) return;
+            var emptyIdx = state.features.findIndex(function(f){ return f.text.trim() === ''; });
+            if (emptyIdx !== -1) state.features[emptyIdx] = { text: txt, icon: 'auto' };
+            else if (state.features.length < MAX_FEATURES) state.features.push({ text: txt, icon: 'auto' });
+            else return;
+            renderLabel(); renderFeatEditor();
+          });
+          quickBox.appendChild(b);
         });
-        dcBox.appendChild(b);
+      }
+      /* the category select: fill it, and on change re-pick Auto icons, the dropdown groups and the chips */
+      var catSel = document.getElementById('in-category');
+      CATEGORIES.forEach(function(c){ var o = document.createElement('option'); o.value = c.id; o.textContent = c.name; catSel.appendChild(o); });
+      catSel.value = state.category;
+      catSel.addEventListener('change', function(){
+        state.category = catSel.value;
+        renderQuick(); renderFeatEditor(); renderLabel();
       });
+      renderQuick();
 
       /* ================= FORM BINDINGS ================= */
       function bind(id, key, after){
@@ -1618,7 +2011,6 @@
       /* currency fixed to "$" — no selector */
       document.getElementById('in-slogan-on').addEventListener('change', function(e){
         state.sloganOn = e.target.checked;
-        sloganAutoOff = false;                       /* the user decided; stop auto-restoring */
         document.getElementById('slogan-fields').classList.toggle('off', !e.target.checked);
         renderLabel();
       });
@@ -1632,6 +2024,7 @@
       document.getElementById('in-barcode-type').addEventListener('change', function(e){
         state.barcodeType = e.target.value; renderLabel();
       });
+      document.getElementById('in-reserve').addEventListener('change', function(e){ state.reserveFooter = e.target.checked; reserveAutoOff = false; renderLabel(); });
       document.getElementById('in-barcode-on').addEventListener('change', function(e){
         state.barcodeOn = e.target.checked;
         renderLabel();
@@ -1643,46 +2036,43 @@
       });
 
       /* size presets */
-      /* [width, length, label, slogan?] — a size marked `false` is too small for
-         the slogan band to look right, so choosing it switches the slogan off
-         (and choosing a normal size afterwards switches it back on, unless the
-         user has touched the slogan switch in between) */
-      var PRESETS = [ [6.5,10,'6.5 × 10'], [6,9,'6 × 9'], [8,12,'8 × 12'], [10,16,'10 × 16'], [12,18,'12 × 18'], [5,5,'5 × 5',false] ];
-      var sloganAutoOff = false;
-      function setSloganOn(on){
-        state.sloganOn = on;
-        document.getElementById('in-slogan-on').checked = on;
-        document.getElementById('slogan-fields').classList.toggle('off', !on);
+      /* [width, length, label, options?] — options { reserve:false } mark a size too small for the kept
+         price / barcode strip: choosing it switches the strip off, and choosing a normal size afterwards
+         switches it back on, unless the user has touched the switch in between (or loaded a record) */
+      var PRESETS = [ [6.5,10,'6.5 × 10'], [6,9,'6 × 9'], [8,12,'8 × 12'], [10,16,'10 × 16'], [12,18,'12 × 18'], [5,5,'5 × 5', { reserve:false, tag:'compact' }] ];
+      var reserveAutoOff = false;
+      function setReserve(on){
+        state.reserveFooter = on;
+        document.getElementById('in-reserve').checked = on;
       }
-      /* "turn the slogan off" link inside the size warning */
+      /* "turn the slogan off" / "turn off the footer space" links inside the size warning */
       document.getElementById('dim-caption').addEventListener('click', function(e){
-        if (!e.target.closest('[data-slogan-off]')) return;
-        setSloganOn(false); sloganAutoOff = false;
-        renderLabel();
+        if (e.target.closest('[data-barcode-off]')){
+          state.barcodeOn = false; document.getElementById('in-barcode-on').checked = false; renderLabel();
+        } else if (e.target.closest('[data-reserve-off]')){ setReserve(false); reserveAutoOff = false; renderLabel(); }
       });
       var presetBox = document.getElementById('presets');
       PRESETS.forEach(function(p){
         var b = document.createElement('button');
-        b.className = 'chip'; b.type = 'button'; b.textContent = p[2] + ' cm' + (p[3] === false ? ' · no slogan' : '');
+        b.className = 'chip'; b.type = 'button'; b.textContent = p[2] + ' cm' + (p[3] ? ' · ' + p[3].tag : '');
+        if (p[3]) b.title = 'Too small for the space kept for price and barcode: it is switched off (the slogan hides itself when there is no room)';
         b.dataset.w = p[0]; b.dataset.l = p[1];
         b.addEventListener('click', function(){
           state.w = p[0]; state.l = p[1]; state.unit = 'cm';
           document.getElementById('in-w').value = p[0];
           document.getElementById('in-l').value = p[1];
           document.getElementById('in-unit').value = 'cm';
-          if (p[3] === false){
-            if (state.sloganOn){ setSloganOn(false); sloganAutoOff = true; }
-          } else if (sloganAutoOff){
-            setSloganOn(true); sloganAutoOff = false;
-          }
+          var o = p[3];
+          if (o && o.reserve === false){ if (state.reserveFooter){ setReserve(false); reserveAutoOff = true; } }
+          else if (reserveAutoOff){ setReserve(true); reserveAutoOff = false; }
           renderLabel();
         });
         presetBox.appendChild(b);
       });
 
       /* accent swatches */
-      var ACCENTS = ['#ffc900','#ff7a1a','#e8323f','#1f9d55','#1677ff','#111111'];
-      var ACCENT_NAMES = ['yellow','orange','red','green','blue','black'];
+      var ACCENTS = ['#fdd904','#ffb800','#ff7a1a','#e8323f','#1f9d55','#1677ff','#111111'];
+      var ACCENT_NAMES = ['company yellow','amber','orange','red','green','blue','black'];
       var swBox = document.getElementById('swatches');
       ACCENTS.forEach(function(c){
         var b = document.createElement('button');
@@ -1858,7 +2248,8 @@
         recDeleteBtn.textContent = 'Delete';
       }
       function syncFormFromState(){
-        sloganAutoOff = false;                       /* a loaded record brings its own slogan setting */
+        reserveAutoOff = false;   /* a loaded record brings its own slogan / footer settings */
+        catSel.value = state.category; renderQuick();
         document.getElementById('in-name').value = state.name || '';
         document.getElementById('in-sub').value = state.sub || '';
         document.getElementById('in-slogan').value = state.slogan || '';
@@ -1881,13 +2272,14 @@
         document.getElementById('in-barcode').value = state.barcode || '';
         document.getElementById('in-barcode-type').value = state.barcodeType || 'auto';
         document.getElementById('in-barcode-on').checked = !!state.barcodeOn;
+        document.getElementById('in-reserve').checked = !!state.reserveFooter;
         document.getElementById('in-price').value = state.price || '';
         document.getElementById('in-price-on').checked = !!state.priceOn;
         document.getElementById('price-fields').classList.toggle('off', !state.priceOn);
         swBox.querySelectorAll('.swatch').forEach(function(x){
           x.classList.toggle('sel', x.style.background && rgbToHex(x.style.background) === String(state.accent).toLowerCase());
         });
-        colorIn.value = /^#[0-9a-f]{6}$/i.test(state.accent) ? state.accent : '#ffc900';
+        colorIn.value = /^#[0-9a-f]{6}$/i.test(state.accent) ? state.accent : '#fdd904';
         renderFeatEditor();
         renderLabel();
       }

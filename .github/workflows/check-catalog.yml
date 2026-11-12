@@ -1,0 +1,22 @@
+name: Check icon catalog
+
+# Fails a pull request (or a push to main) when the icon / category catalog in
+# index.html is inconsistent, e.g. a category lists an icon that does not exist
+# or a quick-add feature gets no icon. Runs tools/check-categories.js (plain Node).
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  catalog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tools/check-categories.js
