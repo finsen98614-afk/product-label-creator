@@ -100,6 +100,7 @@ const inAnyCategory = Object.create(null);
     seenIcon[k] = true; inAnyCategory[k] = true;
   });
   checkRules(c.rules || [], where, c.icons);
+  if (c.app !== undefined && typeof c.app !== 'boolean') err(where + ': app must be true or false (does a new label of this category show the App line by default)');
   if (!Array.isArray(c.quick) || !c.quick.length) { err(where + ': needs quick-add features'); return; }
   if (c.quick.length < 8) warn(where + ': only ' + c.quick.length + ' quick-add features (8 or more is recommended)');
   if (c.quick.length > MAX_FEATURES) err(where + ': more than ' + MAX_FEATURES + ' quick-add features');
