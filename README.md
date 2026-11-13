@@ -2,7 +2,7 @@
 
 Generate XO-W12-style product labels — for smart watches, dash cams and more.
 
-- Brand name + product name, label size (default 6.5 x 10 cm). Bold, high-contrast look: company yellow (#fdd904), large condensed feature text, ring icons, thick rounded border
+- Brand name + product name, label size (default 6.5 x 10 cm). Bold, high-contrast look: company yellow (#fdd904), large condensed feature text (a short feature such as IP68 or NFC is printed up to 1.5x larger, filling its cell), ring icons, thick rounded border
 - Product categories (General, Smart watch, Dash cam, Speaker, Drone, Karaoke): the category decides which icons the dropdown suggests first, how Auto picks an icon from the words you type, and which quick-add features are offered. Changing it never edits features you already typed
 - Iconic features with auto-matched icons (Bluetooth, IP68, AMOLED, NFC, health monitoring, watch case, wireless charging, dash cam features and more — with online icon search fallback)
 - Slogan in 3 styles (Racer / Minimal / Retro), optional. It is the first thing to give way: when the label has no room for it (or the Racer band would be squashed) it hides itself and comes back when there is room again. The switch keeps your choice, and saved records keep it too

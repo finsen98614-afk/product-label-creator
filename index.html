@@ -1532,10 +1532,10 @@
              then every width is read in ONE layout pass, then the shrinks are
              applied (set-then-read per element used to force ~25-45 layouts) */
           var targets = [];
-          function add(node, base, unit, min){ if (node) targets.push({ el:node, base:base, unit:!!unit, min:min }); }
+          function add(node, base, unit, min, grow){ if (node) targets.push({ el:node, base:base, unit:!!unit, min:min, grow:grow || 1 }); }
           add(el.querySelector('.pname'), 5.2, false, .55);                   /* product name */
           add(el.querySelector('.banner-inner span'), 2.25, false, .55);      /* subtitle */
-          el.querySelectorAll('.ftext').forEach(function(t){ add(t, 1.95, false, .55); });   /* longest word must fit its cell */
+          el.querySelectorAll('.ftext').forEach(function(t){ add(t, 1.95, false, .55, 1.5); });   /* longest word must fit its cell; a feature that fits on one line is enlarged (up to 1.5x) */
           add(el.querySelector('.warranty .wtext'), 1.15, false, .55);
           add(el.querySelector('.app-name'), 1.18, false, .55);
           add(el.querySelector('.barcode .code'), .78, false, .5);            /* digits under the bars */
@@ -1572,12 +1572,39 @@
          that must keep its proportion to artwork */
       function setFont(t, k){ t.el.style.fontSize = t.unit ? 'calc(var(--unit) * ' + k + ')' : k + 'em'; }
       function fitBatch(list){
-        list.forEach(function(t){ setFont(t, t.base); });
-        var m = list.map(function(t){ return [t.el.clientWidth, t.el.scrollWidth]; });
+        list.forEach(function(t){ setFont(t, t.base); if (t.grow > 1) t.el.style.whiteSpace = 'nowrap'; });
+        var rng = document.createRange();
+        /* scrollWidth of a flex item is never below its own width, so the one-line width of a growing
+           text is read from the text itself */
+        var m = list.map(function(t){
+          if (t.grow > 1){ rng.selectNodeContents(t.el); return [t.el.clientWidth, rng.getBoundingClientRect().width]; }
+          return [t.el.clientWidth, t.el.scrollWidth];
+        });
+        /* a short text (IP68, NFC CARD) that fits on one line at the base size is enlarged to fill its
+           cell, up to t.grow times; the label reads better when short words are big. A text that would
+           need two lines at the base size keeps wrapping and shrinks only if its longest word overflows. */
+        var again = [];
         list.forEach(function(t, i){
           var cw = m[i][0], w = m[i][1];
+          if (t.grow > 1){
+            if (cw > 0 && w <= cw){
+              /* only a clear enlargement (1.25x and up) is applied: a text that would grow by a hair stays at
+                 the base size, so the labels do not end up with many almost-equal sizes */
+              var k = Math.min(t.grow, (cw / Math.max(w, 1)) * .97);
+              setFont(t, t.base * (k >= 1.25 ? k : 1));
+              return;
+            }
+            t.el.style.whiteSpace = ''; again.push(t); return;
+          }
           if (cw > 0 && w > cw) setFont(t, Math.max(t.base * (cw / w) * .97, t.min));
         });
+        if (again.length){
+          var m2 = again.map(function(t){ return [t.el.clientWidth, t.el.scrollWidth]; });
+          again.forEach(function(t, i){
+            var cw = m2[i][0], w = m2[i][1];
+            if (cw > 0 && w > cw) setFont(t, Math.max(t.base * (cw / w) * .97, t.min));
+          });
+        }
       }
       /* Tell the user when the label cannot do justice to its content instead of
          silently clipping or squashing it, and offer the fix when it is the
