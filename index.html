@@ -1603,6 +1603,21 @@
           if (cw > 0 && w > cw) setFont(t, Math.max(t.base * (cw / w) * .97, t.min));
         });
         if (again.length){
+          /* a short two-word text that has to wrap (NFC CARD, SPORT MODES) is enlarged as well, until its
+             longest word fills the cell; capped at 1.4x so the two lines stay inside the icon's height.
+             The longest word's width is the element's min-content width. */
+          var two = again.filter(function(t){ return t.el.textContent.trim().split(/\s+/).length <= 2; });
+          var cwOf = again.map(function(t){ return t.el.clientWidth; });
+          two.forEach(function(t){ t.el.style.flex = 'none'; t.el.style.width = 'min-content'; });
+          var wordW = two.map(function(t){ return t.el.getBoundingClientRect().width; });
+          two.forEach(function(t){ t.el.style.flex = ''; t.el.style.width = ''; });
+          two.forEach(function(t, j){
+            var cw = cwOf[again.indexOf(t)], wm = wordW[j];
+            if (cw > 0 && wm > 0){
+              var k = Math.min(Math.min(t.grow, 1.4), (cw / wm) * .97);
+              if (k >= 1.25) setFont(t, t.base * k);
+            }
+          });
           var m2 = again.map(function(t){ return [t.el.clientWidth, t.el.scrollWidth]; });
           again.forEach(function(t, i){
             var cw = m2[i][0], w = m2[i][1];
