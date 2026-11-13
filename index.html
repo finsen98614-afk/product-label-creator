@@ -1576,54 +1576,44 @@
          that must keep its proportion to artwork */
       function setFont(t, k){ t.el.style.fontSize = t.unit ? 'calc(var(--unit) * ' + k + ')' : k + 'em'; }
       function fitBatch(list){
-        list.forEach(function(t){ setFont(t, t.base); if (t.grow > 1) t.el.style.whiteSpace = 'nowrap'; });
+        var grow = [], rest = [];
+        list.forEach(function(t){ setFont(t, t.base); (t.grow > 1 ? grow : rest).push(t); });
+        /* texts that only shrink: measured at the base size, shrunk at the end */
+        var restM = rest.map(function(t){ return [t.el.clientWidth, t.el.scrollWidth]; });
+        /* Texts that may grow (features, price). Each gets the larger of two sizes: one line filling its
+           cell, or (two-word texts only) two lines with the longest word filling the cell, up to 1.4x.
+           Taking the larger keeps a text from getting SMALLER when the label has more room: with the
+           slogan off the rings grow and a cell gets narrower, so one line may stop fitting while two lines
+           still fill it. scrollWidth of a flex item is never below its own width, so the one-line width is
+           read from the text itself (a Range), and the longest word's width from min-content. */
         var rng = document.createRange();
-        /* scrollWidth of a flex item is never below its own width, so the one-line width of a growing
-           text is read from the text itself */
-        var m = list.map(function(t){
-          if (t.grow > 1){ rng.selectNodeContents(t.el); return [t.el.clientWidth, rng.getBoundingClientRect().width]; }
-          return [t.el.clientWidth, t.el.scrollWidth];
-        });
-        /* a short text (IP68, NFC CARD) that fits on one line at the base size is enlarged to fill its
-           cell, up to t.grow times; the label reads better when short words are big. A text that would
-           need two lines at the base size keeps wrapping and shrinks only if its longest word overflows. */
+        grow.forEach(function(t){ t.el.style.whiteSpace = 'nowrap'; });
+        var g1 = grow.map(function(t){ rng.selectNodeContents(t.el); return [t.el.clientWidth, rng.getBoundingClientRect().width]; });
+        grow.forEach(function(t){ t.el.style.whiteSpace = ''; });
+        var two = grow.filter(function(t){ return t.el.textContent.trim().split(/\s+/).length === 2; });
+        two.forEach(function(t){ t.el.style.flex = 'none'; t.el.style.width = 'min-content'; });
+        var wm = two.map(function(t){ return t.el.getBoundingClientRect().width; });
+        two.forEach(function(t){ t.el.style.flex = ''; t.el.style.width = ''; });
         var again = [];
-        list.forEach(function(t, i){
-          var cw = m[i][0], w = m[i][1];
-          if (t.grow > 1){
-            if (cw > 0 && w <= cw){
-              /* only a clear enlargement (1.25x and up) is applied: a text that would grow by a hair stays at
-                 the base size, so the labels do not end up with many almost-equal sizes */
-              var k = Math.min(t.grow, (cw / Math.max(w, 1)) * .97);
-              setFont(t, t.base * (k >= 1.25 ? k : 1));
-              return;
-            }
-            t.el.style.whiteSpace = ''; again.push(t); return;
-          }
+        grow.forEach(function(t, i){
+          var cw = g1[i][0], w1 = g1[i][1], k1 = 0, k2 = 0, j = two.indexOf(t);
+          if (cw > 0 && w1 <= cw) k1 = Math.min(t.grow, (cw / Math.max(w1, 1)) * .97);
+          if (j >= 0 && cw > 0 && wm[j] > 0) k2 = Math.min(t.grow, 1.4, (cw / wm[j]) * .97);
+          var k = Math.max(k1, k2);
+          if (k < 1){ again.push(t); return; }             /* does not fit even at the base size: shrink below */
+          /* only a clear enlargement (1.08x and up) is applied, so the sizes do not end up almost equal */
+          setFont(t, t.base * (k >= 1.08 ? k : 1));
+          if (k >= 1.08 && k1 >= k2) t.el.style.whiteSpace = 'nowrap';
+        });
+        var againM = again.map(function(t){ return [t.el.clientWidth, t.el.scrollWidth]; });
+        rest.forEach(function(t, i){
+          var cw = restM[i][0], w = restM[i][1];
           if (cw > 0 && w > cw) setFont(t, Math.max(t.base * (cw / w) * .97, t.min));
         });
-        if (again.length){
-          /* a short two-word text that has to wrap (NFC CARD, SPORT MODES) is enlarged as well, until its
-             longest word fills the cell; capped at 1.4x so the two lines stay inside the icon's height.
-             The longest word's width is the element's min-content width. */
-          var two = again.filter(function(t){ return t.el.textContent.trim().split(/\s+/).length <= 2; });
-          var cwOf = again.map(function(t){ return t.el.clientWidth; });
-          two.forEach(function(t){ t.el.style.flex = 'none'; t.el.style.width = 'min-content'; });
-          var wordW = two.map(function(t){ return t.el.getBoundingClientRect().width; });
-          two.forEach(function(t){ t.el.style.flex = ''; t.el.style.width = ''; });
-          two.forEach(function(t, j){
-            var cw = cwOf[again.indexOf(t)], wm = wordW[j];
-            if (cw > 0 && wm > 0){
-              var k = Math.min(Math.min(t.grow, 1.4), (cw / wm) * .97);
-              if (k >= 1.25) setFont(t, t.base * k);
-            }
-          });
-          var m2 = again.map(function(t){ return [t.el.clientWidth, t.el.scrollWidth]; });
-          again.forEach(function(t, i){
-            var cw = m2[i][0], w = m2[i][1];
-            if (cw > 0 && w > cw) setFont(t, Math.max(t.base * (cw / w) * .97, t.min));
-          });
-        }
+        again.forEach(function(t, i){
+          var cw = againM[i][0], w = againM[i][1];
+          if (cw > 0 && w > cw) setFont(t, Math.max(t.base * (cw / w) * .97, t.min));
+        });
       }
       /* Tell the user when the label cannot do justice to its content instead of
          silently clipping or squashing it, and offer the fix when it is the
