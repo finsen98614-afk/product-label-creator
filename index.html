@@ -417,7 +417,7 @@
       .barcode .code{ font-size:.78em; font-weight:700; letter-spacing:.32em; margin-top:.18em; font-family:"Archivo",monospace; }
       /* price sits in the centre of the footer and is printed in red */
       .price{
-        flex:0 0 auto; text-align:center;
+        flex:0 0 auto; align-self:stretch; text-align:center;
         font-weight:900; font-style:italic; font-size:3.2em; line-height:1; white-space:nowrap;
         color:#d81f26;
       }
@@ -1473,9 +1473,11 @@
       function renderLabel(){
         labelEl.style.setProperty('--accent', safeAccent(state.accent));
         labelEl.style.setProperty('--on-accent', onAccent(state.accent));
-        sloganAuto = false;
+        sloganAuto = false; priceBig = true;
         drawLabel();
         if (sloganWanted() && (isOverflowing() || sloganSquashed())){ sloganAuto = true; drawLabel(); }
+        /* the price is the next thing to give: back to its normal size when the label still overflows */
+        if (isOverflowing() && state.priceOn){ priceBig = false; drawLabel(); }
         var note = document.getElementById('slogan-auto-note');
         if (note) note.hidden = !sloganAuto;
         renderCaption();
@@ -1510,6 +1512,7 @@
          in em, so the base font-size is the only knob — shrink it until the
          content fits the locked height. Used for the preview and, at a much
          larger pixel size, for the export render. */
+      var PRICE_GROW = 2.2, priceBig = true;   /* priceBig: the price may grow to fill the footer; off only when the label overflows even without a slogan */
       function layoutLabel(el, pxW, pxH){
         el.style.width = pxW + 'px';
         /* barcode size is tied to the label WIDTH (1 unit = 1/23 of it), not
@@ -1538,6 +1541,7 @@
           el.querySelectorAll('.ftext').forEach(function(t){ add(t, 1.95, false, .55, 1.5); });   /* longest word must fit its cell; a feature that fits on one line is enlarged (up to 1.5x) */
           add(el.querySelector('.warranty .wtext'), 1.15, false, .55);
           add(el.querySelector('.app-name'), 1.18, false, .55);
+          add(el.querySelector('.price'), 3.2, false, .5, priceBig ? PRICE_GROW : 1);                   /* price: as big as the footer is wide, up to PRICE_GROW times */
           add(el.querySelector('.barcode .code'), .78, false, .5);            /* digits under the bars */
           var slEl = el.querySelector('.slogan');
           if (slEl){
