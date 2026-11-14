@@ -170,7 +170,21 @@
       }
       .dl-btn:hover{ filter:brightness(1.06); }
       .dl-btn:disabled{ opacity:.55; cursor:wait; }
+      .stage-btns{ display:flex; gap:8px; flex-wrap:wrap; }
+      .dl-btn.secondary{ background:var(--panel); color:var(--ink); box-shadow:none; border:1.5px solid var(--line); }
+      .dl-btn.secondary:disabled{ opacity:.55; cursor:wait; }
       .label-shadow{ filter:drop-shadow(0 14px 30px rgba(15,18,25,.22)); }
+      /* ---------- Printing: the sheet is built on demand (see PRINT in the script) ---------- */
+      #print-root{ display:none; }
+      #print-root .print-page{ position:relative; overflow:hidden; background:#fff; }
+      #print-root .print-cell{ position:absolute; }
+      #print-root .print-cell img{ display:block; width:100%; height:100%; }
+      #print-root .print-cell.guide{ outline:.15mm dashed #8a8f98; outline-offset:.8mm; }
+      @media print{
+        body > *:not(#print-root){ display:none !important; }
+        #print-root{ display:block !important; }
+        html, body{ margin:0 !important; padding:0 !important; background:#fff !important; }
+      }
 
       /* ---------- Generated PNG result (in-page save path) ---------- */
       .result{
@@ -585,13 +599,37 @@
           </div>
           <p class="record-msg" id="record-msg-bottom"></p>
         </section>
+
+        <section class="block">
+          <div class="block-head"><h2>Print</h2><button type="button" class="help" aria-label="Help: Print" aria-expanded="false" aria-controls="h-print">?</button></div>
+          <div class="help-pop" id="h-print" hidden>Prints the label at its real size (the same 300 DPI image as Download PNG), as many times as fit on one sheet or as many copies as you ask for, with optional dashed cut guides. In the print dialog choose the same paper size, set <b>Scale</b> to 100% (not "Fit to page") and <b>Margins</b> to None, otherwise the label and its barcode are resized.</div>
+          <label class="f"><span>Paper</span>
+            <select id="print-paper"><option value="letter">Letter (8.5 × 11 in)</option><option value="a4">A4 (210 × 297 mm)</option></select></label>
+          <div class="switch-row">
+            <div class="t">Fill the sheet</div>
+            <label class="sw"><input type="checkbox" id="print-fill" checked aria-label="Fill the sheet with copies of the label" /></label>
+          </div>
+          <label class="f" id="print-copies-row" hidden><span>Number of labels</span>
+            <input type="number" id="print-copies" min="1" max="999" step="1" value="1" inputmode="numeric" /></label>
+          <div class="switch-row">
+            <div class="t">Cut guides</div>
+            <label class="sw"><input type="checkbox" id="print-guides" checked aria-label="Print dashed cut guides around each label" /></label>
+          </div>
+          <p class="record-note" id="print-info" role="status"></p>
+          <div class="record-actions record-actions-bottom">
+            <button type="button" class="rec-btn primary" id="print-btn">Print</button>
+          </div>
+        </section>
       </aside>
 
       <!-- ================= PREVIEW ================= -->
       <main class="stage">
         <div class="stage-bar">
           <div class="dim-caption" id="dim-caption"><span id="dim-text"></span><span id="cap-live" aria-live="polite"></span></div>
-          <button class="dl-btn" id="dl" type="button">Download PNG</button>
+          <div class="stage-btns">
+            <button class="dl-btn secondary" id="print-top" type="button">Print</button>
+            <button class="dl-btn" id="dl" type="button">Download PNG</button>
+          </div>
         </div>
         <p class="export-msg" id="export-msg" role="status"></p>
         <div class="label-shadow"><div class="label" id="label" role="img" aria-label="Label preview"></div></div>
@@ -1669,6 +1707,7 @@
         if (warn !== lastCap.warn){ document.getElementById('cap-live').innerHTML = warn; lastCap.warn = warn; }
         var aria = 'Label preview: ' + [state.name, state.sub].filter(Boolean).join(' — ') + ', ' + show(cm.w) + ' by ' + show(cm.l) + ' ' + u + ', ' + n + (n === 1 ? ' feature' : ' features');
         if (aria !== lastCap.aria){ labelEl.setAttribute('aria-label', aria); lastCap.aria = aria; }
+        if (typeof updatePrintInfo === 'function') updatePrintInfo();
         var block = exportBlockReason();
         if (block !== lastCap.block){
           document.getElementById('export-msg').textContent = block;
@@ -2680,6 +2719,136 @@
         }
       });
       document.getElementById('dl-again').addEventListener('click', triggerDownload);
+
+      /* ================= PRINT =================
+         The label is rendered with the same pipeline as Download PNG (300 DPI), then laid out in
+         millimetres on hidden "pages" that only exist while the browser print dialog is open.
+         Sizes are in mm, so the printed label is its real size when the dialog is left at 100%. */
+      var PAPERS = { letter:{ w:215.9, h:279.4 }, a4:{ w:210, h:297 } };
+      var PRINT_MARGIN = 10, PRINT_GAP = 3, PRINT_MAX = 999;          /* mm, mm, labels */
+      var printPrefs = { paper:'letter', fill:true, copies:1, guides:true };
+      try {
+        var sp = JSON.parse(localStorage.getItem('plc_print_v1') || 'null');
+        if (sp && typeof sp === 'object'){
+          if (PAPERS[sp.paper]) printPrefs.paper = sp.paper;
+          if (typeof sp.fill === 'boolean') printPrefs.fill = sp.fill;
+          if (typeof sp.guides === 'boolean') printPrefs.guides = sp.guides;
+          var c0 = parseInt(sp.copies, 10); if (c0 >= 1 && c0 <= PRINT_MAX) printPrefs.copies = c0;
+        }
+      } catch (e) {}
+      function savePrintPrefs(){ try { localStorage.setItem('plc_print_v1', JSON.stringify(printPrefs)); } catch (e) {} }
+      function printLayout(){
+        var cm = labelCm(), w = cm.w * 10, l = cm.l * 10, p = PAPERS[printPrefs.paper];
+        var cols = Math.floor((p.w - 2 * PRINT_MARGIN + PRINT_GAP) / (w + PRINT_GAP));
+        var rows = Math.floor((p.h - 2 * PRINT_MARGIN + PRINT_GAP) / (l + PRINT_GAP));
+        var fits = cols >= 1 && rows >= 1;
+        return { w:w, l:l, p:p, cols:cols, rows:rows, per: fits ? cols * rows : 0, fits:fits };
+      }
+      function printCount(lay){ return printPrefs.fill ? lay.per : Math.max(1, Math.min(PRINT_MAX, printPrefs.copies)); }
+      var lastPrintInfo = '';
+      function updatePrintInfo(){
+        var el = document.getElementById('print-info');
+        if (!el || !PAPERS || !printPrefs) return;      /* the first render runs before this block has set them up */
+        var lay = printLayout(), name = printPrefs.paper === 'a4' ? 'A4' : 'Letter', msg, bad = false;
+        if (!lay.fits){ msg = 'This label is larger than a ' + name + ' sheet (with a 10 mm margin). Use a smaller size or a bigger paper.'; bad = true; }
+        else {
+          var n = printCount(lay), sheets = Math.ceil(n / lay.per);
+          msg = name + ': ' + lay.per + ' label' + (lay.per === 1 ? '' : 's') + ' per sheet (' + lay.cols + ' × ' + lay.rows + ')' +
+            (printPrefs.fill ? '' : ' · ' + n + ' label' + (n === 1 ? '' : 's') + ' = ' + sheets + ' sheet' + (sheets === 1 ? '' : 's'));
+        }
+        var key = msg + '|' + bad;
+        if (key === lastPrintInfo) return;
+        lastPrintInfo = key;
+        el.textContent = msg;
+        el.className = 'record-note' + (bad ? ' bc-err' : '');
+      }
+      var printUrl = null;
+      function removePrintSheet(){
+        var r = document.getElementById('print-root'), st = document.getElementById('print-style');
+        if (r) r.remove();
+        if (st) st.remove();
+        if (printUrl){ URL.revokeObjectURL(printUrl); printUrl = null; }
+      }
+      /* builds #print-root (one .print-page per sheet) and the @page rule; returns the images so the caller can wait for them */
+      function buildPrintSheet(src, lay, n){
+        removePrintSheet();                 /* also revokes the previous image, so only then take over `src` */
+        printUrl = src;
+        var st = document.createElement('style'); st.id = 'print-style';
+        st.textContent = '@page{ size:' + lay.p.w + 'mm ' + lay.p.h + 'mm; margin:0; }';
+        document.head.appendChild(st);
+        var root = document.createElement('div'); root.id = 'print-root'; root.setAttribute('aria-hidden', 'true');
+        var sheets = Math.ceil(n / lay.per), imgs = [], left = n;
+        for (var s = 0; s < sheets; s++){
+          var page = document.createElement('div'); page.className = 'print-page';
+          page.style.width = lay.p.w + 'mm'; page.style.height = lay.p.h + 'mm';
+          /* the last page must not ask for a break after itself (that prints an empty extra sheet) */
+          if (s < sheets - 1){ page.style.breakAfter = 'page'; page.style.pageBreakAfter = 'always'; }
+          var onPage = Math.min(lay.per, left); left -= onPage;
+          /* the whole grid is centred on the paper, so cut guides sit evenly around it */
+          var gridW = lay.cols * lay.w + (lay.cols - 1) * PRINT_GAP, gridH = lay.rows * lay.l + (lay.rows - 1) * PRINT_GAP;
+          var x0 = (lay.p.w - gridW) / 2, y0 = (lay.p.h - gridH) / 2;
+          for (var i = 0; i < onPage; i++){
+            var cell = document.createElement('div'); cell.className = 'print-cell' + (printPrefs.guides ? ' guide' : '');
+            cell.style.left = (x0 + (i % lay.cols) * (lay.w + PRINT_GAP)) + 'mm';
+            cell.style.top = (y0 + Math.floor(i / lay.cols) * (lay.l + PRINT_GAP)) + 'mm';
+            cell.style.width = lay.w + 'mm'; cell.style.height = lay.l + 'mm';
+            var img = document.createElement('img'); img.alt = ''; img.src = src;
+            cell.appendChild(img); page.appendChild(cell); imgs.push(img);
+          }
+          root.appendChild(page);
+        }
+        document.body.appendChild(root);
+        return imgs;
+      }
+      var printBusy = false;
+      function startPrint(){
+        if (printBusy) return;
+        var msgEl = document.getElementById('export-msg'), btns = [document.getElementById('print-top'), document.getElementById('print-btn')];
+        function setBtns(text, disabled){ btns.forEach(function(b){ b.textContent = text; b.disabled = disabled; }); }
+        function reset(){ printBusy = false; setBtns('Print', false); }
+        var reason = exportBlockReason();
+        if (reason){ msgEl.textContent = reason.replace('before downloading', 'before printing'); return; }
+        var lay = printLayout();
+        if (!lay.fits){ msgEl.textContent = 'This label is larger than the paper, so it cannot be printed. Use a smaller label size or a bigger paper.'; return; }
+        var n = printCount(lay), widthCm = labelCm().w;
+        printBusy = true; setBtns('Preparing…', true);
+        ensureHtml2canvas().then(renderExportCanvas).then(function(canvas){
+          return new Promise(function(resolve, reject){
+            if (!canvas.toBlob) return reject(new Error('no blob'));
+            canvas.toBlob(function(b){ b ? resolve(b) : reject(new Error('no blob')); }, 'image/png');
+          });
+        }).then(function(blob){
+          var imgs = buildPrintSheet(URL.createObjectURL(blob), lay, n);
+          return Promise.all(imgs.map(function(im){ return im.decode ? im.decode().catch(function(){}) : new Promise(function(r){ im.onload = im.onerror = r; }); }));
+        }).then(function(){
+          reset();
+          msgEl.textContent = '';
+          window.addEventListener('afterprint', removePrintSheet, { once:true });
+          window.print();
+        }).catch(function(err){
+          reset(); removePrintSheet();
+          msgEl.textContent = err && /export component/.test(err.message) ? 'Export component could not load — check your connection and retry' : 'Could not prepare the print — please retry';
+        });
+      }
+      document.getElementById('print-top').addEventListener('click', startPrint);
+      document.getElementById('print-btn').addEventListener('click', startPrint);
+      (function(){
+        var paper = document.getElementById('print-paper'), fill = document.getElementById('print-fill'),
+            copies = document.getElementById('print-copies'), guides = document.getElementById('print-guides'),
+            row = document.getElementById('print-copies-row');
+        paper.value = printPrefs.paper; fill.checked = printPrefs.fill; guides.checked = printPrefs.guides; copies.value = printPrefs.copies;
+        row.hidden = printPrefs.fill;
+        paper.addEventListener('change', function(){ printPrefs.paper = PAPERS[paper.value] ? paper.value : 'letter'; savePrintPrefs(); updatePrintInfo(); });
+        fill.addEventListener('change', function(){ printPrefs.fill = fill.checked; row.hidden = fill.checked; savePrintPrefs(); updatePrintInfo(); });
+        guides.addEventListener('change', function(){ printPrefs.guides = guides.checked; savePrintPrefs(); });
+        function onCopies(){
+          var v = parseInt(copies.value, 10);
+          if (v >= 1){ printPrefs.copies = Math.min(v, PRINT_MAX); savePrintPrefs(); updatePrintInfo(); }
+        }
+        copies.addEventListener('input', onCopies);
+        copies.addEventListener('change', function(){ onCopies(); copies.value = printPrefs.copies; });
+        updatePrintInfo();
+      })();
 
       /* Re-fit at most once per frame, and only when the stage width really
          changed (mobile URL-bar show/hide fires resize with the same width). */
