@@ -372,6 +372,39 @@
       .record-picker{ display:flex; flex-direction:column; gap:4px; margin:0 0 12px; max-height:224px; overflow-y:auto; overscroll-behavior:contain; padding-right:2px; }
       .rec-search{ width:100%; font:inherit; font-size:13px; padding:8px 10px; margin:0 0 8px; border:1.5px solid var(--line); border-radius:9px; background:var(--field); color:var(--ink); }
       .rec-search[hidden]{ display:none; }
+      /* ---------- action bar: Add / Change / Delete ---------- */
+      [hidden]{ display:none !important; }
+      /* the panel has 22 px / 40 px of padding, and a sticky bar sticks inside it: pull the bars out to the edges */
+      .actionbar{ position:sticky; top:-22px; z-index:6; background:var(--panel); margin:0 -20px 14px; padding:32px 20px 8px; border-bottom:1px solid var(--line); }
+      .act-seg{ display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
+      .act-btn{ font:inherit; font-size:14px; font-weight:900; padding:10px 8px; cursor:pointer; border:1.5px solid var(--line); background:var(--field); color:var(--ink); border-radius:10px; }
+      .act-btn:hover:not(:disabled){ border-color:var(--brand); }
+      .act-btn[aria-pressed="true"]{ background:var(--brand); border-color:var(--brand); color:var(--brand-ink); }
+      .act-btn.danger[aria-pressed="true"]{ background:var(--danger); border-color:var(--danger); color:var(--danger-on); }
+      .act-btn:disabled{ opacity:.5; cursor:default; }
+      .act-btn[aria-pressed="true"]:disabled{ opacity:1; }
+      .act-mode{ font-size:13px; line-height:1.5; color:var(--ink-2); margin-top:8px; }
+      .act-mode p{ margin:0 0 4px; }
+      .act-mode b{ color:var(--ink); }
+      .act-mode .switch-row{ margin:2px 0 0; }
+      .act-mode .sub-text{ display:block; font-weight:600; color:var(--ink-2); }
+      .actionbar .record-msg{ margin:4px 0 0; min-height:0; }
+      .actionbar .record-msg:empty{ display:none; }
+      b.req{ color:var(--danger); }
+      .f input.invalid, .f select.invalid{ border-color:var(--danger); }
+      .editor[hidden]{ display:none; }
+      #editor-fields{ border:0; margin:0; padding:0; min-width:0; }
+      #editor-fields:disabled{ opacity:.72; }
+      .actionfoot{ position:sticky; bottom:-40px; z-index:6; display:flex; gap:8px; margin:18px -20px -40px; padding:12px 20px 14px; background:var(--panel); border-top:1px solid var(--line); }
+      .actionfoot[hidden]{ display:none; }
+      .actionfoot .rec-btn{ flex:1; padding:12px 8px; }
+      /* ---------- "Select an existing record" window ---------- */
+      #rec-dialog{ width:min(520px, 92vw); max-height:88vh; border:none; border-radius:14px; padding:18px; background:var(--panel); color:var(--ink); box-shadow:0 20px 60px rgba(0,0,0,.4); }
+      #rec-dialog::backdrop{ background:rgba(15,18,25,.55); }
+      #rec-dialog h2{ font-size:16px; font-weight:900; margin:0 0 4px; }
+      #rec-dialog .rd-list{ max-height:min(340px, 46vh); }
+      .rd-actions{ display:flex; gap:8px; justify-content:flex-end; }
+      .rd-actions .rec-btn{ min-width:96px; }
       .rec-chip{
         font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; text-align:left;
         border:1.5px solid var(--line); background:var(--field); color:var(--ink);
@@ -449,7 +482,9 @@
 
       @media (max-width:900px){
         .app{ grid-template-columns:1fr; }
-        .panel{ max-height:none; position:static; border-right:none; border-bottom:1px solid var(--line); }
+        .panel{ max-height:none; overflow:visible; position:static; border-right:none; border-bottom:1px solid var(--line); }
+        .actionbar{ top:0; padding-top:10px; margin-top:-0px; }
+        .actionfoot{ bottom:0; padding-bottom:14px; }
         .stage{ padding:20px 14px 48px; }
       }
     </style>
@@ -460,10 +495,32 @@
       <aside class="panel">
         <h1>Product Label Creator</h1>
 
+        <div class="actionbar" id="actionbar">
+          <div class="act-seg" role="group" aria-label="Action">
+            <button type="button" class="act-btn" id="act-add" aria-pressed="false">Add</button>
+            <button type="button" class="act-btn" id="act-change" aria-pressed="false">Change</button>
+            <button type="button" class="act-btn danger" id="act-delete" aria-pressed="false">Delete</button>
+          </div>
+          <div class="act-mode">
+            <p id="act-hint"><b>What do you want to do?</b> <b>Add</b> a new saved label, <b>Change</b> one, or <b>Delete</b> one.</p>
+            <div id="act-addcopy" hidden>
+              <div class="switch-row">
+                <div class="t">Add copy <span class="sub-text">start from an existing record</span></div>
+                <label class="sw"><input type="checkbox" id="add-copy" aria-label="Add copy: start from an existing record" /></label>
+              </div>
+            </div>
+            <p id="act-target" hidden></p>
+            <p id="act-req" hidden><b class="req">*</b> required</p>
+          </div>
+          <p class="record-msg" id="record-msg" aria-live="polite"></p>
+        </div>
+
+        <div class="editor" id="editor" hidden>
+          <fieldset id="editor-fields">
         <section class="block">
           <div class="block-head"><h2>Barcode</h2><button type="button" class="help" aria-label="Help: Barcode" aria-expanded="false" aria-controls="h-barcode">?</button></div>
           <div class="help-pop" id="h-barcode" hidden>The barcode value is the <b>record key</b>, so it is needed even when the barcode is not printed. <b>Keep space for price and barcode</b> leaves a blank strip at the bottom of the label (on by default) so a price or barcode can be added later; turn it off to use that room for the content. <b>Auto</b> picks EAN-13 for 13 digits, UPC-A for 12 digits and Code 128 for anything else. EAN-13 and UPC-A check the check digit, or add it if you leave it out. Print the PNG at 100% (actual size) on a laser printer, then test-scan it.</div>
-          <label class="f"><span>Barcode value (record key)</span>
+          <label class="f"><span>Barcode value (record key) <b class="req" title="required">*</b></span>
             <input type="text" id="in-barcode" value="XO-W12-2026" maxlength="64" autocomplete="off" /></label>
           <div class="row2">
             <label class="f"><span>Type</span>
@@ -484,30 +541,13 @@
         </section>
 
         <section class="block">
-          <div class="block-head"><h2>Records</h2><button type="button" class="help" aria-label="Help: Records" aria-expanded="false" aria-controls="h-records">?</button><span class="hint" id="record-count"></span></div>
-          <div class="help-pop" id="h-records" hidden>Records are saved in this browser and keyed by the barcode value. Tap a saved record (or type its barcode in the field above) and press <b>Load</b>. <b>Add</b>, <b>Change</b> and <b>Delete</b> are at the bottom of the form. Export a backup now and then — clearing the browser&#39;s site data removes saved records. Importing merges with existing records; the same barcode is overwritten by the file.</div>
-          <input type="search" class="rec-search" id="rec-search" placeholder="Search saved records (barcode, brand, product)" aria-label="Search saved records" autocomplete="off" hidden />
-          <div class="record-picker" id="record-picker"></div>
-          <div class="record-actions single">
-            <button type="button" class="rec-btn" id="rec-load">Load selected</button>
-          </div>
-          <p class="record-msg" id="record-msg" aria-live="polite"></p>
-          <button type="button" class="undo-btn" id="rec-undo" hidden>Undo load — restore my unsaved edits</button>
-          <div class="record-actions">
-            <button type="button" class="rec-btn" id="rec-export">Export backup</button>
-            <button type="button" class="rec-btn" id="rec-import">Import backup</button>
-          </div>
-          <input type="file" id="rec-import-file" accept=".json,application/json" hidden />
-        </section>
-
-        <section class="block">
           <div class="block-head"><h2>Basics</h2><button type="button" class="help" aria-label="Help: Basics" aria-expanded="false" aria-controls="h-basics">?</button></div>
           <div class="help-pop" id="h-basics" hidden>The <b>product category</b> decides which icons are suggested first, how Auto picks an icon from the words you type (the same word can mean different things per product), and which quick-add features you see. Changing it never edits features you already typed; Auto icons are re-picked, icons you chose by hand stay. <b>General</b> lists every icon.</div>
           <label class="f"><span>Product category</span>
             <select id="in-category"></select></label>
-          <label class="f"><span>Brand name</span>
+          <label class="f"><span>Brand name <b class="req" title="required">*</b></span>
             <input type="text" id="in-name" value="XO-W12" maxlength="80" autocomplete="off" /></label>
-          <label class="f"><span>Product name</span>
+          <label class="f"><span>Product name <b class="req" title="required">*</b></span>
             <input type="text" id="in-sub" value="Smart Sport Watch" maxlength="80" autocomplete="off" /></label>
           <div class="switch-row">
             <div class="t">Slogan</div>
@@ -601,16 +641,8 @@
           <div class="swatches" id="swatches"></div>
         </section>
 
-        <section class="block">
-          <div class="block-head"><h2>Save</h2><button type="button" class="help" aria-label="Help: Save" aria-expanded="false" aria-controls="h-save">?</button></div>
-          <div class="help-pop" id="h-save" hidden><b>Add</b> saves a new record keyed by the barcode value. <b>Change</b> overwrites the selected record (if you edited the barcode, the record is re-keyed to the new value). <b>Delete</b> asks for a second tap to confirm.</div>
-          <div class="record-actions record-actions-bottom">
-            <button type="button" class="rec-btn primary" id="rec-add">+ Add</button>
-            <button type="button" class="rec-btn" id="rec-change">Change</button>
-            <button type="button" class="rec-btn danger" id="rec-delete">Delete</button>
-          </div>
-          <p class="record-msg" id="record-msg-bottom"></p>
-        </section>
+          </fieldset>
+        </div>
 
         <section class="block">
           <div class="block-head"><h2>Print</h2><button type="button" class="help" aria-label="Help: Print" aria-expanded="false" aria-controls="h-print">?</button></div>
@@ -641,7 +673,7 @@
           </div>
           <div class="record-actions">
             <button type="button" class="rec-btn" id="plist-add">+ Current label</button>
-            <button type="button" class="rec-btn" id="plist-add-rec">+ Selected record</button>
+            <button type="button" class="rec-btn" id="plist-add-rec">+ Saved record…</button>
           </div>
           <p class="record-note" id="plist-info" role="status"></p>
           <div class="record-actions">
@@ -649,6 +681,22 @@
             <button type="button" class="rec-btn danger" id="plist-clear" hidden>Clear list</button>
           </div>
         </section>
+
+        <section class="block">
+          <div class="block-head"><h2>Backup</h2><button type="button" class="help" aria-label="Help: Backup" aria-expanded="false" aria-controls="h-records">?</button><span class="hint" id="record-count"></span></div>
+          <div class="help-pop" id="h-records" hidden>Records are saved in this browser and keyed by the barcode value. Export a backup now and then — clearing the browser&#39;s site data removes saved records. Importing merges with existing records; the same barcode is overwritten by the file.</div>
+          <div class="record-actions">
+            <button type="button" class="rec-btn" id="rec-export">Export backup</button>
+            <button type="button" class="rec-btn" id="rec-import">Import backup</button>
+          </div>
+          <input type="file" id="rec-import-file" accept=".json,application/json" hidden />
+        </section>
+
+        <div class="actionfoot" id="actionfoot" hidden>
+          <button type="button" class="rec-btn primary" id="act-save">Save</button>
+          <button type="button" class="rec-btn danger" id="act-confirm" hidden>Confirm delete</button>
+          <button type="button" class="rec-btn" id="act-cancel">Cancel</button>
+        </div>
       </aside>
 
       <!-- ================= PREVIEW ================= -->
@@ -671,6 +719,18 @@
         </div>
       </main>
     </div>
+
+    <dialog id="rec-dialog" aria-labelledby="rd-title">
+      <h2 id="rd-title">Select an existing record</h2>
+      <p class="record-note" id="rd-purpose"></p>
+      <input type="search" class="rec-search" id="rd-search" placeholder="Search (barcode, brand, product)" aria-label="Search saved records" autocomplete="off" />
+      <div class="record-picker rd-list" id="rd-list" role="listbox" aria-label="Saved records"></div>
+      <p class="record-note" id="rd-count"></p>
+      <div class="rd-actions">
+        <button type="button" class="rec-btn" id="rd-cancel">Cancel</button>
+        <button type="button" class="rec-btn primary" id="rd-ok" disabled>Select</button>
+      </div>
+    </dialog>
 
     <script>
       /* BEGIN CATALOG — icons, keyword rules, product categories and autoIcon().
@@ -2286,11 +2346,6 @@
         }
       }
       var recMsgEl = document.getElementById('record-msg');
-      var recMsgBottomEl = document.getElementById('record-msg-bottom');
-      var recDeleteBtn = document.getElementById('rec-delete');
-      var recPickerEl = document.getElementById('record-picker');
-      var deleteArmedKey = '', deleteTimer = 0;
-      var selectedKey = '';
       /* returns false when the browser refuses the write (private mode,
          storage full, blocked site data) so the UI never claims a record was
          saved when it only lives in memory */
@@ -2304,87 +2359,85 @@
         recMsg(ok ? okText : okText + SAVE_FAIL, ok ? 'ok' : 'err');
       }
       function recMsg(text, kind){
-        /* messages show in both spots: under Load / Backup near the top and
-           under Add / Change / Delete at the bottom of the form, so feedback
-           always appears next to the button that was just pressed */
         recMsgEl.textContent = text || '';
         recMsgEl.className = 'record-msg' + (kind ? ' ' + kind : '');
-        if (recMsgBottomEl){
-          recMsgBottomEl.textContent = text || '';
-          recMsgBottomEl.className = 'record-msg' + (kind ? ' ' + kind : '');
-        }
       }
       function snapshotState(){ return JSON.parse(JSON.stringify(state)); }
-      var REC_SEARCH_FROM = 6;          /* the search box appears once there are more records than this */
-      var recSearchEl = document.getElementById('rec-search');
-      function recMatches(k, q){
-        var r = records[k] || {};
-        return (k + ' ' + (r.name || '') + ' ' + (r.sub || '')).toLowerCase().indexOf(q) !== -1;
+      function updateRecordCount(){
+        var n = Object.keys(records).length;
+        document.getElementById('record-count').textContent = n ? n + (n === 1 ? ' record' : ' records') : '';
       }
-      /* keep the selected row visible inside the scrolling list without scrolling the whole page */
-      function scrollPickerToSelected(){
-        var sel = recPickerEl.querySelector('.rec-chip.sel');
-        if (!sel) return;
-        var top = sel.offsetTop - recPickerEl.offsetTop, bottom = top + sel.offsetHeight;
-        if (top < recPickerEl.scrollTop) recPickerEl.scrollTop = top;
-        else if (bottom > recPickerEl.scrollTop + recPickerEl.clientHeight) recPickerEl.scrollTop = bottom - recPickerEl.clientHeight;
+      function recordLabel(k){
+        var r = records[k] || {}, sub = String(r.sub || '').trim();
+        return sub ? k + ' · ' + sub : k;
       }
-      function refreshRecordList(keepKey){
+
+      /* ---- the "Select an existing record" window (Add copy, Change, Delete, print list) ---- */
+      var recDlg = document.getElementById('rec-dialog'), rdList = document.getElementById('rd-list'), rdSearch = document.getElementById('rd-search'),
+          rdOk = document.getElementById('rd-ok'), rdCount = document.getElementById('rd-count');
+      var rdResolve = null, rdChosen = '', rdDone = '';
+      function rdRender(){
         var all = Object.keys(records).sort(function(a, b){ return a.localeCompare(b); });
-        recSearchEl.hidden = all.length <= REC_SEARCH_FROM;
-        var q = recSearchEl.hidden ? '' : recSearchEl.value.trim().toLowerCase();
-        /* a record that was just added / changed / loaded must not stay hidden behind an old search */
-        if (q && keepKey && records[keepKey] && !recMatches(keepKey, q)){ recSearchEl.value = ''; q = ''; }
-        var keys = q ? all.filter(function(k){ return recMatches(k, q); }) : all;
-        document.getElementById('record-count').textContent = all.length
-          ? (q ? keys.length + ' of ' + all.length : all.length) + (all.length === 1 ? ' record' : ' records') : '';
-        if (keepKey && records[keepKey]) selectedKey = keepKey;
-        if (selectedKey && !records[selectedKey]) selectedKey = '';
-        /* clickable list of saved barcodes — tap one to select it for Load /
-           Change / Delete (the product name is shown as a hint) */
-        recPickerEl.innerHTML = '';
+        var q = rdSearch.value.trim().toLowerCase();
+        var keys = q ? all.filter(function(k){
+          var r = records[k] || {};
+          return (k + ' ' + (r.name || '') + ' ' + (r.sub || '')).toLowerCase().indexOf(q) !== -1;
+        }) : all;
+        rdList.innerHTML = '';
+        rdSearch.hidden = !all.length;
         if (!keys.length){
           var none = document.createElement('span');
           none.className = 'record-picker-empty';
-          none.textContent = all.length ? 'No saved record matches “' + recSearchEl.value.trim() + '”.' : 'No saved records yet.';
-          recPickerEl.appendChild(none);
-        } else {
-          keys.forEach(function(k){
-            var chip = document.createElement('button');
-            chip.type = 'button';
-            chip.className = 'rec-chip' + (k === selectedKey ? ' sel' : '');
-            chip.dataset.key = k;
-            var sub = String(records[k].sub || '').trim();
-            chip.textContent = sub ? k + ' · ' + sub : k;
-            chip.title = chip.textContent;
-            chip.addEventListener('click', function(){ selectRecord(k); });
-            recPickerEl.appendChild(chip);
-          });
+          none.textContent = all.length ? 'No saved record matches “' + rdSearch.value.trim() + '”.' : 'No saved records yet.';
+          rdList.appendChild(none);
         }
-        syncPressed();
-        scrollPickerToSelected();
-      }
-      recSearchEl.addEventListener('input', function(){ refreshRecordList(); });
-      function syncPickerChips(){
-        recPickerEl.querySelectorAll('.rec-chip').forEach(function(chip){
-          chip.classList.toggle('sel', chip.dataset.key === selectedKey);
+        keys.forEach(function(k){
+          var row = document.createElement('button');
+          row.type = 'button'; row.className = 'rec-chip' + (k === rdChosen ? ' sel' : ''); row.dataset.key = k;
+          row.setAttribute('role', 'option'); row.setAttribute('aria-selected', k === rdChosen ? 'true' : 'false');
+          row.textContent = recordLabel(k); row.title = row.textContent;
+          row.addEventListener('click', function(){ rdChoose(k); });
+          row.addEventListener('dblclick', function(){ rdChoose(k); rdConfirm(); });
+          rdList.appendChild(row);
         });
-        syncPressed();
+        rdCount.textContent = all.length ? (q ? keys.length + ' of ' + all.length : all.length) + (all.length === 1 ? ' record' : ' records') : '';
+        rdOk.disabled = !(rdChosen && records[rdChosen]);
       }
-      function selectRecord(k){
-        if (!records[k]) return;
-        selectedKey = k;
-        disarmDelete();
-        syncPickerChips();
-        scrollPickerToSelected();
-        recMsg('Selected “' + k + '”. Press Load to bring it back.', 'ok');
+      function rdChoose(k){
+        rdChosen = k; rdOk.disabled = !records[k];
+        rdList.querySelectorAll('.rec-chip').forEach(function(c){
+          var on = c.dataset.key === k; c.classList.toggle('sel', on); c.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
       }
-      function disarmDelete(){
-        clearTimeout(deleteTimer);
-        deleteArmedKey = '';
-        recDeleteBtn.classList.remove('armed');
-        recDeleteBtn.textContent = 'Delete';
+      function rdConfirm(){ if (!rdChosen || !records[rdChosen]) return; rdDone = rdChosen; recDlg.close(); }
+      /* resolves with the chosen record key, or null when the window is cancelled / closed with Esc */
+      function pickRecord(opts){
+        opts = opts || {};
+        if (rdResolve){ var r0 = rdResolve; rdResolve = null; r0(null); }
+        return new Promise(function(resolve){
+          rdResolve = resolve; rdChosen = ''; rdDone = ''; rdSearch.value = '';
+          document.getElementById('rd-title').textContent = opts.title || 'Select an existing record';
+          document.getElementById('rd-purpose').textContent = opts.purpose || '';
+          rdOk.textContent = opts.ok || 'Select';
+          rdRender();
+          if (typeof recDlg.showModal === 'function') recDlg.showModal(); else recDlg.setAttribute('open', '');
+          if (!rdSearch.hidden) rdSearch.focus();
+        });
       }
+      recDlg.addEventListener('close', function(){ var r = rdResolve; rdResolve = null; var k = rdDone; rdDone = ''; if (r) r(k || null); });
+      document.getElementById('rd-cancel').addEventListener('click', function(){ rdDone = ''; recDlg.close(); });
+      rdOk.addEventListener('click', rdConfirm);
+      rdSearch.addEventListener('input', rdRender);
+      rdSearch.addEventListener('keydown', function(e){
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        if (!rdChosen){
+          var rows = rdList.querySelectorAll('.rec-chip');
+          if (rows.length === 1) rdChoose(rows[0].dataset.key);      /* a scanned barcode matches exactly one record */
+        }
+        rdConfirm();
+      });
+
       function syncFormFromState(){
         appManual = true;                    /* this state has its own App setting (loaded record / restored edits) */
         reserveAutoOff = false;   /* a loaded record brings its own slogan / footer settings */
@@ -2427,25 +2480,6 @@
         if (!m || m.length < 3) return String(rgb).toLowerCase();
         return '#' + m.slice(0, 3).map(function(n){ return (+n).toString(16).padStart(2, '0'); }).join('');
       }
-      /* typing or scanning a barcode that already has a record selects it, so
-         Load / Change / Delete act on it. A barcode with no record leaves the
-         selection alone — that is how a selected record is re-keyed (edit the
-         barcode, then Change). */
-      function selectByBarcode(){
-        var k = recordKeyFor(state);
-        if (k && records[k] && k !== selectedKey){ selectedKey = k; syncPickerChips(); disarmDelete(); }
-      }
-      var barcodeInputEl = document.getElementById('in-barcode');
-      barcodeInputEl.addEventListener('input', selectByBarcode);
-      barcodeInputEl.addEventListener('change', selectByBarcode);
-      document.getElementById('in-barcode-type').addEventListener('change', selectByBarcode);
-      /* "unsaved edits" = the form differs from how it was at the last Load, Add,
-         Change or start-up (not from the selected record: selecting a chip does
-         not change the form) */
-      var baselineJson = '', undoState = null, undoBtn = document.getElementById('rec-undo');
-      function stateJson(st){ var d = normalizeDropped; var j = JSON.stringify(normalizeState(st)); normalizeDropped = d; return j; }
-      function markBaseline(){ baselineJson = stateJson(state); }
-      function hideUndo(){ undoState = null; undoBtn.hidden = true; }
       /* a retail barcode (EAN-13 / UPC-A, chosen or implied by 12-13 digits) must be valid to
          be a record key, because its key is the check-digit-complete number */
       function retailKeyProblem(){
@@ -2455,87 +2489,156 @@
         var info = currentBarcode();
         return info.ok ? '' : 'Fix the barcode before saving it as a record key. ' + info.error;
       }
-      document.getElementById('rec-add').addEventListener('click', function(){
-        var key = recordKeyFor(state);
-        if (!key){ recMsg('Enter a barcode value first — it is the record key.', 'err'); return; }
-        var bad = retailKeyProblem();
-        if (bad){ recMsg(bad, 'err'); return; }
-        if (records[key]){ recMsg('A record for barcode “' + key + '” already exists — select it and use Change to overwrite.', 'err'); return; }
-        records[key] = snapshotState();
-        hideUndo(); markBaseline();
-        refreshRecordList(key); disarmDelete();
-        recSaved('Added record “' + key + '”.');
-      });
-      document.getElementById('rec-load').addEventListener('click', function(){
-        var key = selectedKey;
-        if (!key || !records[key]){ recMsg('Select a saved record first — tap one in the list, or type its barcode.', 'err'); return; }
-        var dirty = stateJson(state) !== baselineJson;
-        var previous = dirty ? snapshotState() : null;
-        normalizeDropped = 0;
-        state = normalizeState(records[key]);
-        var dropped = normalizeDropped;
-        syncFormFromState(); refreshRecordList(key); disarmDelete(); markBaseline();
-        hideUndo();
-        if (previous){ undoState = previous; undoBtn.hidden = false; }
-        recMsg('Loaded record “' + key + '”.' + (previous ? ' Your unsaved edits were replaced.' : '') +
-          (dropped ? ' ' + dropped + ' item' + (dropped === 1 ? ' was' : 's were') + ' dropped because it could not be used (more than ' + MAX_FEATURES + ' features, or an invalid image link).' : ''),
-          dropped ? 'err' : 'ok');
-      });
-      undoBtn.addEventListener('click', function(){
-        if (!undoState) return;
-        state = normalizeState(undoState);
-        hideUndo();
-        syncFormFromState();
-        recMsg('Restored your unsaved edits.', 'ok');
-      });
-      document.getElementById('rec-change').addEventListener('click', function(){
-        var oldKey = selectedKey;
-        if (!oldKey || !records[oldKey]){ recMsg('Select a saved record first — or use Add for a new barcode.', 'err'); return; }
-        var newKey = recordKeyFor(state);
-        if (!newKey){ recMsg('Enter a barcode value first — it is the record key.', 'err'); return; }
-        var bad = retailKeyProblem();
-        if (bad){ recMsg(bad, 'err'); return; }
-        if (newKey !== oldKey){
-          if (records[newKey]){ recMsg('Another record already uses barcode “' + newKey + '”.', 'err'); return; }
-          delete records[oldKey];
+
+      /* ================= WORKFLOW: Add / Change / Delete =================
+         Nothing is edited until an action is chosen.
+           Add     -> a blank form (or "Add copy": pick an existing record, start from a copy of it) -> Save / Cancel
+           Change  -> pick an existing record -> edit -> Save / Cancel
+           Delete  -> pick an existing record -> shown read-only -> Confirm / Cancel
+         While an action is open the three action buttons are locked, so the only ways out are Save,
+         Confirm or Cancel. Cancel puts back the label that was shown before the action started. */
+      var mode = 'idle', editKey = '', copySource = '', prevState = null;
+      var actBtns = { add:document.getElementById('act-add'), change:document.getElementById('act-change'), 'delete':document.getElementById('act-delete') };
+      function blankState(){
+        var d = defaultState();
+        d.name = ''; d.sub = ''; d.slogan = ''; d.appName = ''; d.barcode = ''; d.price = ''; d.features = [];
+        return d;
+      }
+      function setMode(m){
+        mode = m;
+        Object.keys(actBtns).forEach(function(k){ actBtns[k].setAttribute('aria-pressed', k === m ? 'true' : 'false'); actBtns[k].disabled = m !== 'idle'; });
+        document.getElementById('act-hint').hidden = m !== 'idle';
+        document.getElementById('act-addcopy').hidden = m !== 'add';
+        document.getElementById('act-target').hidden = !(m === 'change' || m === 'delete');
+        document.getElementById('act-req').hidden = !(m === 'add' || m === 'change');
+        document.getElementById('editor').hidden = m === 'idle';
+        document.getElementById('editor-fields').disabled = m === 'delete';
+        document.getElementById('actionfoot').hidden = m === 'idle';
+        document.getElementById('act-save').hidden = m === 'delete';
+        document.getElementById('act-confirm').hidden = m !== 'delete';
+        if (m !== 'add') document.getElementById('add-copy').checked = false;
+        var t = document.getElementById('act-target');
+        if (m === 'change') t.innerHTML = '';
+        t.textContent = '';
+        if (m === 'change' || m === 'delete'){
+          var b1 = document.createElement('b'); b1.textContent = (m === 'change' ? 'Changing: ' : 'Deleting: ');
+          t.appendChild(b1); t.appendChild(document.createTextNode(recordLabel(editKey) + (m === 'delete' ? ' — read only, nothing can be changed.' : '')));
         }
-        records[newKey] = snapshotState();
-        hideUndo(); markBaseline();
-        refreshRecordList(newKey); disarmDelete();
-        recSaved(newKey === oldKey ? 'Updated record “' + newKey + '”.' : 'Updated record — barcode changed from “' + oldKey + '” to “' + newKey + '”.');
+        document.querySelectorAll('#editor .invalid').forEach(function(x){ x.classList.remove('invalid'); });
+      }
+      /* opens the editor on a state: the one entry point for Add, Add copy, Change and Delete */
+      function enterEdit(m, st, key){
+        if (mode === 'idle') prevState = snapshotState();
+        state = normalizeState(st);
+        editKey = key || '';
+        syncFormFromState();
+        appManual = m === 'change' || m === 'delete' || (m === 'add' && !!copySource);   /* a copied / existing record keeps its own App setting */
+        setMode(m);
+        var panel = document.querySelector('.panel'); if (panel) panel.scrollTop = 0;
+      }
+      function backToIdle(restore){
+        if (restore && prevState){ state = normalizeState(prevState); syncFormFromState(); }
+        prevState = null; editKey = ''; copySource = '';
+        setMode('idle');
+      }
+      function noRecordsYet(){ recMsg('There are no saved records yet — use Add first.', 'err'); }
+      actBtns.add.addEventListener('click', function(){
+        if (mode !== 'idle') return;
+        recMsg(''); copySource = '';
+        enterEdit('add', blankState(), '');
+        document.getElementById('in-name').focus();
       });
-      recDeleteBtn.addEventListener('click', function(){
-        var key = selectedKey;
-        if (!key || !records[key]){ recMsg('Select a saved record first.', 'err'); return; }
-        if (deleteArmedKey !== key){
-          deleteArmedKey = key;
-          recDeleteBtn.classList.add('armed');
-          recDeleteBtn.textContent = 'Press again to confirm';
-          recMsg('Delete record “' + key + '”? Press Delete again within 6 seconds to confirm.', 'err');
-          clearTimeout(deleteTimer);
-          deleteTimer = setTimeout(function(){ if (recMsgEl.textContent.indexOf('Delete record') === 0) recMsg(''); disarmDelete(); }, 6000);
+      document.getElementById('add-copy').addEventListener('change', function(e){
+        var sw = e.target;
+        if (mode !== 'add') return;
+        if (!sw.checked){ copySource = ''; recMsg(''); enterEdit('add', blankState(), ''); return; }
+        if (!Object.keys(records).length){ sw.checked = false; noRecordsYet(); return; }
+        pickRecord({ title:'Select an existing record to copy', purpose:'The new record starts as a copy of it. You enter its own barcode value.', ok:'Copy' }).then(function(key){
+          if (!key){ sw.checked = false; return; }
+          var st = normalizeState(records[key]);
+          st.barcode = '';                                   /* the barcode is the record key: the copy needs its own */
+          copySource = key; recMsg('Copied “' + key + '”. Enter the new barcode value, then Save.', 'ok');
+          enterEdit('add', st, '');
+          sw.checked = true;
+          document.getElementById('in-barcode').focus();
+        });
+      });
+      actBtns.change.addEventListener('click', function(){
+        if (mode !== 'idle') return;
+        recMsg('');
+        if (!Object.keys(records).length){ noRecordsYet(); return; }
+        pickRecord({ title:'Select the record to change', purpose:'It opens in the form, ready to edit.', ok:'Change' }).then(function(key){
+          if (key) enterEdit('change', records[key], key);
+        });
+      });
+      actBtns['delete'].addEventListener('click', function(){
+        if (mode !== 'idle') return;
+        recMsg('');
+        if (!Object.keys(records).length){ noRecordsYet(); return; }
+        pickRecord({ title:'Select the record to delete', purpose:'You will see the record first, and confirm before it is removed.', ok:'Show record' }).then(function(key){
+          if (key) enterEdit('delete', records[key], key);
+        });
+      });
+      /* required: brand name, product name and the barcode value (the record key) */
+      function missingRequired(){
+        var m = [];
+        if (!String(state.name || '').trim()) m.push(['in-name', 'Brand name']);
+        if (!String(state.sub || '').trim()) m.push(['in-sub', 'Product name']);
+        if (!String(state.barcode == null ? '' : state.barcode).trim()) m.push(['in-barcode', 'Barcode value']);
+        return m;
+      }
+      document.getElementById('editor').addEventListener('input', function(e){ if (e.target.classList) e.target.classList.remove('invalid'); });
+      document.getElementById('act-save').addEventListener('click', function(){
+        if (mode !== 'add' && mode !== 'change') return;
+        document.querySelectorAll('#editor .invalid').forEach(function(x){ x.classList.remove('invalid'); });
+        var miss = missingRequired();
+        if (miss.length){
+          miss.forEach(function(x){ document.getElementById(x[0]).classList.add('invalid'); });
+          recMsg('Please fill in the required fields: ' + miss.map(function(x){ return x[1]; }).join(', ') + '.', 'err');
+          document.getElementById(miss[0][0]).focus();
           return;
         }
+        var key = recordKeyFor(state);
+        var bad = retailKeyProblem();
+        if (bad){ recMsg(bad, 'err'); document.getElementById('in-barcode').classList.add('invalid'); return; }
+        if (mode === 'add'){
+          if (records[key]){ recMsg('A record for barcode “' + key + '” already exists. Enter a different barcode value, or Cancel and use Change.', 'err'); document.getElementById('in-barcode').classList.add('invalid'); return; }
+          records[key] = snapshotState();
+          updateRecordCount(); backToIdle(false);
+          recSaved('Saved new record “' + key + '”.');
+        } else {
+          var oldKey = editKey;
+          if (key !== oldKey){
+            if (records[key]){ recMsg('Another record already uses barcode “' + key + '”. Enter a different barcode value.', 'err'); document.getElementById('in-barcode').classList.add('invalid'); return; }
+            delete records[oldKey];
+          }
+          records[key] = snapshotState();
+          updateRecordCount(); backToIdle(false);
+          recSaved(key === oldKey ? 'Saved changes to “' + key + '”.' : 'Saved changes — barcode changed from “' + oldKey + '” to “' + key + '”.');
+        }
+      });
+      document.getElementById('act-confirm').addEventListener('click', function(){
+        if (mode !== 'delete' || !records[editKey]) return;
+        var key = editKey;
         delete records[key];
-        selectedKey = '';
-        refreshRecordList(''); disarmDelete();
+        updateRecordCount(); backToIdle(true);
         recSaved('Deleted record “' + key + '”.');
       });
-      /* messages and the Undo offer belong to the action that produced them: the next
-         edit anywhere in the panel clears them (so "Added record …" is never stale) */
-      document.querySelector('.panel').addEventListener('input', function(e){
-        if (e.target.closest && e.target.closest('#rec-undo')) return;
-        if (recMsgEl.textContent) recMsg('');
-        if (!undoBtn.hidden) hideUndo();
+      document.getElementById('act-cancel').addEventListener('click', function(){
+        if (mode === 'idle') return;
+        backToIdle(true);
+        recMsg('');
       });
-      refreshRecordList('');
+      /* a message belongs to the action that produced it: the next edit clears it */
+      document.getElementById('editor').addEventListener('input', function(){ if (recMsgEl.textContent && recMsgEl.className.indexOf('err') === -1) recMsg(''); });
+      updateRecordCount();
+      setMode('idle');
       if (startupNote){
         if (startupNote.persist){
           if (persistRecords()) recMsg(startupNote.text, startupNote.kind);
           else recMsg(startupNote.text + SAVE_FAIL, 'err');
         } else recMsg(startupNote.text, startupNote.kind);
       }
-      markBaseline();
 
       /* ================= BACKUP: EXPORT / IMPORT =================
          Export downloads every saved record as one JSON file the user
@@ -2610,7 +2713,7 @@
             if (!added && !overwritten){
               recMsg('No valid records found in the file; nothing was imported.', 'err'); return;
             }
-            refreshRecordList(''); disarmDelete();
+            updateRecordCount();
             recSaved('Imported: ' + added + ' added, ' + overwritten + ' overwritten' +
               (skipped ? ', ' + skipped + ' invalid skipped' : '') + '.' +
               (collided ? ' ' + collided + ' used a barcode that already exists and ' + (collided === 1 ? 'is' : 'are') + ' stored as “barcode [product]”.' : '') +
@@ -3116,9 +3219,11 @@
         });
         document.getElementById('plist-add-rec').addEventListener('click', function(){
           var msg = document.getElementById('export-msg');
-          if (!selectedKey || !records[selectedKey]){ msg.textContent = 'Select a saved record first (see Records).'; return; }
+          if (!Object.keys(records).length){ msg.textContent = 'There are no saved records yet.'; return; }
           msg.textContent = '';
-          if (!addToPrintList(records[selectedKey])) msg.textContent = 'The print list is full (' + PLIST_MAX_ITEMS + ' different labels).';
+          pickRecord({ title:'Add a saved record to the print list', purpose:'Pick a record; it is added with 1 copy. Press the button again to add more.', ok:'Add to list' }).then(function(key){
+            if (key && !addToPrintList(records[key])) msg.textContent = 'The print list is full (' + PLIST_MAX_ITEMS + ' different labels).';
+          });
         });
         document.getElementById('plist-clear').addEventListener('click', function(){ printList = []; savePrintList(); renderPrintList(); });
         updatePrintInfo(); renderPrintList();
