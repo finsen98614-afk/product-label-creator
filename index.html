@@ -175,6 +175,14 @@
       .dl-btn.secondary:disabled{ opacity:.55; cursor:wait; }
       .label-shadow{ filter:drop-shadow(0 14px 30px rgba(15,18,25,.22)); }
       /* ---------- Printing: the sheet is built on demand (see PRINT in the script) ---------- */
+      .sub-h{ font-size:13px; font-weight:900; margin:16px 0 4px; }
+      .plist{ list-style:none; margin:6px 0 8px; padding:0; font-size:12.5px; }
+      .plist:empty{ display:none; }
+      .plist li{ display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--line); }
+      .plist .pl-name{ flex:1; min-width:0; overflow-wrap:anywhere; font-weight:700; }
+      .plist .pl-name small{ display:block; color:var(--ink-2); font-weight:600; }
+      .plist input{ width:64px; font:inherit; padding:6px 8px; border:1.5px solid var(--line); border-radius:8px; background:var(--field); color:var(--ink); }
+      .pl-x{ font:inherit; font-size:18px; line-height:1; width:30px; height:30px; border:1.5px solid var(--line); border-radius:8px; background:var(--panel); color:var(--ink-2); cursor:pointer; }
       #print-root{ display:none; }
       #print-root .print-page{ position:relative; overflow:hidden; background:#fff; }
       #print-root .print-cell{ position:absolute; }
@@ -618,6 +626,23 @@
           <p class="record-note" id="print-info" role="status"></p>
           <div class="record-actions record-actions-bottom">
             <button type="button" class="rec-btn primary" id="print-btn">Print</button>
+          </div>
+
+          <h3 class="sub-h">Print list</h3>
+          <p class="record-note">Several different labels on the same sheets: add each one, set its number of copies, and the layout is packed to use as few sheets as possible.</p>
+          <ul class="plist" id="plist"></ul>
+          <div class="switch-row">
+            <div class="t">Allow turning labels 90°</div>
+            <label class="sw"><input type="checkbox" id="print-rotate" checked aria-label="Allow turning labels 90 degrees to save paper" /></label>
+          </div>
+          <div class="record-actions">
+            <button type="button" class="rec-btn" id="plist-add">+ Current label</button>
+            <button type="button" class="rec-btn" id="plist-add-rec">+ Selected record</button>
+          </div>
+          <p class="record-note" id="plist-info" role="status"></p>
+          <div class="record-actions">
+            <button type="button" class="rec-btn primary" id="plist-print" hidden>Print list</button>
+            <button type="button" class="rec-btn danger" id="plist-clear" hidden>Clear list</button>
           </div>
         </section>
       </aside>
@@ -2721,22 +2746,30 @@
       document.getElementById('dl-again').addEventListener('click', triggerDownload);
 
       /* ================= PRINT =================
-         The label is rendered with the same pipeline as Download PNG (300 DPI), then laid out in
+         A label is rendered with the same pipeline as Download PNG (300 DPI), then placed in
          millimetres on hidden "pages" that only exist while the browser print dialog is open.
-         Sizes are in mm, so the printed label is its real size when the dialog is left at 100%. */
+         Sizes are in mm, so the printed label has its real size when the dialog is left at 100%.
+         Two ways to print:
+           - Print (current label): a grid of copies of the label on the sheet, or N copies.
+           - Print list: several different labels, each with a quantity, packed onto as few sheets
+             as possible (MaxRects, labels may be turned 90 degrees). */
       var PAPERS = { letter:{ w:215.9, h:279.4 }, a4:{ w:210, h:297 } };
-      var PRINT_MARGIN = 10, PRINT_GAP = 3, PRINT_MAX = 999;          /* mm, mm, labels */
-      var printPrefs = { paper:'letter', fill:true, copies:1, guides:true };
+      var PRINT_MARGIN = 10, PRINT_GAP = 3, PRINT_MAX = 999, PLIST_MAX_ITEMS = 30;          /* mm, mm, labels, rows */
+      var printPrefs = { paper:'letter', fill:true, copies:1, guides:true, rotate:true };
       try {
         var sp = JSON.parse(localStorage.getItem('plc_print_v1') || 'null');
         if (sp && typeof sp === 'object'){
           if (PAPERS[sp.paper]) printPrefs.paper = sp.paper;
           if (typeof sp.fill === 'boolean') printPrefs.fill = sp.fill;
           if (typeof sp.guides === 'boolean') printPrefs.guides = sp.guides;
+          if (typeof sp.rotate === 'boolean') printPrefs.rotate = sp.rotate;
           var c0 = parseInt(sp.copies, 10); if (c0 >= 1 && c0 <= PRINT_MAX) printPrefs.copies = c0;
         }
       } catch (e) {}
       function savePrintPrefs(){ try { localStorage.setItem('plc_print_v1', JSON.stringify(printPrefs)); } catch (e) {} }
+      function cmOfState(st){ var u = st.unit === 'in' ? 2.54 : 1; return { w: Math.max((parseFloat(st.w) || 6.5) * u, 2), l: Math.max((parseFloat(st.l) || 10) * u, 2) }; }
+
+      /* ---- layout 1: a grid of one label (aligned rows and columns, easy to cut) ---- */
       function printLayout(){
         var cm = labelCm(), w = cm.w * 10, l = cm.l * 10, p = PAPERS[printPrefs.paper];
         var cols = Math.floor((p.w - 2 * PRINT_MARGIN + PRINT_GAP) / (w + PRINT_GAP));
@@ -2745,6 +2778,163 @@
         return { w:w, l:l, p:p, cols:cols, rows:rows, per: fits ? cols * rows : 0, fits:fits };
       }
       function printCount(lay){ return printPrefs.fill ? lay.per : Math.max(1, Math.min(PRINT_MAX, printPrefs.copies)); }
+      function gridPages(lay, n, id){
+        var pages = [], left = n, per = lay.per;
+        var gridW = lay.cols * lay.w + (lay.cols - 1) * PRINT_GAP, gridH = lay.rows * lay.l + (lay.rows - 1) * PRINT_GAP;
+        var x0 = (lay.p.w - gridW) / 2, y0 = (lay.p.h - gridH) / 2;      /* the grid is centred on the paper */
+        while (left > 0){
+          var onPage = Math.min(per, left), cells = []; left -= onPage;
+          for (var i = 0; i < onPage; i++) cells.push({ id:id, x: x0 + (i % lay.cols) * (lay.w + PRINT_GAP), y: y0 + Math.floor(i / lay.cols) * (lay.l + PRINT_GAP), w:lay.w, l:lay.l, rot:false });
+          pages.push(cells);
+        }
+        return pages;
+      }
+
+      /* ---- layout 2: MaxRects bin packing for a mix of labels ---- */
+      function MaxBin(w, h){ this.free = [{ x:0, y:0, w:w, h:h }]; this.count = 0; this.area = 0; }
+      MaxBin.prototype.find = function(w, h, rot){
+        var best = null, i, f, s1, s2;
+        for (i = 0; i < this.free.length; i++){
+          f = this.free[i];
+          if (w <= f.w + 1e-9 && h <= f.h + 1e-9){
+            s1 = Math.min(f.w - w, f.h - h); s2 = Math.max(f.w - w, f.h - h);
+            if (!best || s1 < best.s1 || (s1 === best.s1 && s2 < best.s2)) best = { x:f.x, y:f.y, w:w, h:h, rot:false, s1:s1, s2:s2 };
+          }
+          if (rot && h <= f.w + 1e-9 && w <= f.h + 1e-9){
+            s1 = Math.min(f.w - h, f.h - w); s2 = Math.max(f.w - h, f.h - w);
+            if (!best || s1 < best.s1 || (s1 === best.s1 && s2 < best.s2)) best = { x:f.x, y:f.y, w:h, h:w, rot:true, s1:s1, s2:s2 };
+          }
+        }
+        return best;
+      };
+      MaxBin.prototype.place = function(r){
+        var out = [], i, f;
+        for (i = 0; i < this.free.length; i++){
+          f = this.free[i];
+          if (r.x >= f.x + f.w - 1e-9 || r.x + r.w <= f.x + 1e-9 || r.y >= f.y + f.h - 1e-9 || r.y + r.h <= f.y + 1e-9){ out.push(f); continue; }
+          if (r.y > f.y + 1e-9 && r.y < f.y + f.h - 1e-9) out.push({ x:f.x, y:f.y, w:f.w, h:r.y - f.y });
+          if (r.y + r.h < f.y + f.h - 1e-9) out.push({ x:f.x, y:r.y + r.h, w:f.w, h:f.y + f.h - (r.y + r.h) });
+          if (r.x > f.x + 1e-9 && r.x < f.x + f.w - 1e-9) out.push({ x:f.x, y:f.y, w:r.x - f.x, h:f.h });
+          if (r.x + r.w < f.x + f.w - 1e-9) out.push({ x:r.x + r.w, y:f.y, w:f.x + f.w - (r.x + r.w), h:f.h });
+        }
+        /* drop free rectangles that lie inside another one */
+        this.free = out.filter(function(a, ai){
+          return !out.some(function(b, bi){ return bi !== ai && a.x >= b.x - 1e-9 && a.y >= b.y - 1e-9 && a.x + a.w <= b.x + b.w + 1e-9 && a.y + a.h <= b.y + b.h + 1e-9 && (bi < ai || a.w !== b.w || a.h !== b.h || a.x !== b.x || a.y !== b.y); });
+        });
+        this.count++; this.area += r.w * r.h;
+      };
+      /* rects: [{ id, w, l }] in mm. Returns pages (arrays of { id, x, y, w, l, rot }) or null when one label cannot fit a sheet.
+         Three orderings are tried; the result with the fewest sheets wins, then the emptiest last sheet. */
+      function packLabels(rects, paper, allowRot){
+        var binW = paper.w - 2 * PRINT_MARGIN + PRINT_GAP, binH = paper.h - 2 * PRINT_MARGIN + PRINT_GAP;
+        for (var k = 0; k < rects.length; k++){
+          var r0 = rects[k], w0 = r0.w + PRINT_GAP, h0 = r0.l + PRINT_GAP;
+          if (!((w0 <= binW && h0 <= binH) || (allowRot && h0 <= binW && w0 <= binH))) return null;
+        }
+        var orders = [
+          function(a, b){ return b.w * b.l - a.w * a.l; },
+          function(a, b){ return Math.max(b.w, b.l) - Math.max(a.w, a.l); },
+          function(a, b){ return b.l - a.l; }
+        ], best = null;
+        orders.forEach(function(cmp){
+          var list = rects.map(function(r, i){ return { id:r.id, w:r.w, l:r.l, i:i }; });
+          list.sort(function(a, b){ return cmp(a, b) || a.i - b.i; });       /* equal sizes keep their list order, so copies stay together */
+          var bins = [], pages = [];
+          list.forEach(function(r){
+            var placed = false;
+            for (var b = 0; b < bins.length && !placed; b++){
+              var pos = bins[b].find(r.w + PRINT_GAP, r.l + PRINT_GAP, allowRot);
+              if (pos){ bins[b].place(pos); pages[b].push({ id:r.id, x:PRINT_MARGIN + pos.x, y:PRINT_MARGIN + pos.y, w: pos.rot ? r.l : r.w, l: pos.rot ? r.w : r.l, rot:pos.rot }); placed = true; }
+            }
+            if (!placed){
+              var nb = new MaxBin(binW, binH), p2 = nb.find(r.w + PRINT_GAP, r.l + PRINT_GAP, allowRot);
+              nb.place(p2); bins.push(nb);
+              pages.push([{ id:r.id, x:PRINT_MARGIN + p2.x, y:PRINT_MARGIN + p2.y, w: p2.rot ? r.l : r.w, l: p2.rot ? r.w : r.l, rot:p2.rot }]);
+            }
+          });
+          var last = bins[bins.length - 1].area, score = bins.length * 1e9 + last;
+          if (!best || score < best.score) best = { score:score, pages:pages };
+        });
+        return best.pages;
+      }
+
+      /* ---- print list (kept in this browser) ---- */
+      var printList = [];                       /* [{ state, qty }] */
+      function plistKey(st){ return JSON.stringify(st); }
+      function plistName(st){ return [st.name, st.sub].filter(Boolean).join(' · ') || 'Label'; }
+      try {
+        var pl = JSON.parse(localStorage.getItem('plc_printlist_v1') || 'null');
+        if (Array.isArray(pl)) pl.slice(0, PLIST_MAX_ITEMS).forEach(function(it){
+          if (!it || typeof it !== 'object') return;
+          var q = parseInt(it.qty, 10);
+          printList.push({ state: normalizeState(it.state), qty: q >= 1 && q <= PRINT_MAX ? q : 1 });
+        });
+      } catch (e) {}
+      function savePrintList(){ try { localStorage.setItem('plc_printlist_v1', JSON.stringify(printList)); } catch (e) {} }
+      function plistRects(){
+        var rects = [];
+        printList.forEach(function(it, idx){ var cm = cmOfState(it.state); for (var i = 0; i < it.qty; i++) rects.push({ id:idx, w:cm.w * 10, l:cm.l * 10 }); });
+        return rects;
+      }
+      function plistTotal(){ return printList.reduce(function(n, it){ return n + it.qty; }, 0); }
+      function plistPack(){ return printList.length ? packLabels(plistRects(), PAPERS[printPrefs.paper], printPrefs.rotate) : []; }
+      function plistTooBig(){
+        var paper = PAPERS[printPrefs.paper];
+        return printList.filter(function(it){
+          var cm = cmOfState(it.state), w = cm.w * 10 + PRINT_GAP, h = cm.l * 10 + PRINT_GAP, bw = paper.w - 2 * PRINT_MARGIN + PRINT_GAP, bh = paper.h - 2 * PRINT_MARGIN + PRINT_GAP;
+          return !((w <= bw && h <= bh) || (printPrefs.rotate && h <= bw && w <= bh));
+        });
+      }
+      var lastPlistInfo = '';
+      function renderPrintList(){
+        var ul = document.getElementById('plist'), info = document.getElementById('plist-info'), btn = document.getElementById('plist-print'), clr = document.getElementById('plist-clear');
+        if (!ul) return;
+        ul.innerHTML = '';
+        printList.forEach(function(it, idx){
+          var cm = cmOfState(it.state), li = document.createElement('li');
+          var name = document.createElement('span'); name.className = 'pl-name'; name.textContent = plistName(it.state);
+          var size = document.createElement('small'); size.textContent = +cm.w.toFixed(2) + ' × ' + +cm.l.toFixed(2) + ' cm';
+          name.appendChild(size);
+          var q = document.createElement('input'); q.type = 'number'; q.min = '1'; q.max = String(PRINT_MAX); q.step = '1'; q.value = it.qty; q.setAttribute('inputmode', 'numeric');
+          q.setAttribute('aria-label', 'Number of copies of ' + plistName(it.state));
+          function setQty(){ var v = parseInt(q.value, 10); if (v >= 1){ it.qty = Math.min(v, PRINT_MAX); savePrintList(); updatePlistInfo(); } }
+          q.addEventListener('input', setQty);
+          q.addEventListener('change', function(){ setQty(); q.value = it.qty; });
+          var x = document.createElement('button'); x.type = 'button'; x.className = 'pl-x'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove ' + plistName(it.state) + ' from the print list');
+          x.addEventListener('click', function(){ printList.splice(idx, 1); savePrintList(); renderPrintList(); });
+          li.appendChild(name); li.appendChild(q); li.appendChild(x); ul.appendChild(li);
+        });
+        clr.hidden = !printList.length; btn.hidden = !printList.length;
+        lastPlistInfo = '';
+        updatePlistInfo();
+      }
+      function updatePlistInfo(){
+        var info = document.getElementById('plist-info'), btn = document.getElementById('plist-print');
+        if (!info) return;
+        var msg, bad = false, name = printPrefs.paper === 'a4' ? 'A4' : 'Letter';
+        if (!printList.length){ msg = 'Nothing in the list yet. Add the current label, or a saved record, then give each its number of copies.'; }
+        else {
+          var big = plistTooBig();
+          if (big.length){ msg = 'Too large for a ' + name + ' sheet: ' + big.map(function(it){ return plistName(it.state); }).join(', ') + '.'; bad = true; }
+          else {
+            var pages = plistPack(), n = plistTotal();
+            msg = n + ' label' + (n === 1 ? '' : 's') + ' on ' + pages.length + ' ' + name + ' sheet' + (pages.length === 1 ? '' : 's');
+          }
+        }
+        if (btn) btn.disabled = bad || !printList.length;
+        var key = msg + '|' + bad;
+        if (key === lastPlistInfo) return;
+        lastPlistInfo = key;
+        info.textContent = msg; info.className = 'record-note' + (bad ? ' bc-err' : '');
+      }
+      function addToPrintList(st){
+        var norm = normalizeState(st), key = plistKey(norm);
+        for (var i = 0; i < printList.length; i++) if (plistKey(printList[i].state) === key){ printList[i].qty = Math.min(PRINT_MAX, printList[i].qty + 1); savePrintList(); renderPrintList(); return true; }
+        if (printList.length >= PLIST_MAX_ITEMS) return false;
+        printList.push({ state:norm, qty:1 }); savePrintList(); renderPrintList(); return true;
+      }
+
+      /* ---- the info line for the current label ---- */
       var lastPrintInfo = '';
       function updatePrintInfo(){
         var el = document.getElementById('print-info');
@@ -2762,92 +2952,149 @@
         el.textContent = msg;
         el.className = 'record-note' + (bad ? ' bc-err' : '');
       }
-      var printUrl = null;
+
+      /* ---- building the hidden sheets ---- */
+      var printUrls = [];
       function removePrintSheet(){
         var r = document.getElementById('print-root'), st = document.getElementById('print-style');
         if (r) r.remove();
         if (st) st.remove();
-        if (printUrl){ URL.revokeObjectURL(printUrl); printUrl = null; }
+        printUrls.forEach(function(u){ URL.revokeObjectURL(u); }); printUrls = [];
       }
-      /* builds #print-root (one .print-page per sheet) and the @page rule; returns the images so the caller can wait for them */
-      function buildPrintSheet(src, lay, n){
-        removePrintSheet();                 /* also revokes the previous image, so only then take over `src` */
-        printUrl = src;
+      /* pages: [[{ id, x, y, w, l, rot }]] in mm; urls: id -> image URL. Returns the <img>s so the caller can wait for them. */
+      function buildPrintSheet(pages, paper, urls){
+        removePrintSheet();                 /* also revokes the previous images, so only then take over the new ones */
+        Object.keys(urls).forEach(function(k){ printUrls.push(urls[k]); });
         var st = document.createElement('style'); st.id = 'print-style';
-        st.textContent = '@page{ size:' + lay.p.w + 'mm ' + lay.p.h + 'mm; margin:0; }';
+        st.textContent = '@page{ size:' + paper.w + 'mm ' + paper.h + 'mm; margin:0; }';
         document.head.appendChild(st);
         var root = document.createElement('div'); root.id = 'print-root'; root.setAttribute('aria-hidden', 'true');
-        var sheets = Math.ceil(n / lay.per), imgs = [], left = n;
-        for (var s = 0; s < sheets; s++){
+        var imgs = [];
+        pages.forEach(function(cells, s){
           var page = document.createElement('div'); page.className = 'print-page';
-          page.style.width = lay.p.w + 'mm'; page.style.height = lay.p.h + 'mm';
+          page.style.width = paper.w + 'mm'; page.style.height = paper.h + 'mm';
           /* the last page must not ask for a break after itself (that prints an empty extra sheet) */
-          if (s < sheets - 1){ page.style.breakAfter = 'page'; page.style.pageBreakAfter = 'always'; }
-          var onPage = Math.min(lay.per, left); left -= onPage;
-          /* the whole grid is centred on the paper, so cut guides sit evenly around it */
-          var gridW = lay.cols * lay.w + (lay.cols - 1) * PRINT_GAP, gridH = lay.rows * lay.l + (lay.rows - 1) * PRINT_GAP;
-          var x0 = (lay.p.w - gridW) / 2, y0 = (lay.p.h - gridH) / 2;
-          for (var i = 0; i < onPage; i++){
+          if (s < pages.length - 1){ page.style.breakAfter = 'page'; page.style.pageBreakAfter = 'always'; }
+          cells.forEach(function(c){
             var cell = document.createElement('div'); cell.className = 'print-cell' + (printPrefs.guides ? ' guide' : '');
-            cell.style.left = (x0 + (i % lay.cols) * (lay.w + PRINT_GAP)) + 'mm';
-            cell.style.top = (y0 + Math.floor(i / lay.cols) * (lay.l + PRINT_GAP)) + 'mm';
-            cell.style.width = lay.w + 'mm'; cell.style.height = lay.l + 'mm';
-            var img = document.createElement('img'); img.alt = ''; img.src = src;
+            cell.style.left = c.x + 'mm'; cell.style.top = c.y + 'mm'; cell.style.width = c.w + 'mm'; cell.style.height = c.l + 'mm';
+            var img = document.createElement('img'); img.alt = ''; img.src = urls[c.id];
+            if (c.rot){
+              /* a label turned 90 degrees clockwise: the image keeps its own size and is rotated into the cell */
+              img.style.position = 'absolute'; img.style.left = '0'; img.style.top = '0'; img.style.width = c.l + 'mm'; img.style.height = c.w + 'mm';
+              img.style.transformOrigin = '0 0'; img.style.transform = 'translateX(' + c.w + 'mm) rotate(90deg)';
+            }
             cell.appendChild(img); page.appendChild(cell); imgs.push(img);
-          }
+          });
           root.appendChild(page);
-        }
+        });
         document.body.appendChild(root);
         return imgs;
       }
+      function canvasToUrl(canvas){
+        return new Promise(function(resolve, reject){
+          if (!canvas.toBlob) return reject(new Error('no blob'));
+          canvas.toBlob(function(b){ b ? resolve(URL.createObjectURL(b)) : reject(new Error('no blob')); }, 'image/png');
+        });
+      }
+      /* draws another label in the preview element, exports it and puts everything back */
+      function renderStateToUrl(st){
+        var saved = state, savedAuto = sloganAuto;
+        state = normalizeState(st); renderLabel();
+        var reason = exportBlockReason();
+        function restore(){ state = saved; renderLabel(); }
+        if (reason){ restore(); return Promise.reject(Object.assign(new Error(reason), { label:true })); }
+        return renderExportCanvas().then(canvasToUrl).then(function(u){ restore(); return u; }, function(e){ restore(); throw e; });
+      }
+      function afterPrepared(imgs, msgEl, reset){
+        return Promise.all(imgs.map(function(im){ return im.decode ? im.decode().catch(function(){}) : new Promise(function(r){ im.onload = im.onerror = r; }); })).then(function(){
+          reset(); msgEl.textContent = '';
+          window.addEventListener('afterprint', removePrintSheet, { once:true });
+          window.print();
+        });
+      }
       var printBusy = false;
+      function printUi(){
+        var msgEl = document.getElementById('export-msg'), ids = ['print-top', 'print-btn', 'plist-print'];
+        var btns = ids.map(function(i){ return document.getElementById(i); }), texts = btns.map(function(b){ return b.textContent; });
+        return {
+          msgEl: msgEl,
+          busy: function(){ printBusy = true; btns.forEach(function(b){ b.textContent = 'Preparing…'; b.disabled = true; }); },
+          reset: function(){ printBusy = false; btns.forEach(function(b, i){ b.textContent = texts[i]; b.disabled = false; }); updatePlistInfo(); },
+          fail: function(err){
+            this.reset(); removePrintSheet();
+            msgEl.textContent = err && err.label ? (err.itemName ? err.itemName + ': ' : '') + err.message.replace('before downloading', 'before printing')
+              : err && /export component/.test(err.message) ? 'Export component could not load — check your connection and retry' : 'Could not prepare the print — please retry';
+          }
+        };
+      }
+      /* Print: the current label */
       function startPrint(){
         if (printBusy) return;
-        var msgEl = document.getElementById('export-msg'), btns = [document.getElementById('print-top'), document.getElementById('print-btn')];
-        function setBtns(text, disabled){ btns.forEach(function(b){ b.textContent = text; b.disabled = disabled; }); }
-        function reset(){ printBusy = false; setBtns('Print', false); }
+        var ui = printUi(), msgEl = ui.msgEl;
         var reason = exportBlockReason();
         if (reason){ msgEl.textContent = reason.replace('before downloading', 'before printing'); return; }
         var lay = printLayout();
         if (!lay.fits){ msgEl.textContent = 'This label is larger than the paper, so it cannot be printed. Use a smaller label size or a bigger paper.'; return; }
-        var n = printCount(lay), widthCm = labelCm().w;
-        printBusy = true; setBtns('Preparing…', true);
-        ensureHtml2canvas().then(renderExportCanvas).then(function(canvas){
-          return new Promise(function(resolve, reject){
-            if (!canvas.toBlob) return reject(new Error('no blob'));
-            canvas.toBlob(function(b){ b ? resolve(b) : reject(new Error('no blob')); }, 'image/png');
-          });
-        }).then(function(blob){
-          var imgs = buildPrintSheet(URL.createObjectURL(blob), lay, n);
-          return Promise.all(imgs.map(function(im){ return im.decode ? im.decode().catch(function(){}) : new Promise(function(r){ im.onload = im.onerror = r; }); }));
+        var n = printCount(lay);
+        ui.busy();
+        ensureHtml2canvas().then(renderExportCanvas).then(canvasToUrl).then(function(url){
+          var imgs = buildPrintSheet(gridPages(lay, n, 0), lay.p, { 0:url });
+          return afterPrepared(imgs, msgEl, ui.reset.bind(ui));
+        }).catch(ui.fail.bind(ui));
+      }
+      /* Print list: several labels, packed */
+      function startPrintList(){
+        if (printBusy || !printList.length) return;
+        var ui = printUi(), msgEl = ui.msgEl;
+        if (plistTooBig().length){ updatePlistInfo(); return; }
+        var pages = plistPack(), paper = PAPERS[printPrefs.paper], urls = {};
+        ui.busy();
+        ensureHtml2canvas().then(function(){
+          /* one label at a time: they all share the preview element */
+          return printList.reduce(function(chain, it, idx){
+            return chain.then(function(){
+              return renderStateToUrl(it.state).then(function(u){ urls[idx] = u; }, function(e){ e.itemName = plistName(it.state); throw e; });
+            });
+          }, Promise.resolve());
         }).then(function(){
-          reset();
-          msgEl.textContent = '';
-          window.addEventListener('afterprint', removePrintSheet, { once:true });
-          window.print();
-        }).catch(function(err){
-          reset(); removePrintSheet();
-          msgEl.textContent = err && /export component/.test(err.message) ? 'Export component could not load — check your connection and retry' : 'Could not prepare the print — please retry';
-        });
+          var imgs = buildPrintSheet(pages, paper, urls);
+          return afterPrepared(imgs, msgEl, ui.reset.bind(ui));
+        }).catch(function(e){ Object.keys(urls).forEach(function(k){ URL.revokeObjectURL(urls[k]); }); ui.fail(e); });
       }
       document.getElementById('print-top').addEventListener('click', startPrint);
       document.getElementById('print-btn').addEventListener('click', startPrint);
+      document.getElementById('plist-print').addEventListener('click', startPrintList);
       (function(){
         var paper = document.getElementById('print-paper'), fill = document.getElementById('print-fill'),
             copies = document.getElementById('print-copies'), guides = document.getElementById('print-guides'),
-            row = document.getElementById('print-copies-row');
-        paper.value = printPrefs.paper; fill.checked = printPrefs.fill; guides.checked = printPrefs.guides; copies.value = printPrefs.copies;
+            rotate = document.getElementById('print-rotate'), row = document.getElementById('print-copies-row');
+        paper.value = printPrefs.paper; fill.checked = printPrefs.fill; guides.checked = printPrefs.guides; rotate.checked = printPrefs.rotate; copies.value = printPrefs.copies;
         row.hidden = printPrefs.fill;
-        paper.addEventListener('change', function(){ printPrefs.paper = PAPERS[paper.value] ? paper.value : 'letter'; savePrintPrefs(); updatePrintInfo(); });
+        paper.addEventListener('change', function(){ printPrefs.paper = PAPERS[paper.value] ? paper.value : 'letter'; savePrintPrefs(); updatePrintInfo(); updatePlistInfo(); });
         fill.addEventListener('change', function(){ printPrefs.fill = fill.checked; row.hidden = fill.checked; savePrintPrefs(); updatePrintInfo(); });
         guides.addEventListener('change', function(){ printPrefs.guides = guides.checked; savePrintPrefs(); });
+        rotate.addEventListener('change', function(){ printPrefs.rotate = rotate.checked; savePrintPrefs(); updatePlistInfo(); });
         function onCopies(){
           var v = parseInt(copies.value, 10);
           if (v >= 1){ printPrefs.copies = Math.min(v, PRINT_MAX); savePrintPrefs(); updatePrintInfo(); }
         }
         copies.addEventListener('input', onCopies);
         copies.addEventListener('change', function(){ onCopies(); copies.value = printPrefs.copies; });
-        updatePrintInfo();
+        document.getElementById('plist-add').addEventListener('click', function(){
+          var reason = exportBlockReason(), msg = document.getElementById('export-msg');
+          if (reason){ msg.textContent = reason.replace('before downloading', 'before adding it to the print list'); return; }
+          msg.textContent = '';
+          if (!addToPrintList(state)) msg.textContent = 'The print list is full (' + PLIST_MAX_ITEMS + ' different labels).';
+        });
+        document.getElementById('plist-add-rec').addEventListener('click', function(){
+          var msg = document.getElementById('export-msg');
+          if (!selectedKey || !records[selectedKey]){ msg.textContent = 'Select a saved record first (see Records).'; return; }
+          msg.textContent = '';
+          if (!addToPrintList(records[selectedKey])) msg.textContent = 'The print list is full (' + PLIST_MAX_ITEMS + ' different labels).';
+        });
+        document.getElementById('plist-clear').addEventListener('click', function(){ printList = []; savePrintList(); renderPrintList(); });
+        updatePrintInfo(); renderPrintList();
       })();
 
       /* Re-fit at most once per frame, and only when the stage width really
