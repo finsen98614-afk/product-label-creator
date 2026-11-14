@@ -18,6 +18,7 @@ Generate XO-W12-style product labels — for smart watches, dash cams and more.
   - **Add**: a blank form to fill in (required: brand name, product name, barcode value), then **Save** or **Cancel**. Switch on **Add copy** to pick an existing record in a window and start from a copy of it (you enter its own barcode value).
   - **Change**: pick an existing record in a window, edit it, then **Save** or **Cancel** (changing the barcode value re-keys the record).
   - **Delete**: pick an existing record; it is shown read-only and nothing can be changed, then **Confirm delete** or **Cancel**.
+  - Until an action is chosen the page shows the **most recent record** (the one saved or changed last; a sample label while there are no records), so Print and Download PNG always act on a real label. The order is kept in the browser.
   - While an action is open the three action buttons are locked, so the only ways out are Save, Confirm or Cancel; Cancel puts back the label that was on screen before. Save / Confirm / Cancel stay at the bottom of the panel. The picking window has a search box (barcode, brand, product), so a hundred records are no problem.
 
 ## Use it

@@ -391,6 +391,7 @@
       .actionbar .record-msg{ margin:4px 0 0; min-height:0; }
       .actionbar .record-msg:empty{ display:none; }
       b.req{ color:var(--danger); }
+      .act-shown{ font-size:12px; }
       .f input.invalid, .f select.invalid{ border-color:var(--danger); }
       .editor[hidden]{ display:none; }
       #editor-fields{ border:0; margin:0; padding:0; min-width:0; }
@@ -503,6 +504,7 @@
           </div>
           <div class="act-mode">
             <p id="act-hint"><b>What do you want to do?</b> <b>Add</b> a new saved label, <b>Change</b> one, or <b>Delete</b> one.</p>
+            <p id="act-shown" class="act-shown"></p>
             <div id="act-addcopy" hidden>
               <div class="switch-row">
                 <div class="t">Add copy <span class="sub-text">start from an existing record</span></div>
@@ -2497,7 +2499,31 @@
            Delete  -> pick an existing record -> shown read-only -> Confirm / Cancel
          While an action is open the three action buttons are locked, so the only ways out are Save,
          Confirm or Cancel. Cancel puts back the label that was shown before the action started. */
-      var mode = 'idle', editKey = '', copySource = '', prevState = null;
+      /* The page shows the most recent record while no action is open, so Print and Download PNG
+         act on a real label. "Recent" = the record saved or changed last; the order is kept in
+         this browser (plc_recent_v1). Without it (records from an older version, an import) the
+         record stored last is used, and with no records at all a sample label is shown. */
+      var RECENT_KEY = 'plc_recent_v1', RECENT_MAX = 200, recent = [];
+      try {
+        var rc = JSON.parse(localStorage.getItem(RECENT_KEY) || 'null');
+        if (Array.isArray(rc)) recent = rc.filter(function(k){ return typeof k === 'string'; }).slice(0, RECENT_MAX);
+      } catch (e) {}
+      function saveRecent(){ try { localStorage.setItem(RECENT_KEY, JSON.stringify(recent)); } catch (e) {} }
+      function touchRecent(k){ recent = [k].concat(recent.filter(function(x){ return x !== k; })).slice(0, RECENT_MAX); saveRecent(); }
+      function dropRecent(k){ recent = recent.filter(function(x){ return x !== k; }); saveRecent(); }
+      function recentKey(){
+        for (var i = 0; i < recent.length; i++) if (records[recent[i]]) return recent[i];
+        var all = Object.keys(records);
+        return all.length ? all[all.length - 1] : '';
+      }
+      function showIdle(){
+        var k = recentKey();
+        state = k ? normalizeState(records[k]) : defaultState();
+        syncFormFromState();
+        var el = document.getElementById('act-shown');
+        el.textContent = k ? 'Showing the most recent record: ' + recordLabel(k) : 'No saved records yet — showing a sample label.';
+      }
+      var mode = 'idle', editKey = '', copySource = '';
       var actBtns = { add:document.getElementById('act-add'), change:document.getElementById('act-change'), 'delete':document.getElementById('act-delete') };
       function blankState(){
         var d = defaultState();
@@ -2528,7 +2554,6 @@
       }
       /* opens the editor on a state: the one entry point for Add, Add copy, Change and Delete */
       function enterEdit(m, st, key){
-        if (mode === 'idle') prevState = snapshotState();
         state = normalizeState(st);
         editKey = key || '';
         syncFormFromState();
@@ -2536,10 +2561,11 @@
         setMode(m);
         var panel = document.querySelector('.panel'); if (panel) panel.scrollTop = 0;
       }
-      function backToIdle(restore){
-        if (restore && prevState){ state = normalizeState(prevState); syncFormFromState(); }
-        prevState = null; editKey = ''; copySource = '';
+      /* `restore` is kept for the callers; the idle screen is always the most recent record */
+      function backToIdle(){
+        editKey = ''; copySource = '';
         setMode('idle');
+        showIdle();
       }
       function noRecordsYet(){ recMsg('There are no saved records yet — use Add first.', 'err'); }
       actBtns.add.addEventListener('click', function(){
@@ -2604,35 +2630,36 @@
         if (mode === 'add'){
           if (records[key]){ recMsg('A record for barcode “' + key + '” already exists. Enter a different barcode value, or Cancel and use Change.', 'err'); document.getElementById('in-barcode').classList.add('invalid'); return; }
           records[key] = snapshotState();
-          updateRecordCount(); backToIdle(false);
+          touchRecent(key); updateRecordCount(); backToIdle();
           recSaved('Saved new record “' + key + '”.');
         } else {
           var oldKey = editKey;
           if (key !== oldKey){
             if (records[key]){ recMsg('Another record already uses barcode “' + key + '”. Enter a different barcode value.', 'err'); document.getElementById('in-barcode').classList.add('invalid'); return; }
-            delete records[oldKey];
+            delete records[oldKey]; dropRecent(oldKey);
           }
           records[key] = snapshotState();
-          updateRecordCount(); backToIdle(false);
+          touchRecent(key); updateRecordCount(); backToIdle();
           recSaved(key === oldKey ? 'Saved changes to “' + key + '”.' : 'Saved changes — barcode changed from “' + oldKey + '” to “' + key + '”.');
         }
       });
       document.getElementById('act-confirm').addEventListener('click', function(){
         if (mode !== 'delete' || !records[editKey]) return;
         var key = editKey;
-        delete records[key];
-        updateRecordCount(); backToIdle(true);
+        delete records[key]; dropRecent(key);
+        updateRecordCount(); backToIdle();
         recSaved('Deleted record “' + key + '”.');
       });
       document.getElementById('act-cancel').addEventListener('click', function(){
         if (mode === 'idle') return;
-        backToIdle(true);
+        backToIdle();
         recMsg('');
       });
       /* a message belongs to the action that produced it: the next edit clears it */
       document.getElementById('editor').addEventListener('input', function(){ if (recMsgEl.textContent && recMsgEl.className.indexOf('err') === -1) recMsg(''); });
       updateRecordCount();
       setMode('idle');
+      showIdle();
       if (startupNote){
         if (startupNote.persist){
           if (persistRecords()) recMsg(startupNote.text, startupNote.kind);
@@ -2714,6 +2741,7 @@
               recMsg('No valid records found in the file; nothing was imported.', 'err'); return;
             }
             updateRecordCount();
+            if (mode === 'idle') showIdle();
             recSaved('Imported: ' + added + ' added, ' + overwritten + ' overwritten' +
               (skipped ? ', ' + skipped + ' invalid skipped' : '') + '.' +
               (collided ? ' ' + collided + ' used a barcode that already exists and ' + (collided === 1 ? 'is' : 'are') + ' stored as “barcode [product]”.' : '') +
