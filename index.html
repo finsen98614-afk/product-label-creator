@@ -368,11 +368,14 @@
       .record-note.bc-err{ color:var(--danger); font-weight:700; }
       .record-note{ font-size:12px; color:var(--ink-2); line-height:1.55; margin:0 0 12px; }
       /* clickable list of existing product names (for Change / Delete) */
-      .record-picker{ display:flex; flex-wrap:wrap; gap:6px; margin:0 0 12px; }
+      /* a list that scrolls, so 100 saved records do not make the panel 100 rows long */
+      .record-picker{ display:flex; flex-direction:column; gap:4px; margin:0 0 12px; max-height:224px; overflow-y:auto; overscroll-behavior:contain; padding-right:2px; }
+      .rec-search{ width:100%; font:inherit; font-size:13px; padding:8px 10px; margin:0 0 8px; border:1.5px solid var(--line); border-radius:9px; background:var(--field); color:var(--ink); }
+      .rec-search[hidden]{ display:none; }
       .rec-chip{
         font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; text-align:left;
         border:1.5px solid var(--line); background:var(--field); color:var(--ink);
-        border-radius:999px; padding:6px 12px; max-width:100%;
+        border-radius:10px; padding:7px 12px; width:100%; flex:none;
         overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
       }
       .rec-chip:hover{ border-color:var(--brand); }
@@ -483,6 +486,7 @@
         <section class="block">
           <div class="block-head"><h2>Records</h2><button type="button" class="help" aria-label="Help: Records" aria-expanded="false" aria-controls="h-records">?</button><span class="hint" id="record-count"></span></div>
           <div class="help-pop" id="h-records" hidden>Records are saved in this browser and keyed by the barcode value. Tap a saved record (or type its barcode in the field above) and press <b>Load</b>. <b>Add</b>, <b>Change</b> and <b>Delete</b> are at the bottom of the form. Export a backup now and then — clearing the browser&#39;s site data removes saved records. Importing merges with existing records; the same barcode is overwritten by the file.</div>
+          <input type="search" class="rec-search" id="rec-search" placeholder="Search saved records (barcode, brand, product)" aria-label="Search saved records" autocomplete="off" hidden />
           <div class="record-picker" id="record-picker"></div>
           <div class="record-actions single">
             <button type="button" class="rec-btn" id="rec-load">Load selected</button>
@@ -2311,9 +2315,29 @@
         }
       }
       function snapshotState(){ return JSON.parse(JSON.stringify(state)); }
+      var REC_SEARCH_FROM = 6;          /* the search box appears once there are more records than this */
+      var recSearchEl = document.getElementById('rec-search');
+      function recMatches(k, q){
+        var r = records[k] || {};
+        return (k + ' ' + (r.name || '') + ' ' + (r.sub || '')).toLowerCase().indexOf(q) !== -1;
+      }
+      /* keep the selected row visible inside the scrolling list without scrolling the whole page */
+      function scrollPickerToSelected(){
+        var sel = recPickerEl.querySelector('.rec-chip.sel');
+        if (!sel) return;
+        var top = sel.offsetTop - recPickerEl.offsetTop, bottom = top + sel.offsetHeight;
+        if (top < recPickerEl.scrollTop) recPickerEl.scrollTop = top;
+        else if (bottom > recPickerEl.scrollTop + recPickerEl.clientHeight) recPickerEl.scrollTop = bottom - recPickerEl.clientHeight;
+      }
       function refreshRecordList(keepKey){
-        var keys = Object.keys(records).sort(function(a, b){ return a.localeCompare(b); });
-        document.getElementById('record-count').textContent = keys.length ? keys.length + (keys.length === 1 ? ' record' : ' records') : '';
+        var all = Object.keys(records).sort(function(a, b){ return a.localeCompare(b); });
+        recSearchEl.hidden = all.length <= REC_SEARCH_FROM;
+        var q = recSearchEl.hidden ? '' : recSearchEl.value.trim().toLowerCase();
+        /* a record that was just added / changed / loaded must not stay hidden behind an old search */
+        if (q && keepKey && records[keepKey] && !recMatches(keepKey, q)){ recSearchEl.value = ''; q = ''; }
+        var keys = q ? all.filter(function(k){ return recMatches(k, q); }) : all;
+        document.getElementById('record-count').textContent = all.length
+          ? (q ? keys.length + ' of ' + all.length : all.length) + (all.length === 1 ? ' record' : ' records') : '';
         if (keepKey && records[keepKey]) selectedKey = keepKey;
         if (selectedKey && !records[selectedKey]) selectedKey = '';
         /* clickable list of saved barcodes — tap one to select it for Load /
@@ -2322,7 +2346,7 @@
         if (!keys.length){
           var none = document.createElement('span');
           none.className = 'record-picker-empty';
-          none.textContent = 'No saved records yet.';
+          none.textContent = all.length ? 'No saved record matches “' + recSearchEl.value.trim() + '”.' : 'No saved records yet.';
           recPickerEl.appendChild(none);
         } else {
           keys.forEach(function(k){
@@ -2338,7 +2362,9 @@
           });
         }
         syncPressed();
+        scrollPickerToSelected();
       }
+      recSearchEl.addEventListener('input', function(){ refreshRecordList(); });
       function syncPickerChips(){
         recPickerEl.querySelectorAll('.rec-chip').forEach(function(chip){
           chip.classList.toggle('sel', chip.dataset.key === selectedKey);
@@ -2350,6 +2376,7 @@
         selectedKey = k;
         disarmDelete();
         syncPickerChips();
+        scrollPickerToSelected();
         recMsg('Selected “' + k + '”. Press Load to bring it back.', 'ok');
       }
       function disarmDelete(){
