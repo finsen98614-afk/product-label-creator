@@ -400,9 +400,9 @@
       .actionfoot[hidden]{ display:none; }
       .actionfoot .rec-btn{ flex:1; padding:12px 8px; }
       /* ---------- "Select an existing record" window ---------- */
-      #rec-dialog{ width:min(520px, 92vw); max-height:88vh; border:none; border-radius:14px; padding:18px; background:var(--panel); color:var(--ink); box-shadow:0 20px 60px rgba(0,0,0,.4); }
-      #rec-dialog::backdrop{ background:rgba(15,18,25,.55); }
-      #rec-dialog h2{ font-size:16px; font-weight:900; margin:0 0 4px; }
+      #rec-dialog, #confirm-dialog{ width:min(520px, 92vw); max-height:88vh; border:none; border-radius:14px; padding:18px; background:var(--panel); color:var(--ink); box-shadow:0 20px 60px rgba(0,0,0,.4); }
+      #rec-dialog::backdrop, #confirm-dialog::backdrop{ background:rgba(15,18,25,.55); }
+      #rec-dialog h2, #confirm-dialog h2{ font-size:16px; font-weight:900; margin:0 0 4px; }
       #rec-dialog .rd-list{ max-height:min(340px, 46vh); }
       .rd-actions{ display:flex; gap:8px; justify-content:flex-end; }
       .rd-actions .rec-btn{ min-width:96px; }
@@ -721,6 +721,15 @@
         </div>
       </main>
     </div>
+
+    <dialog id="confirm-dialog" aria-labelledby="cd-title">
+      <h2 id="cd-title">Discard your changes?</h2>
+      <p class="record-note" id="cd-text">You have changes that are not saved. If you leave now they are lost.</p>
+      <div class="rd-actions">
+        <button type="button" class="rec-btn danger" id="cd-discard">Discard changes</button>
+        <button type="button" class="rec-btn primary" id="cd-keep">Keep editing</button>
+      </div>
+    </dialog>
 
     <dialog id="rec-dialog" aria-labelledby="rd-title">
       <h2 id="rd-title">Select an existing record</h2>
@@ -2523,7 +2532,26 @@
         var el = document.getElementById('act-shown');
         el.textContent = k ? 'Showing the most recent record: ' + recordLabel(k) : 'No saved records yet — showing a sample label.';
       }
-      var mode = 'idle', editKey = '', copySource = '';
+      var mode = 'idle', editKey = '', copySource = '', startJson = '';
+      /* "unsaved changes" = the form differs from how the action started (blank, a copy, or the record being changed) */
+      function stateJson(st){ var d = normalizeDropped; var j = JSON.stringify(normalizeState(st)); normalizeDropped = d; return j; }
+      function isDirty(){ return (mode === 'add' || mode === 'change') && stateJson(state) !== startJson; }
+      /* resolves true = discard, false = keep editing (button, Esc or click outside count as keep) */
+      var cdDlg = document.getElementById('confirm-dialog'), cdResolve = null, cdAnswer = false;
+      function confirmDiscard(text){
+        if (cdResolve){ var r0 = cdResolve; cdResolve = null; r0(false); }
+        return new Promise(function(resolve){
+          cdResolve = resolve; cdAnswer = false;
+          document.getElementById('cd-text').textContent = text || 'You have changes that are not saved. If you leave now they are lost.';
+          if (typeof cdDlg.showModal === 'function') cdDlg.showModal(); else cdDlg.setAttribute('open', '');
+          document.getElementById('cd-keep').focus();
+        });
+      }
+      cdDlg.addEventListener('close', function(){ var r = cdResolve; cdResolve = null; var a = cdAnswer; cdAnswer = false; if (r) r(a); });
+      document.getElementById('cd-discard').addEventListener('click', function(){ cdAnswer = true; cdDlg.close(); });
+      document.getElementById('cd-keep').addEventListener('click', function(){ cdAnswer = false; cdDlg.close(); });
+      /* leaving the page with an unsaved draft: the browser asks first */
+      window.addEventListener('beforeunload', function(e){ if (isDirty()){ e.preventDefault(); e.returnValue = ''; } });
       var actBtns = { add:document.getElementById('act-add'), change:document.getElementById('act-change'), 'delete':document.getElementById('act-delete') };
       function blankState(){
         var d = defaultState();
@@ -2534,6 +2562,7 @@
         mode = m;
         Object.keys(actBtns).forEach(function(k){ actBtns[k].setAttribute('aria-pressed', k === m ? 'true' : 'false'); actBtns[k].disabled = m !== 'idle'; });
         document.getElementById('act-hint').hidden = m !== 'idle';
+        document.getElementById('act-shown').hidden = m !== 'idle';
         document.getElementById('act-addcopy').hidden = m !== 'add';
         document.getElementById('act-target').hidden = !(m === 'change' || m === 'delete');
         document.getElementById('act-req').hidden = !(m === 'add' || m === 'change');
@@ -2556,6 +2585,7 @@
       function enterEdit(m, st, key){
         state = normalizeState(st);
         editKey = key || '';
+        startJson = stateJson(state);
         syncFormFromState();
         appManual = m === 'change' || m === 'delete' || (m === 'add' && !!copySource);   /* a copied / existing record keeps its own App setting */
         setMode(m);
@@ -2575,19 +2605,32 @@
         document.getElementById('in-name').focus();
       });
       document.getElementById('add-copy').addEventListener('change', function(e){
-        var sw = e.target;
+        var sw = e.target, want = sw.checked;
         if (mode !== 'add') return;
-        if (!sw.checked){ copySource = ''; recMsg(''); enterEdit('add', blankState(), ''); return; }
-        if (!Object.keys(records).length){ sw.checked = false; noRecordsYet(); return; }
-        pickRecord({ title:'Select an existing record to copy', purpose:'The new record starts as a copy of it. You enter its own barcode value.', ok:'Copy' }).then(function(key){
-          if (!key){ sw.checked = false; return; }
-          var st = normalizeState(records[key]);
-          st.barcode = '';                                   /* the barcode is the record key: the copy needs its own */
-          copySource = key; recMsg('Copied “' + key + '”. Enter the new barcode value, then Save.', 'ok');
-          enterEdit('add', st, '');
-          sw.checked = true;
-          document.getElementById('in-barcode').focus();
-        });
+        function goBlank(){ copySource = ''; recMsg(''); enterEdit('add', blankState(), ''); }
+        function goCopy(){
+          pickRecord({ title:'Select an existing record to copy', purpose:'The new record starts as a copy of it. You enter its own barcode value.', ok:'Copy' }).then(function(key){
+            if (!key){ sw.checked = false; return; }
+            var st = normalizeState(records[key]);
+            st.barcode = '';                                   /* the barcode is the record key: the copy needs its own */
+            copySource = key; recMsg('Copied “' + key + '”. Enter the new barcode value, then Save.', 'ok');
+            enterEdit('add', st, '');
+            sw.checked = true;
+            document.getElementById('in-barcode').focus();
+          });
+        }
+        if (want && !Object.keys(records).length){ sw.checked = false; noRecordsYet(); return; }
+        /* switching either way replaces the form, so unsaved typing is asked about first */
+        if (isDirty()){
+          sw.checked = !want;                                  /* stays as it was until the user decides */
+          confirmDiscard('Switching replaces the form, and what you typed so far is not saved.').then(function(discard){
+            if (!discard) return;
+            sw.checked = want;
+            if (want) goCopy(); else goBlank();
+          });
+          return;
+        }
+        if (want) goCopy(); else goBlank();
       });
       actBtns.change.addEventListener('click', function(){
         if (mode !== 'idle') return;
@@ -2652,8 +2695,9 @@
       });
       document.getElementById('act-cancel').addEventListener('click', function(){
         if (mode === 'idle') return;
-        backToIdle();
-        recMsg('');
+        function leave(){ backToIdle(); recMsg(''); }
+        if (!isDirty()){ leave(); return; }
+        confirmDiscard().then(function(discard){ if (discard) leave(); });
       });
       /* a message belongs to the action that produced it: the next edit clears it */
       document.getElementById('editor').addEventListener('input', function(){ if (recMsgEl.textContent && recMsgEl.className.indexOf('err') === -1) recMsg(''); });
