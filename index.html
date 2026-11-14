@@ -1092,10 +1092,12 @@
         { id:'watch', name:'Smart watch', app:true,
           icons:['pulse','o2','heart','health','steps','runner','moon','thermo','battery','wireless','water','bluetooth','phone','card','amoled','screen','case','robot','pin','music','camera','wifi','mic','sun','clock','flash','bell','star'],
           rules:[],
-          quick:['Heart Rate Monitor','Blood Oxygen SpO2','BP Trend Monitoring','Sleep Monitoring','Step Counter','Bluetooth Call','IP68 Waterproof','AMOLED Screen','NFC Payment','Sport Modes','Built-in AI Q&A','Wireless Charging','3-5 Days Battery','Weather Forecast','Message Notifications','Music Control'] },
+          starter:['Heart Rate Monitor','Bluetooth Call','IP68','AMOLED Screen','Sport Modes','3-5 Days Battery'],
+          quick:['Heart Rate Monitor','Blood Oxygen SpO2','BP Trend Monitoring','Sleep Monitoring','Step Counter','Bluetooth Call','IP68','AMOLED Screen','NFC Payment','Sport Modes','Built-in AI Q&A','Wireless Charging','3-5 Days Battery','Weather Forecast','Message Notifications','Music Control'] },
         { id:'dashcam', name:'Dash cam', app:true,
           icons:['dashcam','video','res4k','hd','wideangle','loop','gsensor','parking','nightvision','dualcam','adas','speedalert','hdr','motion','timelapse','lock','sdcard','pin','wifi','mic','battery','screen','camera','star'],
           rules:[],
+          starter:['4K Ultra HD Video','170° Wide Angle','Loop Recording','G-Sensor Impact Detection','24H Parking Mode','Super Night Vision'],
           quick:['4K Ultra HD Video','170° Wide Angle','Loop Recording','G-Sensor Impact Detection','24H Parking Mode','Super Night Vision','Front & Rear Dual Camera','ADAS Lane Assist','Speed Camera Alert','GPS Tracking','Wi-Fi App Control','HDR / WDR','Motion Detection','Time-Lapse Recording','Emergency Lock','MicroSD Card Support','Voice Control','Super Capacitor'] },
         { id:'speaker', name:'Speaker',
           icons:['speaker','volume','bass','tws','partylight','radio','usb','aux','sdcard','bluetooth','battery','wireless','water','phone','mic','music','wifi','clock','star'],
@@ -1110,6 +1112,7 @@
             ['speaker',    ['speaker','喇叭','音箱','音響','音响']],
             ['volume',     ['stereo','surround','sound','audio','volume','hifi','hi-fi','loud','立體聲','立体声','環繞','环绕','音質','音质']]
           ],
+          starter:['Bluetooth 5.3','IPX7 Waterproof','20H Playtime','Deep Bass','TWS Pairing','Type-C Fast Charging'],
           quick:['Bluetooth 5.3','IPX7 Waterproof','20H Playtime','Deep Bass','TWS Pairing','RGB Party Lights','FM Radio','USB / TF Card Playback','AUX Input','Hands-free Calling','Type-C Fast Charging','360° Stereo Sound','Wireless Mic Input'] },
         { id:'drone', name:'Drone',
           icons:['drone','camera','video','res4k','hd','gimbal','pin','homegps','obstacle','follow','flighttime','range','foldable','altitude','remote','propeller','takeoff','battery','wifi','screen','star'],
@@ -1128,6 +1131,7 @@
             ['video',      ['fpv','first person','real-time video']],
             ['drone',      ['drone','quadcopter','uav','無人機','无人机']]
           ],
+          starter:['4K Camera','3-Axis Gimbal','GPS Return Home','Obstacle Avoidance','30 Min Flight Time','Foldable Design'],
           quick:['4K Camera','3-Axis Gimbal','GPS Return Home','Obstacle Avoidance','Follow Me','30 Min Flight Time','5 KM Range','Foldable Design','Altitude Hold','Brushless Motor','One-Key Takeoff / Landing','Wi-Fi FPV','Remote Controller','Dual Battery'] },
         { id:'karaoke', name:'Karaoke',
           icons:['karaoke','wirelessmic','duet','mic','echo','equalizer','voicechange','discoball','lyrics','tvout','recmic','music','volume','bluetooth','battery','usb','sdcard','wifi','star'],
@@ -1145,6 +1149,7 @@
             ['volume',      ['volume','stereo','speaker','sound','audio']],
             ['karaoke',     ['karaoke','ktv','k歌','sing','singing','卡拉ok','唱歌']]
           ],
+          starter:['Dual Wireless Mics','Echo & Reverb','Bluetooth Connection','LED Party Lights','Voice Changer','Rechargeable Battery'],
           quick:['Dual Wireless Mics','Echo & Reverb','Bluetooth Connection','LED Party Lights','Voice Changer','Record Your Songs','HDMI TV Output','Lyrics App Support','Rechargeable Battery','USB / TF Playback','Duet Mode','Bass & Treble Control'] }
       ];
       function categoryOf(id){
@@ -1184,6 +1189,16 @@
 
       /* does a new label of this category show the App line by default (products that come with a phone app) */
       function categoryApp(id){ return !!categoryOf(id).app; }
+      /* the 4-6 features a new label of this category starts with (the list is optional; General has none) */
+      function categoryStarter(id){
+        var st = categoryOf(id).starter;
+        return Array.isArray(st) ? st.map(function(t){ return { text:t, icon:'auto' }; }) : [];
+      }
+      /* true while the feature list is still exactly the untouched starter set of a category */
+      function isStarterList(list, id){
+        var st = categoryStarter(id);
+        return list.length === st.length && list.every(function(f, i){ return f.text === st[i].text && f.icon === 'auto' && !f.img && !f.custom; });
+      }
 
       /* END CATALOG */
 
@@ -2131,7 +2146,11 @@
          touches the App switch, or the settings come from a loaded record */
       var appManual = false;
       catSel.addEventListener('change', function(){
+        var before = state.category;
         state.category = catSel.value;
+        /* a new label that still has the previous category's untouched starter features gets the new category's;
+           features that were typed, edited or copied from a record are never replaced */
+        if (typeof mode !== 'undefined' && mode === 'add' && !copySource && isStarterList(state.features, before)) state.features = categoryStarter(state.category);
         if (!appManual){
           state.appOn = categoryApp(state.category);
           document.getElementById('in-app-on').checked = state.appOn;
@@ -2555,7 +2574,8 @@
       var actBtns = { add:document.getElementById('act-add'), change:document.getElementById('act-change'), 'delete':document.getElementById('act-delete') };
       function blankState(){
         var d = defaultState();
-        d.name = ''; d.sub = ''; d.slogan = ''; d.appName = ''; d.barcode = ''; d.price = ''; d.features = [];
+        d.name = ''; d.sub = ''; d.slogan = ''; d.appName = ''; d.barcode = ''; d.price = '';
+        d.features = categoryStarter(d.category);          /* starter features of the category; delete or add as needed */
         return d;
       }
       function setMode(m){

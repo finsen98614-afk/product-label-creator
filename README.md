@@ -15,7 +15,7 @@ Generate XO-W12-style product labels — for smart watches, dash cams and more.
 - Print list: add several different labels (the current one, or a saved record), give each its number of copies, and **Print list** packs them onto as few Letter / A4 sheets as possible (labels of different sizes mixed on a sheet, and turned 90 degrees when that saves paper; switch off with "Allow turning labels 90°"). The list is kept in the browser. Every label is checked before printing (invalid barcode, content cut off) and the message names the one at fault
 - Live preview, PNG download (fixed 300 DPI, independent of screen size). A label that would be cut off (barcode, price or content that does not fit) is not exported; the reason is shown next to the Download button
 - Saved records, keyed by the barcode value and stored locally in the browser, with Export / Import backup. Records from the earlier product-name-keyed version are converted automatically. Nothing is edited until you choose an action at the top of the panel:
-  - **Add**: a blank form to fill in (required: brand name, product name, barcode value), then **Save** or **Cancel**. Switch on **Add copy** to pick an existing record in a window and start from a copy of it (you enter its own barcode value).
+  - **Add**: an empty form (brand name, product name and barcode value blank; the feature list starts with 6 common features of the chosen product category, which you can delete or add to, and which swap to the new category's set if you change the category before touching them) to fill in (required: brand name, product name, barcode value), then **Save** or **Cancel**. Switch on **Add copy** to pick an existing record in a window and start from a copy of it (you enter its own barcode value).
   - **Change**: pick an existing record in a window, edit it, then **Save** or **Cancel** (changing the barcode value re-keys the record).
   - **Delete**: pick an existing record; it is shown read-only and nothing can be changed, then **Confirm delete** or **Cancel**.
   - Until an action is chosen the page shows the **most recent record** (the one saved or changed last; a sample label while there are no records), so Print and Download PNG always act on a real label. The order is kept in the browser.
@@ -45,14 +45,15 @@ catalog block of `index.html` (between the `BEGIN CATALOG` and `END CATALOG` com
    { id:'tablet', name:'Tablet',
      icons:['screen','battery', ...],        // shown first in the icon dropdown, in this order
      rules:[ ['screen', ['display','retina']] ],   // run BEFORE the shared rules: [iconKey, [keywords]]
-     quick:['10.1" Display', '8000mAh Battery', ...] }   // 8 or more quick-add features
+     quick:['10.1" Display', '8000mAh Battery', ...],   // 8 or more quick-add features
+     starter:['10.1" Display', '8000mAh Battery', ...] }  // 4 to 6 of those: what a new label of this category starts with
    ```
 
    Keyword rules: ASCII keywords in lowercase; up to 4 letters they must match a whole word (plural allowed), longer
    ones match from the start of a word; keywords with non-ASCII characters (Chinese) match as plain text.
 3. **Check it.** `node tools/check-categories.js` (plain Node, nothing to install) must print `OK`. It fails when a
    category lists an icon that does not exist, a rule points at a missing icon or one outside the category list, a
-   quick-add feature gets no icon, a keyword has capitals, an SVG contains script or event handlers, or the block
+   quick-add feature gets no icon, a starter list is not 4 to 6 entries of the quick-add list, a keyword has capitals, an SVG contains script or event handlers, or the block
    touches the DOM. Warnings (for example an icon no category lists) do not fail the run.
 4. **Look at it.** Open the page, pick the category and add its quick-add features; check each icon reads well.
 5. **Open a pull request.** The *Check icon catalog* workflow runs the same script on every pull request and on `main`.

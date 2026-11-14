@@ -104,6 +104,17 @@ const inAnyCategory = Object.create(null);
   if (!Array.isArray(c.quick) || !c.quick.length) { err(where + ': needs quick-add features'); return; }
   if (c.quick.length < 8) warn(where + ': only ' + c.quick.length + ' quick-add features (8 or more is recommended)');
   if (c.quick.length > MAX_FEATURES) err(where + ': more than ' + MAX_FEATURES + ' quick-add features');
+  /* starter: the 4-6 features a new label of this category starts with; each must be one of the quick-add features */
+  if (c.starter === undefined) warn(where + ': no starter features (4-6 of the quick-add features that a new label of this category starts with)');
+  else if (!Array.isArray(c.starter) || c.starter.length < 4 || c.starter.length > 6) err(where + ': starter must be an array of 4 to 6 features');
+  else {
+    const seenStarter = Object.create(null);
+    c.starter.forEach((t) => {
+      if (c.quick.indexOf(t) === -1) err(where + ': starter feature "' + t + '" is not in the quick-add list (copy it exactly)');
+      if (seenStarter[t]) err(where + ': starter feature "' + t + '" is listed twice');
+      seenStarter[t] = true;
+    });
+  }
   const seenQuick = Object.create(null);
   c.quick.forEach((t) => {
     if (typeof t !== 'string' || !t.trim() || t.length > MAX_TEXT) { err(where + ': quick feature "' + t + '" must be 1-' + MAX_TEXT + ' characters'); return; }
