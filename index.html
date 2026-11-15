@@ -400,7 +400,7 @@
       .editor[hidden]{ display:none; }
       #editor-fields{ border:0; margin:0; padding:0; min-width:0; }
       /* Delete shows the record read-only: disabled controls, but the text keeps its normal colour so it can be checked */
-      #editor-fields:disabled :is(input, select, textarea){ color:var(--ink); -webkit-text-fill-color:var(--ink); opacity:1; border-style:dashed; }
+      #editor-fields:disabled :is(input:not([type=checkbox]):not([type=radio]):not([type=color]):not([type=range]), select, textarea){ color:var(--ink); -webkit-text-fill-color:var(--ink); opacity:1; border-style:dashed; }
       #editor-fields:disabled .chip, #editor-fields:disabled .style-opt, #editor-fields:disabled .swatch{ opacity:1; }
       .actionfoot{ position:sticky; bottom:-40px; z-index:6; display:flex; gap:8px; margin:18px -20px -40px; padding:12px 20px 14px; background:var(--panel); border-top:1px solid var(--line); }
       .actionfoot[hidden]{ display:none; }
