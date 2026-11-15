@@ -7,14 +7,22 @@ Generate XO-W12-style product labels — for smart watches, dash cams and more.
 - Iconic features with auto-matched icons (Bluetooth, IP68, AMOLED, NFC, health monitoring, watch case, wireless charging, dash cam features and more — with online icon search fallback)
 - Defaults for a new label: slogan off, price on, warranty on, App line on for Smart watch and Dash cam and off for the other categories (the App line follows the category until you touch its switch; a loaded record keeps its own setting; set `app:true` on a category in the catalog to make its labels start with the App line)
 - Slogan in 3 styles (Racer / Minimal / Retro), optional. It is the first thing to give way: when the label has no room for it (or the Racer band would be squashed) it hides itself and comes back when there is room again. The switch keeps your choice, and saved records keep it too
-- Warranty period (default 1 Year, or 6 Months) and App name, each with its own on/off switch; price (red, centred on the label and printed as big as the label allows, up to 2.2x its normal size, with the barcode centred under it)
+- Warranty period (default 1 Year, or 6 Months) and App name, each with its own on/off switch; price (a fully saturated red #ff1a1a, because a darker red prints as maroon on a laser printer; centred on the label and printed as big as the label allows, up to 2.6x its normal size, with the decimals less than half the size and at the top like a shelf price tag, and the barcode centred under it)
 - English interface; explanations live behind "?" buttons
 - "Keep space for price and barcode" switch (on by default): a strip at the bottom stays free so a price and barcode can be printed or stuck on afterwards. Turn it off to give the space back to the features. The 5 x 5 cm "compact" preset turns it off
 - Real, scannable barcode: Code 128 (any text), EAN-13, UPC-A — Auto picks by length, retail types verify or auto-add the check digit, bars are checked against a minimum printable width, and their height is a physical size (about 3 mm and up, never shrunk with the text or squeezed to make room: if the label is too tight, the size warning offers to turn the barcode off)
 - Print: **Print** button (top of the preview, and a Print section in the panel). Paper Letter or A4, "Fill the sheet" (as many labels as fit, 10 mm margin, 3 mm between labels) or a number of labels over as many sheets as needed, optional dashed cut guides; settings are remembered in the browser. The label is printed at its real size from the same 300 DPI image as the PNG download, and is blocked in the same cases (invalid barcode, content cut off). In the browser print dialog pick the same paper, set Scale to 100% (not "Fit to page") and Margins to None
 - Print list: add several different labels (the current one, or a saved record), give each its number of copies, and **Print list** packs them onto as few Letter / A4 sheets as possible (labels of different sizes mixed on a sheet, and turned 90 degrees when that saves paper; switch off with "Allow turning labels 90°"). The list is kept in the browser. Every label is checked before printing (invalid barcode, content cut off) and the message names the one at fault
 - Live preview, PNG download (fixed 300 DPI, independent of screen size). A label that would be cut off (barcode, price or content that does not fit) is not exported; the reason is shown next to the Download button
-- Saved records (Add / Load / Change / Delete) keyed by the barcode value and stored locally in the browser, with Export / Import backup. Records from the earlier product-name-keyed version are converted automatically
+- Saved records, keyed by the barcode value and stored locally in the browser, with Export / Import backup. Records from the earlier product-name-keyed version are converted automatically. Nothing is edited until you choose an action at the top of the panel:
+  - **Add**: an empty form (brand name, product name and barcode value blank; the feature list starts with 6 common features of the chosen product category, which you can delete or add to, and which swap to the new category's set if you change the category before touching them) to fill in (required: brand name, product name, barcode value), then **Save** or **Cancel**. Switch on **Add copy** to pick an existing record in a window and start from a copy of it (you enter its own barcode value). The copy's product name and price are highlighted until you change them (the brand name is not), and Save asks once when both are still exactly the same as in the source (only the product name counts when the price is switched off or blank).
+  - **Change**: pick an existing record in a window, edit it, then **Save** or **Cancel** (changing the barcode value re-keys the record).
+  - **Delete**: pick an existing record; it is shown read-only and nothing can be changed, then **Confirm delete** or **Cancel**.
+  - Until an action is chosen the page shows the **most recent record** (the one saved or changed last; a sample label while there are no records), so Print and Download PNG always act on a real label. The order is kept in the browser.
+  - **Cancel** asks "Discard your changes?" only when something was changed (typing a change and typing it back counts as no change); switching **Add copy** over typed text and leaving the page with an unsaved draft ask as well.
+  - The three action buttons can be pressed at any time: leaving an open action goes straight ahead when nothing was changed and asks "Discard your changes?" when something was; pressing Change or Delete again picks another record. Cancel returns to the most recent record. Save / Confirm / Cancel stay at the bottom of the panel.
+  - Save asks a question that does not block, then lets you decide: when the label has no features ("No features?"), and (Add copy) when the product name and price are unchanged.
+  - Delete shows the record read-only at full strength (nothing can be edited). After **Confirm delete** an **Undo** link restores the record until the next action is started. The picking window has a search box (barcode, brand, product), so a hundred records are no problem.
 
 ## Use it
 
@@ -39,14 +47,15 @@ catalog block of `index.html` (between the `BEGIN CATALOG` and `END CATALOG` com
    { id:'tablet', name:'Tablet',
      icons:['screen','battery', ...],        // shown first in the icon dropdown, in this order
      rules:[ ['screen', ['display','retina']] ],   // run BEFORE the shared rules: [iconKey, [keywords]]
-     quick:['10.1" Display', '8000mAh Battery', ...] }   // 8 or more quick-add features
+     quick:['10.1" Display', '8000mAh Battery', ...],   // 8 or more quick-add features
+     starter:['10.1" Display', '8000mAh Battery', ...] }  // 4 to 6 of those: what a new label of this category starts with
    ```
 
    Keyword rules: ASCII keywords in lowercase; up to 4 letters they must match a whole word (plural allowed), longer
    ones match from the start of a word; keywords with non-ASCII characters (Chinese) match as plain text.
 3. **Check it.** `node tools/check-categories.js` (plain Node, nothing to install) must print `OK`. It fails when a
    category lists an icon that does not exist, a rule points at a missing icon or one outside the category list, a
-   quick-add feature gets no icon, a keyword has capitals, an SVG contains script or event handlers, or the block
+   quick-add feature gets no icon, a starter list is not 4 to 6 entries of the quick-add list, a keyword has capitals, an SVG contains script or event handlers, or the block
    touches the DOM. Warnings (for example an icon no category lists) do not fail the run.
 4. **Look at it.** Open the page, pick the category and add its quick-add features; check each icon reads well.
 5. **Open a pull request.** The *Check icon catalog* workflow runs the same script on every pull request and on `main`.
