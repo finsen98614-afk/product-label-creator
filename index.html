@@ -393,6 +393,10 @@
       .actionbar .record-msg{ margin:4px 0 0; min-height:0; }
       .actionbar .record-msg:empty{ display:none; }
       b.req{ color:var(--danger); }
+      /* fields copied from another record that usually need a new value */
+      .f input.check{ border-color:var(--brand); background:#fff6cc; }
+      @media (prefers-color-scheme: dark){ .f input.check{ background:#4a3d0a; } }
+      .act-copynote{ padding:6px 8px; border-left:3px solid var(--brand); background:rgba(245,184,0,.14); border-radius:0 6px 6px 0; }
       .act-shown{ font-size:12px; }
       .f input.invalid, .f select.invalid{ border-color:var(--danger); }
       .editor[hidden]{ display:none; }
@@ -515,6 +519,7 @@
                 <label class="sw"><input type="checkbox" id="add-copy" aria-label="Add copy: start from an existing record" /></label>
               </div>
             </div>
+            <p id="act-copynote" class="act-copynote" hidden></p>
             <p id="act-target" hidden></p>
             <p id="act-req" hidden><b class="req">*</b> required</p>
           </div>
@@ -2561,21 +2566,28 @@
         var el = document.getElementById('act-shown');
         el.textContent = k ? 'Showing the most recent record: ' + recordLabel(k) : 'No saved records yet — showing a sample label.';
       }
-      var mode = 'idle', editKey = '', copySource = '', startJson = '';
+      var mode = 'idle', editKey = '', copySource = '', copyOrig = null, startJson = '';
       /* "unsaved changes" = the form differs from how the action started (blank, a copy, or the record being changed) */
       function stateJson(st){ var d = normalizeDropped; var j = JSON.stringify(normalizeState(st)); normalizeDropped = d; return j; }
       function isDirty(){ return (mode === 'add' || mode === 'change') && stateJson(state) !== startJson; }
-      /* resolves true = discard, false = keep editing (button, Esc or click outside count as keep) */
+      /* a two-button question: resolves true for the first button, false for the second, Esc or a click outside */
       var cdDlg = document.getElementById('confirm-dialog'), cdResolve = null, cdAnswer = false;
-      function confirmDiscard(text){
+      var CD_DEFAULT = { title:'Discard your changes?', text:'You have changes that are not saved. If you leave now they are lost.', yes:'Discard changes', no:'Keep editing', yesDanger:true };
+      function confirmAsk(o){
+        o = Object.assign({}, CD_DEFAULT, o || {});
         if (cdResolve){ var r0 = cdResolve; cdResolve = null; r0(false); }
         return new Promise(function(resolve){
           cdResolve = resolve; cdAnswer = false;
-          document.getElementById('cd-text').textContent = text || 'You have changes that are not saved. If you leave now they are lost.';
+          document.getElementById('cd-title').textContent = o.title;
+          document.getElementById('cd-text').textContent = o.text;
+          var yes = document.getElementById('cd-discard');
+          yes.textContent = o.yes; yes.className = 'rec-btn' + (o.yesDanger ? ' danger' : '');
+          document.getElementById('cd-keep').textContent = o.no;
           if (typeof cdDlg.showModal === 'function') cdDlg.showModal(); else cdDlg.setAttribute('open', '');
           document.getElementById('cd-keep').focus();
         });
       }
+      function confirmDiscard(text){ return confirmAsk(text ? { text:text } : {}); }
       cdDlg.addEventListener('close', function(){ var r = cdResolve; cdResolve = null; var a = cdAnswer; cdAnswer = false; if (r) r(a); });
       document.getElementById('cd-discard').addEventListener('click', function(){ cdAnswer = true; cdDlg.close(); });
       document.getElementById('cd-keep').addEventListener('click', function(){ cdAnswer = false; cdDlg.close(); });
@@ -2619,31 +2631,51 @@
         syncFormFromState();
         appManual = m === 'change' || m === 'delete' || (m === 'add' && !!copySource);   /* a copied / existing record keeps its own App setting */
         setMode(m);
+        updateCopyMarks();
         var panel = document.querySelector('.panel'); if (panel) panel.scrollTop = 0;
       }
       /* `restore` is kept for the callers; the idle screen is always the most recent record */
+      /* Add copy: the product name and the price are the two fields that nearly always differ and are costly to leave
+         as they were (a shelf tag with the old name or price), so they are highlighted until they are changed. */
+      function priceCounts(){ return !!state.priceOn && String(state.price == null ? '' : state.price).trim() !== ''; }
+      function copyUnchanged(){
+        if (!copyOrig) return { sub:false, price:false };
+        return { sub: String(state.sub || '').trim() === copyOrig.sub, price: priceCounts() && String(state.price || '').trim() === copyOrig.price };
+      }
+      function updateCopyMarks(){
+        var on = mode === 'add' && !!copySource && !!copyOrig, u = copyUnchanged();
+        document.getElementById('in-sub').classList.toggle('check', on && u.sub);
+        document.getElementById('in-price').classList.toggle('check', on && u.price);
+        var note = document.getElementById('act-copynote');
+        note.hidden = !on;
+        if (on) note.textContent = 'Copied from “' + copySource + '”. Check the product name and the price (highlighted until you change them), and enter the new barcode value.';
+      }
+      ['input', 'change'].forEach(function(ev){
+        /* a switch fires 'input' before its own handler has updated the state, so it is also read on 'change' */
+        document.getElementById('editor').addEventListener(ev, function(e){ if (e.target.id === 'in-sub' || e.target.id === 'in-price' || e.target.id === 'in-price-on') updateCopyMarks(); });
+      });
       function backToIdle(){
-        editKey = ''; copySource = '';
+        editKey = ''; copySource = ''; copyOrig = null; updateCopyMarks();
         setMode('idle');
         showIdle();
       }
       function noRecordsYet(){ recMsg('There are no saved records yet — use Add first.', 'err'); }
       actBtns.add.addEventListener('click', function(){
         if (mode !== 'idle') return;
-        recMsg(''); copySource = '';
+        recMsg(''); copySource = ''; copyOrig = null;
         enterEdit('add', blankState(), '');
         document.getElementById('in-name').focus();
       });
       document.getElementById('add-copy').addEventListener('change', function(e){
         var sw = e.target, want = sw.checked;
         if (mode !== 'add') return;
-        function goBlank(){ copySource = ''; recMsg(''); enterEdit('add', blankState(), ''); }
+        function goBlank(){ copySource = ''; copyOrig = null; recMsg(''); enterEdit('add', blankState(), ''); }
         function goCopy(){
           pickRecord({ title:'Select an existing record to copy', purpose:'The new record starts as a copy of it. You enter its own barcode value.', ok:'Copy' }).then(function(key){
             if (!key){ sw.checked = false; return; }
             var st = normalizeState(records[key]);
             st.barcode = '';                                   /* the barcode is the record key: the copy needs its own */
-            copySource = key; recMsg('Copied “' + key + '”. Enter the new barcode value, then Save.', 'ok');
+            copySource = key; copyOrig = { sub:String(st.sub || '').trim(), price:String(st.price || '').trim() }; recMsg('', '');
             enterEdit('add', st, '');
             sw.checked = true;
             document.getElementById('in-barcode').focus();
@@ -2702,9 +2734,21 @@
         if (bad){ recMsg(bad, 'err'); document.getElementById('in-barcode').classList.add('invalid'); return; }
         if (mode === 'add'){
           if (records[key]){ recMsg('A record for barcode “' + key + '” already exists. Enter a different barcode value, or Cancel and use Change.', 'err'); document.getElementById('in-barcode').classList.add('invalid'); return; }
-          records[key] = snapshotState();
-          touchRecent(key); updateRecordCount(); backToIdle();
-          recSaved('Saved new record “' + key + '”.');
+          var saveNew = function(){
+            records[key] = snapshotState();
+            touchRecent(key); updateRecordCount(); backToIdle();
+            recSaved('Saved new record “' + key + '”.');
+          };
+          /* a copy whose product name (and price, when one is printed) is exactly the source's: ask once */
+          var cu = copyUnchanged();
+          if (copySource && cu.sub && (cu.price || !priceCounts())){
+            var what = cu.price ? 'product name and price are' : 'product name is';
+            confirmAsk({ title:'Same as “' + copySource + '”?', text:'The ' + what + ' still exactly the same as in the record you copied. Save anyway, or go back and change ' + (cu.price ? 'them' : 'it') + '?', yes:'Save anyway', no:'Go back and edit', yesDanger:false }).then(function(yes){
+              if (yes) saveNew(); else document.getElementById('in-sub').focus();
+            });
+            return;
+          }
+          saveNew();
         } else {
           var oldKey = editKey;
           if (key !== oldKey){
