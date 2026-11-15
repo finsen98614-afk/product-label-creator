@@ -380,11 +380,9 @@
       .actionbar{ position:sticky; top:-22px; z-index:6; background:var(--panel); margin:0 -20px 14px; padding:32px 20px 8px; border-bottom:1px solid var(--line); }
       .act-seg{ display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
       .act-btn{ font:inherit; font-size:14px; font-weight:900; padding:10px 8px; cursor:pointer; border:1.5px solid var(--line); background:var(--field); color:var(--ink); border-radius:10px; }
-      .act-btn:hover:not(:disabled){ border-color:var(--brand); }
+      .act-btn:hover{ border-color:var(--brand); }
       .act-btn[aria-pressed="true"]{ background:var(--brand); border-color:var(--brand); color:var(--brand-ink); }
       .act-btn.danger[aria-pressed="true"]{ background:var(--danger); border-color:var(--danger); color:var(--danger-on); }
-      .act-btn:disabled{ opacity:.5; cursor:default; }
-      .act-btn[aria-pressed="true"]:disabled{ opacity:1; }
       .act-mode{ font-size:13px; line-height:1.5; color:var(--ink-2); margin-top:8px; }
       .act-mode p{ margin:0 0 4px; }
       .act-mode b{ color:var(--ink); }
@@ -401,7 +399,9 @@
       .f input.invalid, .f select.invalid{ border-color:var(--danger); }
       .editor[hidden]{ display:none; }
       #editor-fields{ border:0; margin:0; padding:0; min-width:0; }
-      #editor-fields:disabled{ opacity:.72; }
+      /* Delete shows the record read-only: disabled controls, but the text keeps its normal colour so it can be checked */
+      #editor-fields:disabled :is(input, select, textarea){ color:var(--ink); -webkit-text-fill-color:var(--ink); opacity:1; border-style:dashed; }
+      #editor-fields:disabled .chip, #editor-fields:disabled .style-opt, #editor-fields:disabled .swatch{ opacity:1; }
       .actionfoot{ position:sticky; bottom:-40px; z-index:6; display:flex; gap:8px; margin:18px -20px -40px; padding:12px 20px 14px; background:var(--panel); border-top:1px solid var(--line); }
       .actionfoot[hidden]{ display:none; }
       .actionfoot .rec-btn{ flex:1; padding:12px 8px; }
@@ -2567,6 +2567,23 @@
         el.textContent = k ? 'Showing the most recent record: ' + recordLabel(k) : 'No saved records yet — showing a sample label.';
       }
       var mode = 'idle', editKey = '', copySource = '', copyOrig = null, startJson = '';
+      /* the last deleted record can be brought back until the next action starts */
+      var lastDeleted = null;
+      function addUndoButton(){
+        if (!lastDeleted) return;
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'cap-btn'; b.id = 'rec-undo'; b.textContent = 'Undo';
+        recMsgEl.appendChild(document.createTextNode(' ')); recMsgEl.appendChild(b);
+        b.addEventListener('click', function(){
+          var d = lastDeleted;
+          if (!d) return;
+          if (records[d.key]){ recMsg('Cannot undo: a record with barcode “' + d.key + '” exists now.', 'err'); lastDeleted = null; return; }
+          lastDeleted = null;
+          records[d.key] = d.rec; touchRecent(d.key); updateRecordCount();
+          if (mode === 'idle') showIdle();
+          recSaved('Restored record “' + d.key + '”.');
+        });
+      }
       /* "unsaved changes" = the form differs from how the action started (blank, a copy, or the record being changed) */
       function stateJson(st){ var d = normalizeDropped; var j = JSON.stringify(normalizeState(st)); normalizeDropped = d; return j; }
       function isDirty(){ return (mode === 'add' || mode === 'change') && stateJson(state) !== startJson; }
@@ -2602,7 +2619,8 @@
       }
       function setMode(m){
         mode = m;
-        Object.keys(actBtns).forEach(function(k){ actBtns[k].setAttribute('aria-pressed', k === m ? 'true' : 'false'); actBtns[k].disabled = m !== 'idle'; });
+        if (m !== 'idle') lastDeleted = null;
+        Object.keys(actBtns).forEach(function(k){ actBtns[k].setAttribute('aria-pressed', k === m ? 'true' : 'false'); });
         document.getElementById('act-hint').hidden = m !== 'idle';
         document.getElementById('act-shown').hidden = m !== 'idle';
         document.getElementById('act-addcopy').hidden = m !== 'add';
@@ -2660,12 +2678,36 @@
         showIdle();
       }
       function noRecordsYet(){ recMsg('There are no saved records yet — use Add first.', 'err'); }
-      actBtns.add.addEventListener('click', function(){
-        if (mode !== 'idle') return;
+      /* the three actions can be started from any state: leaving an open one asks first when it has unsaved changes */
+      function startAdd(){
         recMsg(''); copySource = ''; copyOrig = null;
         enterEdit('add', blankState(), '');
         document.getElementById('in-name').focus();
-      });
+      }
+      function startChange(){
+        recMsg('');
+        if (!Object.keys(records).length){ noRecordsYet(); return; }
+        pickRecord({ title:'Select the record to change', purpose:'It opens in the form, ready to edit.', ok:'Change' }).then(function(key){
+          if (key) enterEdit('change', records[key], key);
+        });
+      }
+      function startDelete(){
+        recMsg('');
+        if (!Object.keys(records).length){ noRecordsYet(); return; }
+        pickRecord({ title:'Select the record to delete', purpose:'You will see the record first, and confirm before it is removed.', ok:'Show record' }).then(function(key){
+          if (key) enterEdit('delete', records[key], key);
+        });
+      }
+      var ACTION_START = { add:startAdd, change:startChange, 'delete':startDelete };
+      var ACTION_NAME = { add:'Add', change:'Change', 'delete':'Delete' };
+      function requestAction(target){
+        if (mode === target && target === 'add') return;                 /* already on a blank new form */
+        if (mode === 'idle'){ ACTION_START[target](); return; }
+        var go = function(){ backToIdle(); recMsg(''); ACTION_START[target](); };
+        if (!isDirty()){ go(); return; }
+        confirmDiscard('Switching to ' + ACTION_NAME[target] + ' replaces the form, and what you changed is not saved.').then(function(discard){ if (discard) go(); });
+      }
+      Object.keys(actBtns).forEach(function(k){ actBtns[k].addEventListener('click', function(){ requestAction(k); }); });
       document.getElementById('add-copy').addEventListener('change', function(e){
         var sw = e.target, want = sw.checked;
         if (mode !== 'add') return;
@@ -2694,22 +2736,6 @@
         }
         if (want) goCopy(); else goBlank();
       });
-      actBtns.change.addEventListener('click', function(){
-        if (mode !== 'idle') return;
-        recMsg('');
-        if (!Object.keys(records).length){ noRecordsYet(); return; }
-        pickRecord({ title:'Select the record to change', purpose:'It opens in the form, ready to edit.', ok:'Change' }).then(function(key){
-          if (key) enterEdit('change', records[key], key);
-        });
-      });
-      actBtns['delete'].addEventListener('click', function(){
-        if (mode !== 'idle') return;
-        recMsg('');
-        if (!Object.keys(records).length){ noRecordsYet(); return; }
-        pickRecord({ title:'Select the record to delete', purpose:'You will see the record first, and confirm before it is removed.', ok:'Show record' }).then(function(key){
-          if (key) enterEdit('delete', records[key], key);
-        });
-      });
       /* required: brand name, product name and the barcode value (the record key) */
       function missingRequired(){
         var m = [];
@@ -2732,40 +2758,49 @@
         var key = recordKeyFor(state);
         var bad = retailKeyProblem();
         if (bad){ recMsg(bad, 'err'); document.getElementById('in-barcode').classList.add('invalid'); return; }
+        var oldKey = editKey;
         if (mode === 'add'){
           if (records[key]){ recMsg('A record for barcode “' + key + '” already exists. Enter a different barcode value, or Cancel and use Change.', 'err'); document.getElementById('in-barcode').classList.add('invalid'); return; }
-          var saveNew = function(){
+        } else if (key !== oldKey && records[key]){
+          recMsg('Another record already uses barcode “' + key + '”. Enter a different barcode value.', 'err'); document.getElementById('in-barcode').classList.add('invalid'); return;
+        }
+        var finish = function(){
+          if (mode === 'add'){
             records[key] = snapshotState();
             touchRecent(key); updateRecordCount(); backToIdle();
             recSaved('Saved new record “' + key + '”.');
-          };
-          /* a copy whose product name (and price, when one is printed) is exactly the source's: ask once */
-          var cu = copyUnchanged();
-          if (copySource && cu.sub && (cu.price || !priceCounts())){
-            var what = cu.price ? 'product name and price are' : 'product name is';
-            confirmAsk({ title:'Same as “' + copySource + '”?', text:'The ' + what + ' still exactly the same as in the record you copied. Save anyway, or go back and change ' + (cu.price ? 'them' : 'it') + '?', yes:'Save anyway', no:'Go back and edit', yesDanger:false }).then(function(yes){
-              if (yes) saveNew(); else document.getElementById('in-sub').focus();
-            });
-            return;
+          } else {
+            if (key !== oldKey){ delete records[oldKey]; dropRecent(oldKey); }
+            records[key] = snapshotState();
+            touchRecent(key); updateRecordCount(); backToIdle();
+            recSaved(key === oldKey ? 'Saved changes to “' + key + '”.' : 'Saved changes — barcode changed from “' + oldKey + '” to “' + key + '”.');
           }
-          saveNew();
-        } else {
-          var oldKey = editKey;
-          if (key !== oldKey){
-            if (records[key]){ recMsg('Another record already uses barcode “' + key + '”. Enter a different barcode value.', 'err'); document.getElementById('in-barcode').classList.add('invalid'); return; }
-            delete records[oldKey]; dropRecent(oldKey);
-          }
-          records[key] = snapshotState();
-          touchRecent(key); updateRecordCount(); backToIdle();
-          recSaved(key === oldKey ? 'Saved changes to “' + key + '”.' : 'Saved changes — barcode changed from “' + oldKey + '” to “' + key + '”.');
+        };
+        /* questions that do not block, asked one after the other; "go back" stops the save and puts the cursor where the fix is */
+        var asks = [];
+        var cu = copyUnchanged();
+        if (mode === 'add' && copySource && cu.sub && (cu.price || !priceCounts())){
+          var what = cu.price ? 'product name and price are' : 'product name is';
+          asks.push({ opts:{ title:'Same as “' + copySource + '”?', text:'The ' + what + ' still exactly the same as in the record you copied. Save anyway, or go back and change ' + (cu.price ? 'them' : 'it') + '?', yes:'Save anyway', no:'Go back and edit', yesDanger:false }, focus:'in-sub' });
         }
+        if (!state.features.length){
+          asks.push({ opts:{ title:'No features?', text:'This label has no features, so it will print almost empty. Save anyway, or go back and add some?', yes:'Save anyway', no:'Go back and edit', yesDanger:false }, focus:'add-feat' });
+        }
+        (function next(i){
+          if (i >= asks.length){ finish(); return; }
+          confirmAsk(asks[i].opts).then(function(yes){
+            if (yes) next(i + 1); else document.getElementById(asks[i].focus).focus();
+          });
+        })(0);
       });
       document.getElementById('act-confirm').addEventListener('click', function(){
         if (mode !== 'delete' || !records[editKey]) return;
         var key = editKey;
+        lastDeleted = { key:key, rec:records[key], wasRecent: recent.indexOf(key) };
         delete records[key]; dropRecent(key);
         updateRecordCount(); backToIdle();
         recSaved('Deleted record “' + key + '”.');
+        addUndoButton();
       });
       document.getElementById('act-cancel').addEventListener('click', function(){
         if (mode === 'idle') return;
