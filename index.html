@@ -1040,6 +1040,10 @@
           '<rect x="3.6" y="5.4" width="7" height="11" rx="3.5" fill="#0b0b0c"/>' +
           S('M2.2 13.4a5.8 5.8 0 0 0 11.6 0M7.1 19.4v2', 2) +
           '<circle cx="18.2" cy="7" r="3.8" fill="#0b0b0c"/><circle cx="18.2" cy="7" r="1.4" fill="#fff"/>') },
+        swim: { name:'Swimming', svg: svgWrap(
+          '<circle cx="18.5" cy="10.6" r="2" fill="none" stroke="#0b0b0c" stroke-width="1.5"/>' +
+          S('M6.4 5.4L11.6 6.2 5.4 12.6', 1.95) + S('M5.4 12.6l3.7 1.5q4.2 1.2 6.6-2.2', 1.95) +
+          S('M1.6 18.4c1.5-1.5 3-1.5 4.5 0s3 1.5 4.5 0 3-1.5 4.5 0 3 1.5 4.5 0', 1.5)) },
         star: { name:'Feature', svg: svgWrap(
           F('M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z')) }
       };
@@ -1048,7 +1052,8 @@
       var RULES = [
         ['pulse',     ['bp','blood pressure','血壓','血压']],
         ['o2',        ['spo2','oxygen','血氧']],
-        ['water',     ['ip68','ip67','ip65','ip69','ipx7','ipx8','ipx','waterproof','water resist','防水','游泳','swim']],
+        ['swim',      ['atm','3atm','5atm','10atm','20atm','swim','swimming','swimmer','swimproof','游泳','泳']],   /* water-resistance in ATM = a swimming watch */
+        ['water',     ['ip68','ip67','ip65','ip69','ipx7','ipx8','ipx','waterproof','water resist','防水']],
         ['wireless',  ['wireless charging','wireless charger','wireless charge','qi charging','qi charger','magsafe','無線充電','无线充电','無線充','无线充']],
         ['battery',   ['charging','charge','快充','battery','電池','电池','續航','续航','電量','电量','充電','充电','capacitor','電容','电容','days','day battery']],
         ['res4k',     ['4k','uhd','2160p','超高清']],
@@ -1102,10 +1107,10 @@
       var CATEGORIES = [
         { id:'general', name:'General (all icons)', icons:'*', rules:[], quick:[] },
         { id:'watch', name:'Smart watch', app:true,
-          icons:['pulse','o2','heart','health','steps','runner','moon','thermo','battery','wireless','water','bluetooth','phone','card','amoled','screen','case','robot','pin','music','camera','wifi','mic','sun','clock','flash','bell','star'],
+          icons:['pulse','o2','heart','health','steps','runner','swim','moon','thermo','battery','wireless','water','bluetooth','phone','card','amoled','screen','case','robot','pin','music','camera','wifi','mic','sun','clock','flash','bell','star'],
           rules:[],
           starter:['Heart Rate Monitor','Bluetooth Call','IP68','AMOLED Screen','Sport Modes','3-5 Days Battery'],
-          quick:['Heart Rate Monitor','Blood Oxygen SpO2','BP Trend Monitoring','Sleep Monitoring','Step Counter','Bluetooth Call','IP68','AMOLED Screen','NFC Payment','Sport Modes','Built-in AI Q&A','Wireless Charging','3-5 Days Battery','Weather Forecast','Message Notifications','Music Control'] },
+          quick:['Heart Rate Monitor','Blood Oxygen SpO2','BP Trend Monitoring','Sleep Monitoring','Step Counter','Bluetooth Call','IP68','AMOLED Screen','NFC Payment','Sport Modes','Built-in AI Q&A','Wireless Charging','3-5 Days Battery','Weather Forecast','Message Notifications','Music Control','5 ATM Swim Proof'] },
         { id:'dashcam', name:'Dash cam', app:true,
           icons:['dashcam','video','res4k','hd','wideangle','loop','gsensor','parking','nightvision','dualcam','adas','speedalert','hdr','motion','timelapse','lock','sdcard','pin','wifi','mic','battery','screen','camera','star'],
           rules:[],
