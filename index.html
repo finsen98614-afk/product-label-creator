@@ -1040,6 +1040,10 @@
           '<rect x="3.6" y="5.4" width="7" height="11" rx="3.5" fill="#0b0b0c"/>' +
           S('M2.2 13.4a5.8 5.8 0 0 0 11.6 0M7.1 19.4v2', 2) +
           '<circle cx="18.2" cy="7" r="3.8" fill="#0b0b0c"/><circle cx="18.2" cy="7" r="1.4" fill="#fff"/>') },
+        /* traced from a swimmer pictogram the user supplied (solid version, arm low, two waves) */
+        swim: { name:'Swimming', svg: svgWrap(
+          F('M1.2 16L1.2 16.1L1.4 16.3L2.2 16.4L3.1 16.7L4.3 17.8L4.9 18.2L5.6 18.6L6.4 18.7L7.3 18.6L7.9 18.4L8.8 17.9L10.2 16.7L10.7 16.5L11.3 16.3L12.3 16.3L12.9 16.5L13.8 17L14.9 18L15.8 18.5L16.8 18.7L17.6 18.6L18.2 18.4L18.9 18.1L20.6 16.7L21.4 16.4L22.2 16.3L22.4 16.1L22.4 15.9L22.2 15.8L21.5 15.9L20.9 16L19.9 16.6L19.1 17.3L18.4 17.9L17.5 18.2L16.4 18.2L15.5 17.8L14.9 17.4L14.1 16.6L13.2 16.1L12.7 15.9L11.9 15.8L11.1 15.9L10.5 16L10 16.3L9.3 16.8L8.5 17.6L7.7 18L7.2 18.2L6.1 18.2L5.5 18L5 17.8L3.5 16.5L2.8 16.1L2.4 15.9L1.4 15.8ZM1.2 13.8L1.2 14L1.4 14.2L2.2 14.2L3 14.5L4.8 16L5.3 16.3L6.2 16.5L7.3 16.5L8.1 16.2L8.8 15.8L10.1 14.7L10.7 14.3L11.3 14.2L12.3 14.2L13.2 14.4L13.9 14.9L14.9 15.9L15.7 16.3L16.7 16.5L17.7 16.5L18.3 16.3L18.7 16.1L20.7 14.5L21.4 14.2L22.3 14.2L22.4 13.9L22.3 13.7L21.5 13.7L20.8 13.9L19.9 14.5L19.1 15.3L18.5 15.7L17.8 16L16.9 16.1L16.2 16L15.5 15.7L15 15.3L13.7 14.2L13 13.9L12.4 13.7L11.2 13.7L10.4 13.9L9.8 14.3L8.5 15.4L7.8 15.9L7.2 16L6 16L5 15.6L3.6 14.4L2.7 13.9L2 13.7L1.3 13.7ZM6.4 8.2L6.3 8.7L6.5 9.1L6.7 9.3L7.2 9.5L7.6 9.5L10.4 7.9L10.5 7.9L12.5 9.5L12.3 9.7L7 13L7.2 13.2L7.8 13.5L8.7 13.5L9.3 13.2L9.7 12.9L10.2 12.6L10.8 12.4L11.7 12.2L12.4 12.2L13.3 12.4L14 12.7L15 13.3L15.8 13.5L16.3 13.5L16.9 13.3L17.7 12.8L18 12.6L16.1 9.2L11.5 5.6L11.1 5.4L10.4 5.3L10 5.5L9.6 5.8L6.8 7.6L6.5 8Z') +
+          '<circle cx="20.27" cy="9.18" r="2.52" fill="#0b0b0c"/>') },
         star: { name:'Feature', svg: svgWrap(
           F('M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z')) }
       };
@@ -1048,7 +1052,8 @@
       var RULES = [
         ['pulse',     ['bp','blood pressure','血壓','血压']],
         ['o2',        ['spo2','oxygen','血氧']],
-        ['water',     ['ip68','ip67','ip65','ip69','ipx7','ipx8','ipx','waterproof','water resist','防水','游泳','swim']],
+        ['swim',      ['atm','3atm','5atm','10atm','20atm','swim','swimming','swimmer','swimproof','游泳','泳']],   /* water-resistance in ATM = a swimming watch */
+        ['water',     ['ip68','ip67','ip65','ip69','ipx7','ipx8','ipx','waterproof','water resist','防水']],
         ['wireless',  ['wireless charging','wireless charger','wireless charge','qi charging','qi charger','magsafe','無線充電','无线充电','無線充','无线充']],
         ['battery',   ['charging','charge','快充','battery','電池','电池','續航','续航','電量','电量','充電','充电','capacitor','電容','电容','days','day battery']],
         ['res4k',     ['4k','uhd','2160p','超高清']],
@@ -1102,10 +1107,10 @@
       var CATEGORIES = [
         { id:'general', name:'General (all icons)', icons:'*', rules:[], quick:[] },
         { id:'watch', name:'Smart watch', app:true,
-          icons:['pulse','o2','heart','health','steps','runner','moon','thermo','battery','wireless','water','bluetooth','phone','card','amoled','screen','case','robot','pin','music','camera','wifi','mic','sun','clock','flash','bell','star'],
+          icons:['pulse','o2','heart','health','steps','runner','swim','moon','thermo','battery','wireless','water','bluetooth','phone','card','amoled','screen','case','robot','pin','music','camera','wifi','mic','sun','clock','flash','bell','star'],
           rules:[],
           starter:['Heart Rate Monitor','Bluetooth Call','IP68','AMOLED Screen','Sport Modes','3-5 Days Battery'],
-          quick:['Heart Rate Monitor','Blood Oxygen SpO2','BP Trend Monitoring','Sleep Monitoring','Step Counter','Bluetooth Call','IP68','AMOLED Screen','NFC Payment','Sport Modes','Built-in AI Q&A','Wireless Charging','3-5 Days Battery','Weather Forecast','Message Notifications','Music Control'] },
+          quick:['Heart Rate Monitor','Blood Oxygen SpO2','BP Trend Monitoring','Sleep Monitoring','Step Counter','Bluetooth Call','IP68','AMOLED Screen','NFC Payment','Sport Modes','Built-in AI Q&A','Wireless Charging','3-5 Days Battery','Weather Forecast','Message Notifications','Music Control','5 ATM Swim Proof'] },
         { id:'dashcam', name:'Dash cam', app:true,
           icons:['dashcam','video','res4k','hd','wideangle','loop','gsensor','parking','nightvision','dualcam','adas','speedalert','hdr','motion','timelapse','lock','sdcard','pin','wifi','mic','battery','screen','camera','star'],
           rules:[],
